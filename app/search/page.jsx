@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { SearchIcon, Filter, Check } from 'lucide-react';
+import { Search as SearchIcon, Filter, Check } from 'lucide-react';
 import { LISTINGS, CATEGORIES, DEPARTMENTS } from '@/app/data';
 
 const ListingCard = ({ listing }) => {
@@ -225,4 +225,4 @@ export default function SearchPage() {
       </div>
     </div>
   );
-            }
+                                                                 }

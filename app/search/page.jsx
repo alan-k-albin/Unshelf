@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Search, Filter, Check } from 'lucide-react';
+import { SearchIcon, Filter, Check } from 'lucide-react';
 import { LISTINGS, CATEGORIES, DEPARTMENTS } from '@/app/data';
 
 const ListingCard = ({ listing }) => {
@@ -58,7 +58,7 @@ const ListingCard = ({ listing }) => {
   );
 };
 
-export default function Search() {
+export default function SearchPage() {
   const [filters, setFilters] = useState({
     search: '',
     category: '',
@@ -99,7 +99,7 @@ export default function Search() {
               onChange={handleFilterChange}
               className="w-full px-4 py-2 pl-10 bg-gray-100 rounded-lg text-sm focus:outline-none focus:bg-white"
             />
-            <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
+            <SearchIcon className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
           </div>
 
           {/* Mobile Filter Button */}
@@ -225,4 +225,4 @@ export default function Search() {
       </div>
     </div>
   );
-          }
+            }

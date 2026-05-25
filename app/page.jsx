@@ -2,11 +2,22 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { Check } from 'lucide-react';
+import { BookOpen, PenTool, BookMarked, Notebook, Beaker, Calculator, GraduationCap, MoreHorizontal } from 'lucide-react';
 import { CATEGORIES } from './data';
 import { supabase } from '@/lib/supabaseClient';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
 import ConditionLabel from '@/components/ConditionLabel';
+
+const CATEGORY_ICONS = {
+  'Textbooks': { icon: BookOpen, color: 'bg-blue-100 text-blue-600' },
+  'Handwritten Notes': { icon: PenTool, color: 'bg-purple-100 text-purple-600' },
+  'Study Guides': { icon: BookMarked, color: 'bg-green-100 text-green-600' },
+  'Notebooks': { icon: Notebook, color: 'bg-pink-100 text-pink-600' },
+  'Lab Manuals': { icon: Beaker, color: 'bg-orange-100 text-orange-600' },
+  'Calculators/Tools': { icon: Calculator, color: 'bg-yellow-100 text-yellow-600' },
+  'Coaching Materials': { icon: GraduationCap, color: 'bg-indigo-100 text-indigo-600' },
+  'Other': { icon: MoreHorizontal, color: 'bg-gray-100 text-gray-600' }
+};
 
 const ListingCard = ({ listing }) => {
   return (
@@ -107,7 +118,6 @@ export default function Home() {
     }
   };
 
-  const featuredListings = listings.filter(l => l.featured).slice(0, 5);
   const personalizedListings = listings.filter(l => l.department === userDept).slice(0, 5);
   const recentListings = listings.slice(0, 5);
 
@@ -126,19 +136,30 @@ export default function Home() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
-        {/* Categories Section */}
+        {/* Categories Section - NEW DESIGN */}
         <div className="mb-8">
           <h2 className="text-lg md:text-xl font-bold text-primary mb-4">
             Browse by Category
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {CATEGORIES.map((cat) => (
-              <Link key={cat} href={`/search?category=${cat}`}>
-                <button className="w-full p-3 bg-white rounded-lg border border-gray-200 hover:border-accent hover:bg-accent/5 transition-colors text-center">
-                  <p className="text-sm font-medium text-primary">{cat}</p>
-                </button>
-              </Link>
-            ))}
+            {CATEGORIES.map((cat) => {
+              const categoryInfo = CATEGORY_ICONS[cat];
+              const IconComponent = categoryInfo?.icon || MoreHorizontal;
+              const colorClass = categoryInfo?.color || 'bg-gray-100 text-gray-600';
+
+              return (
+                <Link key={cat} href={`/search?category=${cat}`}>
+                  <div className="group cursor-pointer">
+                    <div className={`${colorClass} rounded-lg p-4 flex flex-col items-center justify-center h-28 mb-2 group-hover:shadow-md transition-all`}>
+                      <IconComponent className="w-10 h-10 mb-2" />
+                      <p className="text-sm font-semibold text-center line-clamp-2">
+                        {cat}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
 
@@ -159,25 +180,6 @@ export default function Home() {
                 : personalizedListings.map((listing) => (
                     <ListingCard key={listing.id} listing={listing} />
                   ))}
-            </div>
-          </div>
-        )}
-
-        {/* Featured Listings */}
-        {featuredListings.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg md:text-xl font-bold text-primary">
-                ⭐ Featured Listings
-              </h2>
-              <Link href="/search" className="text-accent text-sm font-medium hover:underline">
-                View All
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              {featuredListings.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} />
-              ))}
             </div>
           </div>
         )}

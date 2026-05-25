@@ -2,20 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Home, Search, Plus, User, LogOut, Menu, X } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
+import { Home, MessageCircle, Plus, User, LogOut, Menu, X } from 'lucide-react';
 import { isUserVerified, logoutUser } from '@/lib/auth';
 import './globals.css';
 
 export default function RootLayout({ children }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isHomepage = pathname === '/';
 
   useEffect(() => {
-    // Check if user is logged in
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setIsLoggedIn(true);
@@ -43,21 +44,12 @@ export default function RootLayout({ children }) {
               Unshelf
             </Link>
 
-            <div className="relative flex-1 mx-8">
-              <input
-                type="text"
-                placeholder="Search listings..."
-                className="w-full px-4 py-2 bg-light rounded-lg text-sm focus:outline-none focus:bg-white"
-              />
-              <Search className="absolute right-3 top-2.5 w-5 h-5 text-gray-400" />
-            </div>
-
             <div className="flex items-center gap-4">
               <Link href="/" className="text-gray-600 hover:text-primary">
                 Home
               </Link>
               <Link href="/search" className="text-gray-600 hover:text-primary">
-                Search
+                Browse
               </Link>
               {isLoggedIn ? (
                 <>
@@ -67,6 +59,9 @@ export default function RootLayout({ children }) {
                   >
                     <Plus className="w-4 h-4" />
                     Sell
+                  </Link>
+                  <Link href="/chats" className="text-gray-600 hover:text-primary">
+                    <MessageCircle className="w-5 h-5" />
                   </Link>
 
                   {/* Profile Dropdown */}
@@ -125,27 +120,21 @@ export default function RootLayout({ children }) {
             </button>
           </div>
 
-          <div className="relative px-4 py-2 mb-2">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full px-4 py-2 bg-light rounded-lg text-sm focus:outline-none focus:bg-white"
-            />
-            <Search className="absolute right-6 top-4 w-5 h-5 text-gray-400" />
-          </div>
-
           {mobileMenuOpen && (
             <div className="bg-light border-t border-gray-200">
               <Link href="/" className="block px-4 py-2 text-sm text-gray-700">
                 Home
               </Link>
               <Link href="/search" className="block px-4 py-2 text-sm text-gray-700">
-                Search
+                Browse
               </Link>
               {isLoggedIn ? (
                 <>
                   <Link href="/create-listing" className="block px-4 py-2 text-sm text-gray-700">
                     Create Listing
+                  </Link>
+                  <Link href="/chats" className="block px-4 py-2 text-sm text-gray-700">
+                    Chats
                   </Link>
                   <Link href="/profile" className="block px-4 py-2 text-sm text-gray-700">
                     Profile
@@ -169,42 +158,65 @@ export default function RootLayout({ children }) {
         {/* Main Content */}
         <main>{children}</main>
 
-        {/* Mobile Bottom Navigation */}
+        {/* Mobile Bottom Navigation - 4 Buttons */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
           <div className="flex justify-around items-center">
+            {/* Home */}
             <Link
               href="/"
-              className="flex-1 flex flex-col items-center justify-center py-3 text-gray-600 hover:text-accent"
+              className={`flex-1 flex flex-col items-center justify-center py-3 ${
+                pathname === '/' ? 'text-accent' : 'text-gray-600'
+              } hover:text-accent`}
             >
               <Home className="w-6 h-6" />
               <span className="text-xs mt-1">Home</span>
             </Link>
+
+            {/* Chats */}
             <Link
-              href="/search"
-              className="flex-1 flex flex-col items-center justify-center py-3 text-gray-600 hover:text-accent"
+              href="/chats"
+              className={`flex-1 flex flex-col items-center justify-center py-3 ${
+                pathname === '/chats' ? 'text-accent' : 'text-gray-600'
+              } hover:text-accent`}
             >
-              <Search className="w-6 h-6" />
-              <span className="text-xs mt-1">Search</span>
+              <MessageCircle className="w-6 h-6" />
+              <span className="text-xs mt-1">Chats</span>
             </Link>
-            {isLoggedIn && (
+
+            {/* Sell */}
+            {isLoggedIn ? (
               <Link
                 href="/create-listing"
+                className={`flex-1 flex flex-col items-center justify-center py-3 ${
+                  pathname === '/create-listing' ? 'text-accent' : 'text-gray-600'
+                } hover:text-accent`}
+              >
+                <Plus className="w-6 h-6" />
+                <span className="text-xs mt-1">Sell</span>
+              </Link>
+            ) : (
+              <Link
+                href="/login"
                 className="flex-1 flex flex-col items-center justify-center py-3 text-gray-600 hover:text-accent"
               >
                 <Plus className="w-6 h-6" />
                 <span className="text-xs mt-1">Sell</span>
               </Link>
             )}
+
+            {/* Profile */}
             <Link
               href={isLoggedIn ? '/profile' : '/login'}
-              className="flex-1 flex flex-col items-center justify-center py-3 text-gray-600 hover:text-accent"
+              className={`flex-1 flex flex-col items-center justify-center py-3 ${
+                pathname === '/profile' ? 'text-accent' : 'text-gray-600'
+              } hover:text-accent`}
             >
               <User className="w-6 h-6" />
-              <span className="text-xs mt-1">Profile</span>
+              <span className="text-xs mt-1">Account</span>
             </Link>
           </div>
         </nav>
       </body>
     </html>
   );
-              }
+        }

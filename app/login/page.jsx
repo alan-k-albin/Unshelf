@@ -5,6 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Mail, Lock, Smartphone } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 
+const COLLEGE_EMAIL_REGEX = /^[a-zA-Z0-9.+_-]+@(cs|ecs|eee|me|civil|mca|mba|ad)\.sjcetpalai\.ac\.in$/i;
+const DEPARTMENTS = {
+  'cs': 'CS', 'ecs': 'ECS', 'eee': 'EEE', 'me': 'ME',
+  'civil': 'Civil', 'mca': 'MCA', 'mba': 'MBA', 'ad': 'AD'
+};
+
 export default function Login() {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -17,44 +23,67 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Step 1: Send OTP
+  const validateEmail = (emailInput) => {
+    if (!COLLEGE_EMAIL_REGEX.test(emailInput)) {
+      return 'Please use your college email (e.g., name2029@cs.sjcetpalai.ac.in)';
+    }
+    return null;
+  };
+
   const handleSendOTP = async () => {
     setLoading(true);
     setError('');
 
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setError(emailError);
+      setLoading(false);
+      return;
+    }
+
     try {
       const { error: signUpError } = await supabase.auth.signUp({
         email,
-        password: 'temp_password_' + Math.random().toString(36).slice(2),
+        password: 'temp_' + Math.random().toString(36).slice(2),
       });
 
-      if (signUpError) throw signUpError;
+      if (signUpError) {
+        if (signUpError.message.includes('rate limit')) {
+          setError('Too many attempts. Please wait 5 minutes before trying again.');
+        } else if (signUpError.message.includes('already registered')) {
+          setError('This email is already registered. Please login or use another email.');
+        } else {
+          setError(signUpError.message || 'Failed to send OTP. Please try again.');
+        }
+        setLoading(false);
+        return;
+      }
 
-      // In real app, Supabase would send OTP to email
-      // For demo, we'll auto-proceed after 2 seconds
+      // Auto-proceed to OTP step (in production, Supabase sends email)
       setTimeout(() => {
         setStep(2);
         setLoading(false);
-      }, 2000);
+      }, 1500);
     } catch (err) {
-      setError(err.message || 'Failed to send OTP');
+      setError(err.message || 'An error occurred. Please try again.');
       setLoading(false);
     }
   };
 
-  // Step 2: Verify OTP
   const handleVerifyOTP = async () => {
     setLoading(true);
     setError('');
 
+    if (otp.length !== 6) {
+      setError('Please enter a 6-digit OTP');
+      setLoading(false);
+      return;
+    }
+
     try {
-      // In production, verify actual OTP here
-      // For now, accept any OTP and proceed
-      if (otp.length === 6) {
-        setStep(3);
-      } else {
-        setError('Please enter a 6-digit OTP');
-      }
+      // In production, verify with backend
+      // For now, proceed if OTP is valid length
+      setStep(3);
       setLoading(false);
     } catch (err) {
       setError(err.message || 'Failed to verify OTP');
@@ -62,24 +91,41 @@ export default function Login() {
     }
   };
 
-  // Step 3: Complete Profile & Save to Database
   const handleCompleteProfile = async () => {
+    if (!fullName || !department || !semester || !whatsapp) {
+      setError('Please fill in all fields');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      const { data: authData } = await supabase.auth.getUser();
+      // Extract department from email
+      const deptMatch = email.match(/@([a-z]+)\./i);
+      const emailDept = deptMatch ? DEPARTMENTS[deptMatch[1].toLowerCase()] : department;
 
-      if (!authData.user) throw new Error('Not authenticated');
+      // Check if user already exists
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single();
 
-      // Insert user into users table
+      if (existingUser) {
+        setError('User already exists with this email');
+        setLoading(false);
+        return;
+      }
+
+      // Insert new user
       const { error: insertError } = await supabase
         .from('users')
         .insert([
           {
-            email: authData.user.email,
+            email,
             full_name: fullName,
-            department,
+            department: emailDept,
             semester,
             whatsapp_number: whatsapp,
             is_verified: true,
@@ -88,11 +134,11 @@ export default function Login() {
 
       if (insertError) throw insertError;
 
-      // Save user data to localStorage for session
+      // Save to localStorage
       localStorage.setItem('user', JSON.stringify({
         email,
         fullName,
-        department,
+        department: emailDept,
         semester,
         whatsapp,
       }));
@@ -100,7 +146,7 @@ export default function Login() {
       // Redirect to home
       router.push('/');
     } catch (err) {
-      setError(err.message || 'Failed to save profile');
+      setError(err.message || 'Failed to create account');
       setLoading(false);
     }
   };
@@ -116,28 +162,30 @@ export default function Login() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg mb-4 text-sm">
-            {error}
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
+            ⚠️ {error}
           </div>
         )}
 
         {step === 1 && (
           <div>
             <label className="block text-sm font-medium text-primary mb-2">
-              College Email
+              College Email *
             </label>
             <div className="relative mb-4">
               <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
               <input
                 type="email"
-                placeholder="yourname@cs.sjcetpalai.ac.in"
+                placeholder="name2029@cs.sjcetpalai.ac.in"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value.toLowerCase())}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-accent"
               />
             </div>
             <p className="text-xs text-gray-600 mb-4">
-              ✓ College email users get a verified badge
+              ✓ Format: name+year@dept.sjcetpalai.ac.in
+              <br />
+              Example: elommuskbezoz2029@cs.sjcetpalai.ac.in
             </p>
             <button
               onClick={handleSendOTP}
@@ -147,7 +195,7 @@ export default function Login() {
               {loading ? 'Sending...' : 'Send OTP'}
             </button>
             <p className="text-center text-xs text-gray-600">
-              Supported: @cs.sjcetpalai.ac.in, @ecs.sjcetpalai.ac.in, @eee.sjcetpalai.ac.in
+              Supported: @cs, @ecs, @eee, @me, @civil, @mca, @mba, @ad
             </p>
           </div>
         )}
@@ -176,7 +224,7 @@ export default function Login() {
               {loading ? 'Verifying...' : 'Verify OTP'}
             </button>
             <button
-              onClick={() => setStep(1)}
+              onClick={() => { setStep(1); setOtp(''); setError(''); }}
               className="btn-secondary w-full"
             >
               Back
@@ -187,25 +235,27 @@ export default function Login() {
         {step === 3 && (
           <div>
             <label className="block text-sm font-medium text-primary mb-2">
-              Full Name
+              Full Name *
             </label>
             <input
               type="text"
-              placeholder="Alan K Albin"
+              placeholder="Your Name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-accent mb-4"
+              required
             />
 
             <label className="block text-sm font-medium text-primary mb-2">
-              Department
+              Department *
             </label>
             <select
               value={department}
               onChange={(e) => setDepartment(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-accent mb-4"
+              required
             >
-              <option>Select Department</option>
+              <option value="">Select Department</option>
               <option>CS</option>
               <option>CS AI</option>
               <option>CS CY</option>
@@ -219,26 +269,20 @@ export default function Login() {
             </select>
 
             <label className="block text-sm font-medium text-primary mb-2">
-              Semester
+              Semester *
             </label>
             <select
               value={semester}
               onChange={(e) => setSemester(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-accent mb-4"
+              required
             >
-              <option>Select Semester</option>
-              <option>S1</option>
-              <option>S2</option>
-              <option>S3</option>
-              <option>S4</option>
-              <option>S5</option>
-              <option>S6</option>
-              <option>S7</option>
-              <option>S8</option>
+              <option value="">Select Semester</option>
+              {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={`S${s}`}>S{s}</option>)}
             </select>
 
             <label className="block text-sm font-medium text-primary mb-2">
-              WhatsApp Number
+              WhatsApp Number *
             </label>
             <div className="relative mb-4">
               <Smartphone className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
@@ -246,8 +290,9 @@ export default function Login() {
                 type="tel"
                 placeholder="9876543210"
                 value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
+                onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-accent"
+                required
               />
             </div>
 
@@ -269,4 +314,4 @@ export default function Login() {
       </div>
     </div>
   );
-    }
+        }

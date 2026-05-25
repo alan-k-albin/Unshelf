@@ -2,19 +2,53 @@
 
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { MessageCircle, ArrowLeft, Check, Share2 } from 'lucide-react';
-import { LISTINGS } from '@/app/data';
+import { supabase } from '@/lib/supabaseClient';
 import ConditionLabel from '@/components/ConditionLabel';
 
 export default function ListingDetail() {
   const params = useParams();
-  const listing = LISTINGS.find(l => l.id === parseInt(params.id));
+  const [listing, setListing] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  if (!listing) {
+  useEffect(() => {
+    fetchListing();
+  }, [params.id]);
+
+  const fetchListing = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error: fetchError } = await supabase
+        .from('listings')
+        .select('*')
+        .eq('id', params.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+      setListing(data);
+    } catch (err) {
+      console.error('Error fetching listing:', err);
+      setError('Listing not found');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-        <p className="text-gray-600">Listing not found</p>
-        <Link href="/" className="btn-primary inline-block mt-4">
+      <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+        <p className="text-gray-600">Loading listing...</p>
+      </div>
+    );
+  }
+
+  if (error || !listing) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+        <p className="text-gray-600 mb-4">{error || 'Listing not found'}</p>
+        <Link href="/" className="btn-primary inline-block">
           Back to Home
         </Link>
       </div>
@@ -34,11 +68,17 @@ export default function ListingDetail() {
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         {/* Image Section */}
         <div className="bg-gray-200 rounded-lg overflow-hidden h-80">
-          <img
-            src={listing.image}
-            alt={listing.title}
-            className="w-full h-full object-cover"
-          />
+          {listing.image_url ? (
+            <img
+              src={listing.image_url}
+              alt={listing.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-gray-500 text-4xl">
+              📚
+            </div>
+          )}
         </div>
 
         {/* Details Section */}
@@ -57,7 +97,7 @@ export default function ListingDetail() {
 
           {/* Price */}
           <div className="mb-6">
-            {listing.isFree ? (
+            {listing.is_free ? (
               <div className="text-3xl font-bold text-accent">📦 Free / Donation</div>
             ) : (
               <div className="text-3xl font-bold text-primary">₹{listing.price}</div>
@@ -78,24 +118,19 @@ export default function ListingDetail() {
               <span className="text-gray-600">Semester:</span>
               <span className="font-medium text-primary">{listing.semester}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Subject:</span>
-              <span className="font-medium text-primary">{listing.subject}</span>
-            </div>
-            {/* Phase 1B: Better Condition Display */}
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Condition:</span>
-              <ConditionLabel condition={listing.condition} />
-            </div>
+            {listing.subject && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Subject:</span>
+                <span className="font-medium text-primary">{listing.subject}</span>
+              </div>
+            )}
+            {listing.condition && (
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Condition:</span>
+                <ConditionLabel condition={listing.condition} />
+              </div>
+            )}
           </div>
-
-          {/* Verified Badge */}
-          {listing.isVerified && (
-            <div className="mb-6 p-3 bg-green-50 rounded-lg flex items-center gap-2">
-              <Check className="w-5 h-5 text-accent" />
-              <span className="text-sm font-medium text-accent">Verified Student Seller</span>
-            </div>
-          )}
 
           {/* Contact Buttons */}
           <div className="space-y-3">
@@ -121,36 +156,34 @@ export default function ListingDetail() {
       </div>
 
       {/* Description Section */}
-      <div className="bg-white rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-bold text-primary mb-3">About This Item</h2>
-        <p className="text-gray-600 leading-relaxed">
-          This is a high-quality {listing.category.toLowerCase()} for {listing.subject}. 
-          The condition is {listing.condition.toLowerCase()} and is perfect for students studying {listing.department}. 
-          This material was used by a verified student from our college community and is now available for purchase.
-        </p>
-      </div>
+      {listing.description && (
+        <div className="bg-white rounded-lg p-6 mb-6">
+          <h2 className="text-lg font-bold text-primary mb-3">About This Item</h2>
+          <p className="text-gray-600 leading-relaxed">
+            {listing.description}
+          </p>
+        </div>
+      )}
 
       {/* Seller Info */}
       <div className="bg-white rounded-lg p-6">
         <h2 className="text-lg font-bold text-primary mb-4">Seller Information</h2>
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-accent rounded-full flex items-center justify-center text-white font-bold text-lg">
-            {listing.seller.charAt(0)}
+            V
           </div>
           <div>
-            <h3 className="font-medium text-primary text-lg">{listing.seller}</h3>
+            <h3 className="font-medium text-primary text-lg">Verified Student</h3>
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">{listing.department} • {listing.semester}</span>
-              {listing.isVerified && (
-                <span className="flex items-center gap-1 text-xs text-accent font-medium">
-                  <Check className="w-3 h-3" />
-                  Verified
-                </span>
-              )}
+              <span className="flex items-center gap-1 text-xs text-accent font-medium">
+                <Check className="w-3 h-3" />
+                Verified
+              </span>
             </div>
           </div>
         </div>
       </div>
     </div>
   );
-      }
+            }

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search as SearchIcon, Filter, Check } from 'lucide-react';
-import { LISTINGS, CATEGORIES, DEPARTMENTS } from '@/app/data';
+import { Search as SearchIcon, Filter } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import { CATEGORIES, DEPARTMENTS } from '@/app/data';
 import EmptyState from '@/components/EmptyState';
 import ConditionLabel from '@/components/ConditionLabel';
 
@@ -12,11 +13,17 @@ const ListingCard = ({ listing }) => {
     <Link href={`/listing/${listing.id}`}>
       <div className="listing-card cursor-pointer group">
         <div className="relative w-full h-48 bg-gray-200 rounded-lg overflow-hidden mb-3">
-          <img
-            src={listing.image}
-            alt={listing.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-          />
+          {listing.image_url ? (
+            <img
+              src={listing.image_url}
+              alt={listing.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-gray-500">
+              📚
+            </div>
+          )}
           <div className={`absolute top-2 right-2 badge-status ${listing.status === 'Active' ? 'badge-status-active' : 'badge-status-exchanged'}`}>
             {listing.status === 'Active' ? '🟢 Active' : '✓ Exchanged'}
           </div>
@@ -41,13 +48,14 @@ const ListingCard = ({ listing }) => {
           </span>
         </div>
 
-        {/* Phase 1B: Better Condition Label */}
-        <div className="mb-2">
-          <ConditionLabel condition={listing.condition} />
-        </div>
+        {listing.condition && (
+          <div className="mb-2">
+            <ConditionLabel condition={listing.condition} />
+          </div>
+        )}
 
         <div className="mb-3">
-          {listing.isFree ? (
+          {listing.is_free ? (
             <p className="text-accent font-bold text-sm">📦 Free / Donation</p>
           ) : (
             <p className="text-primary font-bold text-base">₹{listing.price}</p>
@@ -55,7 +63,7 @@ const ListingCard = ({ listing }) => {
         </div>
 
         <p className="text-xs text-gray-500">
-          by <span className="font-medium text-gray-700">{listing.seller}</span>
+          by Verified Student
         </p>
       </div>
     </Link>
@@ -71,23 +79,61 @@ export default function SearchPage() {
     status: 'all',
   });
 
+  const [listings, setListings] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    fetchListings();
+  }, [filters]);
+
+  const fetchListings = async () => {
+    try {
+      setIsLoading(true);
+      let query = supabase
+        .from('listings')
+        .select('*');
+
+      // Apply filters
+      if (filters.search) {
+        query = query.or(`title.ilike.%${filters.search}%,subject.ilike.%${filters.search}%`);
+      }
+      if (filters.category) {
+        query = query.eq('category', filters.category);
+      }
+      if (filters.department) {
+        query = query.eq('department', filters.department);
+      }
+      if (filters.semester) {
+        query = query.eq('semester', filters.semester);
+      }
+      if (filters.status !== 'all') {
+        query = query.eq('status', filters.status);
+      } else {
+        query = query.eq('status', 'Active');
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setListings(data || []);
+    } catch (error) {
+      console.error('Error fetching listings:', error);
+      setListings([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
   };
 
-  const filteredListings = LISTINGS.filter(listing => {
-    const matchesSearch = listing.title.toLowerCase().includes(filters.search.toLowerCase()) ||
-                         listing.subject.toLowerCase().includes(filters.search.toLowerCase());
-    const matchesCategory = !filters.category || listing.category === filters.category;
-    const matchesDepartment = !filters.department || listing.department === filters.department;
-    const matchesSemester = !filters.semester || listing.semester === filters.semester;
-    const matchesStatus = filters.status === 'all' || listing.status === filters.status;
-
-    return matchesSearch && matchesCategory && matchesDepartment && matchesSemester && matchesStatus;
-  });
+  const handleSearchChange = (e) => {
+    const { value } = e.target;
+    setFilters(prev => ({ ...prev, search: value }));
+  };
 
   return (
     <div className="pb-20 md:pb-8">
@@ -97,10 +143,9 @@ export default function SearchPage() {
           <div className="relative mb-3">
             <input
               type="text"
-              name="search"
               placeholder="Search by title, subject..."
               value={filters.search}
-              onChange={handleFilterChange}
+              onChange={handleSearchChange}
               className="w-full px-4 py-2 pl-10 bg-gray-100 rounded-lg text-sm focus:outline-none focus:bg-white"
             />
             <SearchIcon className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
@@ -124,7 +169,6 @@ export default function SearchPage() {
             <div className="bg-white rounded-lg p-4 space-y-4">
               <h3 className="font-bold text-primary">Filters</h3>
 
-              {/* Category Filter */}
               <div>
                 <label className="text-sm font-medium text-primary block mb-2">
                   Category
@@ -142,7 +186,6 @@ export default function SearchPage() {
                 </select>
               </div>
 
-              {/* Department Filter */}
               <div>
                 <label className="text-sm font-medium text-primary block mb-2">
                   Department
@@ -160,7 +203,6 @@ export default function SearchPage() {
                 </select>
               </div>
 
-              {/* Semester Filter */}
               <div>
                 <label className="text-sm font-medium text-primary block mb-2">
                   Semester
@@ -178,7 +220,6 @@ export default function SearchPage() {
                 </select>
               </div>
 
-              {/* Status Filter */}
               <div>
                 <label className="text-sm font-medium text-primary block mb-2">
                   Status
@@ -201,13 +242,13 @@ export default function SearchPage() {
           <div className="md:col-span-3">
             <div className="mb-4">
               <p className="text-sm text-gray-600">
-                Showing {filteredListings.length} of {LISTINGS.length} listings
+                {isLoading ? 'Searching...' : `Found ${listings.length} listing${listings.length !== 1 ? 's' : ''}`}
               </p>
             </div>
 
-            {filteredListings.length > 0 ? (
+            {listings.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredListings.map(listing => (
+                {listings.map(listing => (
                   <ListingCard key={listing.id} listing={listing} />
                 ))}
               </div>
@@ -222,4 +263,4 @@ export default function SearchPage() {
       </div>
     </div>
   );
-    }
+          }

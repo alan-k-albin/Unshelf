@@ -1,65 +1,105 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Menu, X, Search, Home, Plus, User } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Home, Search, Plus, User, LogOut, Menu, X } from 'lucide-react';
+import { isUserVerified, logoutUser } from '@/lib/auth';
 import './globals.css';
 
 export default function RootLayout({ children }) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setIsLoggedIn(true);
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  const handleLogout = async () => {
+    const success = await logoutUser();
+    if (success) {
+      setIsLoggedIn(false);
+      setUser(null);
+      setShowProfileMenu(false);
+      router.push('/login');
+    }
+  };
 
   return (
     <html lang="en">
-      <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Unshelf - Academic Resource Exchange</title>
-      </head>
       <body className="bg-light">
-        {/* Desktop Navbar */}
+        {/* Desktop Navigation */}
         <nav className="hidden md:block bg-white border-b border-gray-200 sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
             <Link href="/" className="text-2xl font-bold text-primary">
               Unshelf
             </Link>
-            
-            <div className="flex-1 mx-6">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search textbooks, notes, materials..."
-                  className="w-full px-4 py-2 bg-gray-100 rounded-lg text-sm focus:outline-none focus:bg-white"
-                />
-                <Search className="absolute right-3 top-2.5 w-5 h-5 text-gray-400" />
-              </div>
+
+            <div className="relative flex-1 mx-8">
+              <input
+                type="text"
+                placeholder="Search listings..."
+                className="w-full px-4 py-2 bg-light rounded-lg text-sm focus:outline-none focus:bg-white"
+              />
+              <Search className="absolute right-3 top-2.5 w-5 h-5 text-gray-400" />
             </div>
 
-            <div className="flex gap-3 items-center">
+            <div className="flex items-center gap-4">
+              <Link href="/" className="text-gray-600 hover:text-primary">
+                Home
+              </Link>
+              <Link href="/search" className="text-gray-600 hover:text-primary">
+                Search
+              </Link>
               {isLoggedIn ? (
                 <>
-                  <Link href="/create-listing" className="btn-primary">
-                    Sell Item
+                  <Link
+                    href="/create-listing"
+                    className="btn-primary inline-flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Sell
                   </Link>
-                  <div className="relative group">
-                    <button className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100">
-                      <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center text-white text-sm font-bold">
-                        A
-                      </div>
+
+                  {/* Profile Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowProfileMenu(!showProfileMenu)}
+                      className="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center font-bold hover:bg-accent/90"
+                    >
+                      {user?.fullName?.charAt(0).toUpperCase() || 'U'}
                     </button>
-                    <div className="hidden group-hover:block absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg p-3 z-50">
-                      <p className="text-sm font-medium mb-1">Alan K Albin</p>
-                      <p className="text-xs text-gray-600 mb-3 flex items-center gap-1">
-                        <span className="w-2 h-2 bg-accent rounded-full"></span>
-                        Verified Student
-                      </p>
-                      <Link href="/my-listings" className="block text-sm text-primary hover:bg-gray-100 px-2 py-1 rounded mb-1">
-                        My Listings
-                      </Link>
-                      <button onClick={() => setIsLoggedIn(false)} className="w-full text-left text-sm text-red-600 hover:bg-red-50 px-2 py-1 rounded">
-                        Logout
-                      </button>
-                    </div>
+
+                    {showProfileMenu && (
+                      <div className="absolute right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 w-48 py-2">
+                        <div className="px-4 py-2 border-b border-gray-200">
+                          <p className="font-medium text-primary">{user?.fullName}</p>
+                          <p className="text-xs text-gray-600">{user?.email}</p>
+                        </div>
+                        <Link
+                          href="/profile"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-light"
+                        >
+                          <User className="w-4 h-4 inline mr-2" />
+                          My Profile
+                        </Link>
+                        <button
+                          onClick={handleLogout}
+                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                        >
+                          <LogOut className="w-4 h-4 inline mr-2" />
+                          Logout
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </>
               ) : (
@@ -71,84 +111,100 @@ export default function RootLayout({ children }) {
           </div>
         </nav>
 
-        {/* Mobile Header */}
-        <div className="md:hidden bg-white border-b border-gray-200 sticky top-0 z-50 px-4 py-3">
-          <div className="flex items-center justify-between mb-3">
+        {/* Mobile Navigation - Top */}
+        <nav className="md:hidden bg-white border-b border-gray-200 sticky top-0 z-50">
+          <div className="px-4 py-3 flex items-center justify-between">
             <Link href="/" className="text-xl font-bold text-primary">
               Unshelf
             </Link>
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="text-gray-600"
+            >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
-          <div className="relative">
+
+          <div className="relative px-4 py-2 mb-2">
             <input
               type="text"
               placeholder="Search..."
-              className="w-full px-3 py-2 bg-gray-100 rounded-lg text-sm focus:outline-none"
+              className="w-full px-4 py-2 bg-light rounded-lg text-sm focus:outline-none focus:bg-white"
             />
-            <Search className="absolute right-3 top-2.5 w-4 h-4 text-gray-400" />
+            <Search className="absolute right-6 top-4 w-5 h-5 text-gray-400" />
           </div>
-        </div>
 
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-white border-b p-4 space-y-2">
-            <Link href="/" className="block py-2 text-primary font-medium">
-              Home
-            </Link>
-            {isLoggedIn ? (
-              <>
-                <Link href="/create-listing" className="block py-2 text-primary font-medium">
-                  Create Listing
-                </Link>
-                <Link href="/my-listings" className="block py-2 text-primary font-medium">
-                  My Listings
-                </Link>
-                <button onClick={() => setIsLoggedIn(false)} className="block w-full text-left py-2 text-red-600 font-medium">
-                  Logout
-                </button>
-              </>
-            ) : (
-              <Link href="/login" className="block py-2 text-primary font-medium">
-                Login
+          {mobileMenuOpen && (
+            <div className="bg-light border-t border-gray-200">
+              <Link href="/" className="block px-4 py-2 text-sm text-gray-700">
+                Home
               </Link>
-            )}
-          </div>
-        )}
+              <Link href="/search" className="block px-4 py-2 text-sm text-gray-700">
+                Search
+              </Link>
+              {isLoggedIn ? (
+                <>
+                  <Link href="/create-listing" className="block px-4 py-2 text-sm text-gray-700">
+                    Create Listing
+                  </Link>
+                  <Link href="/profile" className="block px-4 py-2 text-sm text-gray-700">
+                    Profile
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <Link href="/login" className="block px-4 py-2 text-sm text-accent font-medium">
+                  Login
+                </Link>
+              )}
+            </div>
+          )}
+        </nav>
 
         {/* Main Content */}
-        <main className="min-h-screen">
-          {children}
-        </main>
+        <main>{children}</main>
 
         {/* Mobile Bottom Navigation */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-0">
-          <div className="flex justify-around">
-            <Link href="/" className="flex-1 flex flex-col items-center justify-center py-3 text-primary">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
+          <div className="flex justify-around items-center">
+            <Link
+              href="/"
+              className="flex-1 flex flex-col items-center justify-center py-3 text-gray-600 hover:text-accent"
+            >
               <Home className="w-6 h-6" />
               <span className="text-xs mt-1">Home</span>
             </Link>
-            <Link href="/search" className="flex-1 flex flex-col items-center justify-center py-3 text-gray-600">
+            <Link
+              href="/search"
+              className="flex-1 flex flex-col items-center justify-center py-3 text-gray-600 hover:text-accent"
+            >
               <Search className="w-6 h-6" />
               <span className="text-xs mt-1">Search</span>
             </Link>
             {isLoggedIn && (
-              <Link href="/create-listing" className="flex-1 flex flex-col items-center justify-center py-3 text-gray-600">
+              <Link
+                href="/create-listing"
+                className="flex-1 flex flex-col items-center justify-center py-3 text-gray-600 hover:text-accent"
+              >
                 <Plus className="w-6 h-6" />
                 <span className="text-xs mt-1">Sell</span>
               </Link>
             )}
-            <Link href={isLoggedIn ? "/profile" : "/login"} className="flex-1 flex flex-col items-center justify-center py-3 text-gray-600">
+            <Link
+              href={isLoggedIn ? '/profile' : '/login'}
+              className="flex-1 flex flex-col items-center justify-center py-3 text-gray-600 hover:text-accent"
+            >
               <User className="w-6 h-6" />
               <span className="text-xs mt-1">Profile</span>
             </Link>
           </div>
         </nav>
-
-        {/* Padding for mobile bottom nav */}
-        <div className="md:hidden h-16"></div>
       </body>
     </html>
   );
-}
+              }

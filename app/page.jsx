@@ -1,25 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
-import { MapPin, Clock, Check } from 'lucide-react';
+import { useState } from 'react';
+import { Check } from 'lucide-react';
 import { CATEGORIES, LISTINGS } from './data';
+import LoadingSkeleton from '@/components/LoadingSkeleton';
 
 const ListingCard = ({ listing }) => {
-  const statusBgClass = listing.status === 'Active' ? 'bg-blue-50' : 'bg-gray-100';
-  const statusTextClass = listing.status === 'Active' ? 'text-blue-700' : 'text-gray-600';
-
   return (
     <Link href={`/listing/${listing.id}`}>
       <div className="listing-card cursor-pointer group">
-        {/* Image Container */}
         <div className="relative w-full h-48 bg-gray-200 rounded-lg overflow-hidden mb-3">
           <img
             src={listing.image}
             alt={listing.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform"
           />
-          {/* Status Badge */}
           <div className={`absolute top-2 right-2 badge-status ${listing.status === 'Active' ? 'badge-status-active' : 'badge-status-exchanged'}`}>
             {listing.status === 'Active' ? '🟢 Active' : '✓ Exchanged'}
           </div>
@@ -30,19 +26,16 @@ const ListingCard = ({ listing }) => {
           )}
         </div>
 
-        {/* Content */}
         <h3 className="font-semibold text-sm text-primary line-clamp-2 mb-2">
           {listing.title}
         </h3>
 
-        {/* Category Tag */}
         <div className="mb-2">
           <span className="inline-block bg-accent/10 text-accent text-xs px-2 py-1 rounded font-medium">
             {listing.category}
           </span>
         </div>
 
-        {/* Department & Semester */}
         <div className="flex gap-2 mb-2 text-xs text-gray-600">
           <span className="bg-gray-100 px-2 py-1 rounded">
             {listing.department}
@@ -52,7 +45,16 @@ const ListingCard = ({ listing }) => {
           </span>
         </div>
 
-        {/* Verified Badge & Seller */}
+        {/* Phase 1B: Better Condition Label */}
+        <div className="mb-2 px-2 py-1 bg-blue-50 rounded inline-block">
+          <p className="text-xs text-blue-700 font-medium">
+            {listing.condition === 'Like New' && '✨ Like New'}
+            {listing.condition === 'Good' && '👍 Good'}
+            {listing.condition === 'Used' && '📖 Used'}
+            {listing.condition === 'Heavily Used' && '⚙️ Heavily Used'}
+          </p>
+        </div>
+
         <div className="flex items-center gap-1 mb-2">
           {listing.isVerified && (
             <div className="badge-verified">
@@ -62,7 +64,6 @@ const ListingCard = ({ listing }) => {
           )}
         </div>
 
-        {/* Price */}
         <div className="mb-3">
           {listing.isFree ? (
             <p className="text-accent font-bold text-sm">📦 Free / Donation</p>
@@ -71,12 +72,6 @@ const ListingCard = ({ listing }) => {
           )}
         </div>
 
-        {/* Condition */}
-        <p className="text-xs text-gray-600 mb-2">
-          Condition: <span className="font-medium">{listing.condition}</span>
-        </p>
-
-        {/* Seller */}
         <p className="text-xs text-gray-500">
           by <span className="font-medium text-gray-700">{listing.seller}</span>
         </p>
@@ -86,8 +81,14 @@ const ListingCard = ({ listing }) => {
 };
 
 export default function Home() {
+  const [isLoading, setIsLoading] = useState(false);
+  const userDepartment = 'CS'; // Mock user department
+  
   const featuredListings = LISTINGS.filter(l => l.featured).slice(0, 5);
   const recentListings = LISTINGS.slice(0, 5);
+  
+  // Phase 1B: Personalized listings for user's department
+  const personalizedListings = LISTINGS.filter(l => l.department === userDepartment && l.status === 'Active').slice(0, 5);
 
   return (
     <div className="pb-20 md:pb-8">
@@ -120,6 +121,27 @@ export default function Home() {
             ))}
           </div>
         </div>
+
+        {/* Phase 1B: Personalized Section */}
+        {personalizedListings.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg md:text-xl font-bold text-primary">
+                📚 Relevant for Your Department (CS)
+              </h2>
+              <Link href="/search" className="text-accent text-sm font-medium hover:underline">
+                View All
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {isLoading
+                ? [1, 2, 3, 4, 5].map(i => <LoadingSkeleton key={i} />)
+                : personalizedListings.map((listing) => (
+                    <ListingCard key={listing.id} listing={listing} />
+                  ))}
+            </div>
+          </div>
+        )}
 
         {/* Featured Listings */}
         <div className="mb-8">
@@ -170,4 +192,4 @@ export default function Home() {
       </div>
     </div>
   );
-            }
+      }

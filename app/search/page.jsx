@@ -4,11 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Search as SearchIcon, Filter, Check } from 'lucide-react';
 import { LISTINGS, CATEGORIES, DEPARTMENTS } from '@/app/data';
+import EmptyState from '@/components/EmptyState';
+import ConditionLabel from '@/components/ConditionLabel';
 
 const ListingCard = ({ listing }) => {
-  const statusBgClass = listing.status === 'Active' ? 'bg-blue-50' : 'bg-gray-100';
-  const statusTextClass = listing.status === 'Active' ? 'text-blue-700' : 'text-gray-600';
-
   return (
     <Link href={`/listing/${listing.id}`}>
       <div className="listing-card cursor-pointer group">
@@ -40,6 +39,11 @@ const ListingCard = ({ listing }) => {
           <span className="bg-gray-100 px-2 py-1 rounded">
             {listing.semester}
           </span>
+        </div>
+
+        {/* Phase 1B: Better Condition Label */}
+        <div className="mb-2">
+          <ConditionLabel condition={listing.condition} />
         </div>
 
         <div className="mb-3">
@@ -208,21 +212,14 @@ export default function SearchPage() {
                 ))}
               </div>
             ) : (
-              <div className="bg-white rounded-lg p-8 text-center">
-                <p className="text-gray-600 mb-4">
-                  No listings found matching your filters
-                </p>
-                <button
-                  onClick={() => setFilters({ search: '', category: '', department: '', semester: '', status: 'all' })}
-                  className="btn-primary"
-                >
-                  Clear Filters
-                </button>
-              </div>
+              <EmptyState 
+                title="No listings found" 
+                description="Try adjusting your filters or search terms"
+              />
             )}
           </div>
         </div>
       </div>
     </div>
   );
-                                                                 }
+    }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { BookOpen, PenTool, BookMarked, Notebook, Beaker, Calculator, GraduationCap, MoreHorizontal } from 'lucide-react';
+import { BookOpen, PenTool, BookMarked, Notebook, Beaker, Calculator, GraduationCap, MoreHorizontal, Search as SearchIcon } from 'lucide-react';
 import { CATEGORIES } from './data';
 import { supabase } from '@/lib/supabaseClient';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
@@ -88,6 +88,7 @@ export default function Home() {
   const [listings, setListings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userDept, setUserDept] = useState('CS');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchListings();
@@ -118,25 +119,53 @@ export default function Home() {
     }
   };
 
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      window.location.href = `/search?search=${encodeURIComponent(searchQuery)}`;
+    }
+  };
+
   const personalizedListings = listings.filter(l => l.department === userDept).slice(0, 5);
   const recentListings = listings.slice(0, 5);
 
   return (
     <div className="pb-20 md:pb-8">
-      {/* Hero Section */}
+      {/* Hero Section with Search */}
       <div className="bg-gradient-to-r from-primary/10 to-accent/10 py-6 md:py-8 px-4">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-primary mb-2">
-            Welcome to Unshelf
-          </h1>
-          <p className="text-gray-600 text-sm md:text-base">
-            Buy, sell, or exchange academic resources with verified students from your college
-          </p>
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-6">
+            <h1 className="text-3xl md:text-4xl font-bold text-primary mb-2">
+              Welcome to Unshelf
+            </h1>
+            <p className="text-gray-600 text-sm md:text-base">
+              Buy, sell, or exchange academic resources with verified students from your college
+            </p>
+          </div>
+
+          {/* Search Bar */}
+          <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search textbooks, notes, materials..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-3 pl-4 pr-12 bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              <button
+                type="submit"
+                className="absolute right-3 top-3 text-gray-400 hover:text-accent"
+              >
+                <SearchIcon className="w-6 h-6" />
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
-        {/* Categories Section - NEW DESIGN */}
+        {/* Categories Section */}
         <div className="mb-8">
           <h2 className="text-lg md:text-xl font-bold text-primary mb-4">
             Browse by Category

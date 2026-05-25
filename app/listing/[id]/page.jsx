@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { MessageCircle, ArrowLeft, Check, Share2 } from 'lucide-react';
 import { LISTINGS } from '@/app/data';
+import ConditionLabel from '@/components/ConditionLabel';
 
 export default function ListingDetail() {
   const params = useParams();
@@ -81,9 +82,10 @@ export default function ListingDetail() {
               <span className="text-gray-600">Subject:</span>
               <span className="font-medium text-primary">{listing.subject}</span>
             </div>
-            <div className="flex justify-between">
+            {/* Phase 1B: Better Condition Display */}
+            <div className="flex justify-between items-center">
               <span className="text-gray-600">Condition:</span>
-              <span className="font-medium text-primary">{listing.condition}</span>
+              <ConditionLabel condition={listing.condition} />
             </div>
           </div>
 
@@ -151,4 +153,4 @@ export default function ListingDetail() {
       </div>
     </div>
   );
-                }
+      }

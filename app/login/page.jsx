@@ -47,12 +47,24 @@ export default function Login() {
     } catch (err) { setError(err.message || 'An error occurred.'); setLoading(false); }
   };
 
-  const handleVerifyOTP = () => {
+  // ✅ ONLY THIS FUNCTION WAS CHANGED — real Supabase OTP verification
+  const handleVerifyOTP = async () => {
     setError(''); setLoading(true);
     if (!otp) { setError('OTP is required'); setLoading(false); return; }
     if (otp.length !== 6) { setError('OTP must be 6 digits'); setLoading(false); return; }
-    setSuccess('OTP verified!');
-    setTimeout(() => { setStep(3); setSuccess(''); setLoading(false); }, 1200);
+    try {
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: 'signup',
+      });
+      if (verifyError) {
+        setError(verifyError.message || 'Invalid OTP. Please try again.');
+        setLoading(false); return;
+      }
+      setSuccess('OTP verified!');
+      setTimeout(() => { setStep(3); setSuccess(''); setLoading(false); }, 1200);
+    } catch (err) { setError(err.message || 'Verification failed.'); setLoading(false); }
   };
 
   const handleCompleteProfile = async () => {
@@ -293,4 +305,4 @@ export default function Login() {
       </div>
     </div>
   );
-    }
+}

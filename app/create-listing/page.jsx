@@ -4,7 +4,18 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Upload, ArrowLeft, Loader } from 'lucide-react';
-import CATEGORIES from '@/app/data';
+
+// ✅ ONLY CHANGE: Hardcoded categories instead of importing from data.js
+const CATEGORIES = [
+  'Textbooks',
+  'Handwritten Notes',
+  'Lab Manuals',
+  'Study Guides',
+  'Calculators',
+  'Entrance Exam Books',
+  'Coaching Materials',
+  'Other',
+];
 
 export default function CreateListing() {
   const router = useRouter();
@@ -50,13 +61,11 @@ export default function CreateListing() {
     setLoading(true);
 
     try {
-      // Validation
       if (!formData.title.trim()) { setError('Title is required'); setLoading(false); return; }
       if (!formData.category) { setError('Please select a category'); setLoading(false); return; }
       if (!formData.condition) { setError('Please select condition'); setLoading(false); return; }
       if (!formData.isFree && !formData.price) { setError('Enter price or mark as free'); setLoading(false); return; }
 
-      // Get real Supabase auth user ID
       const { data: authData } = await supabase.auth.getUser();
       const authUserId = authData?.user?.id || null;
 
@@ -66,11 +75,9 @@ export default function CreateListing() {
         return;
       }
 
-      // Get user profile from localStorage for department/semester
       const userStr = localStorage.getItem('user');
       const user = userStr ? JSON.parse(userStr) : null;
 
-      // Upload image if provided (optional)
       let imageUrl = null;
       if (image) {
         const fileName = `${Date.now()}_${image.name}`;
@@ -86,7 +93,6 @@ export default function CreateListing() {
         imageUrl = publicUrlData?.publicUrl || null;
       }
 
-      // Insert listing with auth user ID
       const { error: insertError } = await supabase.from('listings').insert([
         {
           user_id: authUserId,
@@ -117,7 +123,6 @@ export default function CreateListing() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
       <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
         <div className="flex items-center gap-3 px-4 py-4">
           <button onClick={() => router.back()} className="p-1">
@@ -127,7 +132,6 @@ export default function CreateListing() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="max-w-2xl mx-auto px-4 py-6">
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2">
@@ -142,7 +146,6 @@ export default function CreateListing() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Title */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Item Title *
@@ -157,7 +160,6 @@ export default function CreateListing() {
             />
           </div>
 
-          {/* Category */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Category *
@@ -175,7 +177,6 @@ export default function CreateListing() {
             </select>
           </div>
 
-          {/* Subject (Optional) */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Subject/Topic (Optional)
@@ -190,7 +191,6 @@ export default function CreateListing() {
             />
           </div>
 
-          {/* Condition */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Condition *
@@ -208,7 +208,6 @@ export default function CreateListing() {
             </select>
           </div>
 
-          {/* Price */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Price (₹)
@@ -236,7 +235,6 @@ export default function CreateListing() {
             </div>
           </div>
 
-          {/* Image Upload */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Upload Image (Optional)
@@ -262,7 +260,6 @@ export default function CreateListing() {
             </div>
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
@@ -282,4 +279,4 @@ export default function CreateListing() {
       </div>
     </div>
   );
-      }
+}

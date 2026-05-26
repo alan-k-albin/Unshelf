@@ -1,24 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Upload } from 'lucide-react';
-import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
-import { uploadListingImage } from '@/lib/uploadImage';
-import { CATEGORIES } from '@/app/data';
-
-const DEPARTMENTS = ['CS', 'CS AI', 'CS CY', 'ECS', 'EEE', 'ME', 'Civil', 'MCA', 'MBA', 'AD'];
-const SEMESTERS = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8'];
-const CONDITIONS = ['Like New', 'Good', 'Used', 'Heavily Used'];
+import { Upload, ArrowLeft, Loader } from 'lucide-react';
+import CATEGORIES from '@/app/data';
 
 export default function CreateListing() {
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [imageFile, setImageFile] = useState(null);
+  const [success, setSuccess] = useState('');
+  const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -27,248 +20,210 @@ export default function CreateListing() {
     department: '',
     semester: '',
     subject: '',
-    condition: '',
-    isFree: false,
     price: '',
-    description: '',
+    isFree: false,
+    condition: 'Good',
   });
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
-      router.push('/login');
-      return;
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImage(file);
+      const reader = new FileReader();
+      reader.onload = (event) => setImagePreview(event.target?.result);
+      reader.readAsDataURL(file);
     }
-    setIsLoggedIn(true);
-    setUser(JSON.parse(storedUser));
-  }, [router]);
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    setSuccess('');
+    setLoading(true);
 
     try {
-      if (!formData.title || !formData.category || !formData.department || !formData.semester) {
-        setError('Please fill in all required fields');
+      // Validation
+      if (!formData.title.trim()) { setError('Title is required'); setLoading(false); return; }
+      if (!formData.category) { setError('Please select a category'); setLoading(false); return; }
+      if (!formData.condition) { setError('Please select condition'); setLoading(false); return; }
+      if (!formData.isFree && !formData.price) { setError('Enter price or mark as free'); setLoading(false); return; }
+
+      // Get real Supabase auth user ID
+      const { data: authData } = await supabase.auth.getUser();
+      const authUserId = authData?.user?.id || null;
+
+      if (!authUserId) {
+        setError('You must be logged in to create a listing');
         setLoading(false);
         return;
       }
 
-      if (!formData.isFree && !formData.price) {
-        setError('Please enter a price or mark as free');
-        setLoading(false);
-        return;
-      }
+      // Get user profile from localStorage for department/semester
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
 
       // Upload image if provided (optional)
       let imageUrl = null;
-      if (imageFile) {
-        const tempId = Date.now();
-        imageUrl = await uploadListingImage(imageFile, tempId);
+      if (image) {
+        const fileName = `${Date.now()}_${image.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('listings')
+          .upload(fileName, image);
+
+        if (uploadError) throw new Error(`Image upload failed: ${uploadError.message}`);
+
+        const { data: publicUrlData } = supabase.storage
+          .from('listings')
+          .getPublicUrl(fileName);
+        imageUrl = publicUrlData?.publicUrl || null;
       }
 
-      // Create listing in database
-      const { data: listing, error: insertError } = await supabase
-        .from('listings')
-        .insert([
-          {
-            title: formData.title,
-            category: formData.category,
-            department: formData.department,
-            semester: formData.semester,
-            subject: formData.subject || '',
-            condition: formData.condition || 'Good',
-            price: formData.isFree ? null : parseInt(formData.price),
-            is_free: formData.isFree,
-            status: 'Active',
-            image_url: imageUrl,
-            featured: false,
-            user_id: user?.id || null,
-          },
-        ])
-        .select();
+      // Insert listing with auth user ID
+      const { error: insertError } = await supabase.from('listings').insert([
+        {
+          user_id: authUserId,
+          title: formData.title.trim(),
+          category: formData.category,
+          department: user?.department || '',
+          semester: user?.semester || '',
+          subject: formData.subject || null,
+          price: formData.isFree ? 0 : parseInt(formData.price),
+          is_free: formData.isFree,
+          condition: formData.condition,
+          status: 'Active',
+          featured: false,
+          image_url: imageUrl,
+        },
+      ]);
 
       if (insertError) throw insertError;
 
-      // Success!
-      router.push(`/listing/${listing[0]?.id || ''}`);
+      setSuccess('Listing created successfully!');
+      setTimeout(() => router.push('/'), 1500);
     } catch (err) {
-      console.error('Error creating listing:', err);
-      setError(err.message || 'Failed to create listing. Please try again.');
+      setError(err.message || 'Failed to create listing');
+    } finally {
       setLoading(false);
     }
   };
 
-  if (!isLoggedIn) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-8 text-center pb-20 md:pb-8">
-        <p className="text-gray-600">Redirecting to login...</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 pb-20 md:pb-8">
-      <Link href="/" className="inline-flex items-center gap-2 text-accent hover:underline mb-6">
-        <ArrowLeft className="w-4 h-4" />
-        Back to Home
-      </Link>
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
+        <div className="flex items-center gap-3 px-4 py-4">
+          <button onClick={() => router.back()} className="p-1">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-lg font-bold" style={{ color: '#1B2A4A' }}>Create Listing</h1>
+        </div>
+      </div>
 
-      <div className="bg-white rounded-lg p-6 md:p-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-primary mb-2">List Your Item</h1>
-        <p className="text-gray-600 mb-6">Fill in the details below to create your listing</p>
-
+      {/* Main Content */}
+      <div className="max-w-2xl mx-auto px-4 py-6">
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-            {error}
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2">
+            <p className="text-sm text-red-700">{error}</p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {success && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex gap-2">
+            <p className="text-sm text-green-700">{success}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-primary mb-2">
+            <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Item Title *
             </label>
             <input
               type="text"
               name="title"
-              placeholder="e.g., Data Structures Textbook"
+              placeholder="e.g., Physics Textbook 2nd Semester"
               value={formData.title}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-accent"
-              required
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-primary mb-2">
+            <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Category *
             </label>
             <select
               name="category"
               value={formData.category}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-accent"
-              required
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select Category</option>
-              {CATEGORIES.map(cat => (
+              {CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
           </div>
 
-          {/* Department & Semester */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-primary mb-2">
-                Department *
-              </label>
-              <select
-                name="department"
-                value={formData.department}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-accent"
-                required
-              >
-                <option value="">Select</option>
-                {DEPARTMENTS.map(dept => (
-                  <option key={dept} value={dept}>{dept}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-primary mb-2">
-                Semester *
-              </label>
-              <select
-                name="semester"
-                value={formData.semester}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-accent"
-                required
-              >
-                <option value="">Select</option>
-                {SEMESTERS.map(sem => (
-                  <option key={sem} value={sem}>{sem}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Subject */}
+          {/* Subject (Optional) */}
           <div>
-            <label className="block text-sm font-medium text-primary mb-2">
-              Subject/Course (Optional)
+            <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
+              Subject/Topic (Optional)
             </label>
             <input
               type="text"
               name="subject"
-              placeholder="e.g., CSE101 - Data Structures"
+              placeholder="e.g., Quantum Mechanics"
               value={formData.subject}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-accent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           {/* Condition */}
           <div>
-            <label className="block text-sm font-medium text-primary mb-2">
-              Condition
+            <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
+              Condition *
             </label>
             <select
               name="condition"
               value={formData.condition}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-accent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">Select Condition</option>
-              {CONDITIONS.map(cond => (
-                <option key={cond} value={cond}>{cond}</option>
-              ))}
+              <option>✨ Like New</option>
+              <option>👍 Good</option>
+              <option>📖 Used</option>
+              <option>⚙️ Heavily Used</option>
             </select>
           </div>
 
           {/* Price */}
           <div>
-            <label className="block text-sm font-medium text-primary mb-2">
-              Price (Optional)
+            <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
+              Price (₹)
             </label>
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-3">
               <input
                 type="number"
                 name="price"
-                placeholder="Enter price in ₹"
+                placeholder="Enter price"
                 value={formData.price}
                 onChange={handleInputChange}
                 disabled={formData.isFree}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-accent disabled:bg-gray-100"
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
               />
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-2 px-4">
                 <input
                   type="checkbox"
                   name="isFree"
@@ -276,78 +231,55 @@ export default function CreateListing() {
                   onChange={handleInputChange}
                   className="w-4 h-4"
                 />
-                <span className="text-gray-700">Free/Donation</span>
+                <span className="text-sm font-medium">Free</span>
               </label>
             </div>
           </div>
 
-          {/* Image Upload (Optional) */}
+          {/* Image Upload */}
           <div>
-            <label className="block text-sm font-medium text-primary mb-2">
-              Photo (Optional)
+            <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
+              Upload Image (Optional)
             </label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              {imagePreview ? (
-                <div className="space-y-3">
-                  <img src={imagePreview} alt="Preview" className="w-full h-48 object-cover rounded-lg" />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setImageFile(null);
-                      setImagePreview(null);
-                    }}
-                    className="text-sm text-red-600 hover:underline"
-                  >
-                    Remove Image
-                  </button>
-                </div>
-              ) : (
-                <label className="cursor-pointer">
-                  <div className="flex flex-col items-center gap-2">
-                    <Upload className="w-8 h-8 text-gray-400" />
-                    <span className="text-gray-600">
-                      Click to upload or drag and drop
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      PNG, JPG up to 5MB
-                    </span>
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                </label>
-              )}
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-blue-500 transition">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+                id="image-input"
+              />
+              <label htmlFor="image-input" className="cursor-pointer flex flex-col items-center gap-2">
+                {imagePreview ? (
+                  <img src={imagePreview} alt="Preview" className="w-24 h-24 object-cover rounded" />
+                ) : (
+                  <>
+                    <Upload className="w-6 h-6 text-gray-400" />
+                    <span className="text-sm text-gray-600">Click to upload image</span>
+                  </>
+                )}
+              </label>
             </div>
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-primary mb-2">
-              Description (Optional)
-            </label>
-            <textarea
-              name="description"
-              placeholder="Add more details about your item..."
-              value={formData.description}
-              onChange={handleInputChange}
-              rows="4"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-accent"
-            />
           </div>
 
           {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full disabled:opacity-50"
+            className="w-full py-3 rounded-lg font-semibold text-white text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+            style={{ background: 'linear-gradient(135deg, #1877F2, #166FE5)' }}
           >
-            {loading ? 'Creating Listing...' : 'Create Listing'}
+            {loading ? (
+              <>
+                <Loader className="w-4 h-4 animate-spin" />
+                Creating Listing...
+              </>
+            ) : (
+              'Create Listing'
+            )}
           </button>
         </form>
       </div>
     </div>
   );
-}
+      }

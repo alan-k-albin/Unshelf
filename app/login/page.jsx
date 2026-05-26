@@ -19,14 +19,11 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
-  // NEW: OTP timer and attempts
   const [otpTimer, setOtpTimer] = useState(0);
   const [otpAttempts, setOtpAttempts] = useState(0);
   const [isLockedOut, setIsLockedOut] = useState(false);
   const [lockoutTimer, setLockoutTimer] = useState(0);
 
-  // Timer effect for OTP expiry
   useEffect(() => {
     if (otpTimer > 0) {
       const interval = setTimeout(() => setOtpTimer(otpTimer - 1), 1000);
@@ -34,7 +31,6 @@ export default function Login() {
     }
   }, [otpTimer]);
 
-  // Timer effect for lockout
   useEffect(() => {
     if (lockoutTimer > 0) {
       const interval = setTimeout(() => setLockoutTimer(lockoutTimer - 1), 1000);
@@ -65,36 +61,21 @@ export default function Login() {
     }
 
     try {
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { error: otpError } = await supabase.auth.signInWithOtp({
         email,
-        password: 'temp_' + Math.random().toString(36).slice(2),
+        options: { shouldCreateUser: true },
       });
 
-      if (signUpError) {
-        if (signUpError.message.includes('rate limit'))
+      if (otpError) {
+        if (otpError.message.includes('rate limit'))
           setError('Too many attempts. Wait 5 minutes.');
-        else if (signUpError.message.includes('already registered'))
-          setError('Email already registered.');
-        else setError(signUpError.message || 'Failed to send OTP.');
+        else setError(otpError.message || 'Failed to send OTP.');
         setLoading(false);
         return;
       }
 
-      // Generate 6-digit OTP
-      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-
-      // Save OTP to database (for verification)
-      await supabase.from('otp_logs').insert([
-        {
-          email,
-          otp_code: generatedOtp,
-          expires_at: new Date(Date.now() + 5 * 60000).toISOString(), // 5 min
-          verified: false,
-        },
-      ]);
-
-      setSuccess('OTP sent successfully!');
-      setOtpTimer(300); // 5 minutes
+      setSuccess('OTP sent to your email!');
+      setOtpTimer(300);
       setOtpAttempts(0);
       setTimeout(() => {
         setStep(2);
@@ -111,7 +92,6 @@ export default function Login() {
     setError('');
     setLoading(true);
 
-    // Check lockout
     if (isLockedOut) {
       setError(`Too many attempts. Try again in ${lockoutTimer} seconds.`);
       setLoading(false);
@@ -131,25 +111,19 @@ export default function Login() {
     }
 
     try {
-      // Verify OTP from database
-      const { data: otpData, error: otpError } = await supabase
-        .from('otp_logs')
-        .select('*')
-        .eq('email', email)
-        .eq('otp_code', otp)
-        .gt('expires_at', new Date().toISOString())
-        .eq('verified', false)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: 'email',
+      });
 
-      if (otpError || !otpData) {
+      if (verifyError || !data.user) {
         const newAttempts = otpAttempts + 1;
         setOtpAttempts(newAttempts);
 
         if (newAttempts >= 3) {
           setIsLockedOut(true);
-          setLockoutTimer(300); // 5 min lockout
+          setLockoutTimer(300);
           setError('Too many attempts. Locked for 5 minutes.');
         } else {
           setError(`Invalid OTP. ${3 - newAttempts} attempts left.`);
@@ -158,12 +132,6 @@ export default function Login() {
         setLoading(false);
         return;
       }
-
-      // Mark OTP as verified
-      await supabase
-        .from('otp_logs')
-        .update({ verified: true })
-        .eq('id', otpData.id);
 
       setSuccess('OTP verified! Complete your profile.');
       setTimeout(() => {
@@ -178,7 +146,7 @@ export default function Login() {
   };
 
   const handleResendOTP = async () => {
-    if (otpTimer > 240) { // Can't resend if < 1 min left
+    if (otpTimer > 240) {
       setError('Please wait before requesting a new OTP');
       return;
     }
@@ -229,6 +197,12 @@ export default function Login() {
       const { data: authData } = await supabase.auth.getUser();
       const authUserId = authData?.user?.id;
 
+      if (!authUserId) {
+        setError('Authentication failed. Please try again.');
+        setLoading(false);
+        return;
+      }
+
       const { error: insertError } = await supabase.from('users').insert([
         {
           id: authUserId,
@@ -268,7 +242,6 @@ export default function Login() {
         background: 'linear-gradient(160deg, #1877F2 0%, #166FE5 60%, #0d5ed4 100%)',
       }}
     >
-      {/* Soft glow effects */}
       <div
         className="fixed top-0 right-0 w-72 h-72 rounded-full pointer-events-none"
         style={{
@@ -287,9 +260,7 @@ export default function Login() {
       />
 
       <div className="w-full max-w-sm relative">
-        {/* Card */}
         <div className="bg-white rounded-2xl shadow-2xl px-6 py-7">
-          {/* Logo & Header */}
           <div className="text-center mb-5">
             <div
               className="inline-flex items-center justify-center w-12 h-12 rounded-xl mb-3"
@@ -307,7 +278,6 @@ export default function Login() {
             </p>
           </div>
 
-          {/* Step Indicator */}
           <div className="flex gap-2 mb-5">
             {[1, 2, 3].map((s) => (
               <div
@@ -318,7 +288,6 @@ export default function Login() {
             ))}
           </div>
 
-          {/* Error */}
           {error && (
             <div
               className="mb-4 p-3 rounded-xl flex gap-2 border"
@@ -334,7 +303,6 @@ export default function Login() {
             </div>
           )}
 
-          {/* Success */}
           {success && (
             <div
               className="mb-4 p-3 rounded-xl flex gap-2 border"
@@ -350,7 +318,6 @@ export default function Login() {
             </div>
           )}
 
-          {/* Step 1: Email */}
           {step === 1 && (
             <div className="space-y-4">
               <div>
@@ -393,7 +360,6 @@ export default function Login() {
             </div>
           )}
 
-          {/* Step 2: OTP - REAL VERIFICATION */}
           {step === 2 && (
             <div className="space-y-4">
               <div>
@@ -435,7 +401,7 @@ export default function Login() {
                 )}
               </button>
 
-              {otpTimer > 0 && otpTimer <= 60 && (
+              {otpTimer > 0 && (
                 <button
                   onClick={handleResendOTP}
                   disabled={otpTimer > 240}
@@ -461,7 +427,6 @@ export default function Login() {
             </div>
           )}
 
-          {/* Step 3: Profile */}
           {step === 3 && (
             <div className="space-y-3">
               <div>
@@ -568,4 +533,4 @@ export default function Login() {
       </div>
     </div>
   );
-}
+    }

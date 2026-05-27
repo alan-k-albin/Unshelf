@@ -23,6 +23,7 @@ export default function Login() {
   const [otpAttempts, setOtpAttempts] = useState(0);
   const [isLockedOut, setIsLockedOut] = useState(false);
   const [lockoutTimer, setLockoutTimer] = useState(0);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   useEffect(() => {
     if (otpTimer > 0) {
@@ -40,6 +41,15 @@ export default function Login() {
       setOtpAttempts(0);
     }
   }, [lockoutTimer, isLockedOut]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('session') === 'expired') {
+      setSessionExpired(true);
+      setError('Your session has expired. Please login again.');
+      window.history.replaceState({}, document.title, '/login');
+    }
+  }, []);
 
   const validateEmail = (emailInput) => {
     if (!emailInput) return 'Email is required';
@@ -217,13 +227,19 @@ export default function Login() {
 
       if (insertError) throw insertError;
 
-      localStorage.setItem('user', JSON.stringify({
-        email,
-        fullName,
-        department: emailDept,
-        semester,
-        whatsapp,
-      }));
+      localStorage.setItem(
+        'user',
+        JSON.stringify({
+          email,
+          fullName,
+          department: emailDept,
+          semester,
+          whatsapp,
+        })
+      );
+
+      // ⭐ SET ACTIVITY TIMESTAMP
+      localStorage.setItem('lastActivity', Date.now().toString());
 
       setSuccess('Account created! Redirecting...');
       setTimeout(() => {
@@ -533,4 +549,4 @@ export default function Login() {
       </div>
     </div>
   );
-    }
+}

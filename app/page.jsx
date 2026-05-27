@@ -126,6 +126,12 @@ export default function Home() {
     }
   };
 
+  // ✅ ONLY CHANGE: Added this function
+  const handleCreateListing = () => {
+    const user = localStorage.getItem('user');
+    window.location.href = user ? '/create-listing' : '/login';
+  };
+
   const personalizedListings = listings.filter(l => l.department === userDept).slice(0, 5);
   const recentListings = listings.slice(0, 5);
 
@@ -248,11 +254,12 @@ export default function Home() {
           <p className="text-gray-600 mb-4">
             List your academic materials and help other students while recovering value
           </p>
-          <Link href="/create-listing" className="btn-primary inline-block">
+          {/* ✅ ONLY CHANGE: Replaced Link with button that checks login */}
+          <button onClick={handleCreateListing} className="btn-primary inline-block">
             Create Your First Listing
-          </Link>
+          </button>
         </div>
       </div>
     </div>
   );
-          }
+}

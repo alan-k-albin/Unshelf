@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { X, Loader, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { checkRateLimit, recordAction } from '@/lib/rateLimiter';
+import DOMPurify from 'dompurify';
 
 export default function RatingModal({ sellerId, listingId, onClose, onSuccess }) {
   const [rating, setRating] = useState(0);
@@ -36,13 +37,16 @@ export default function RatingModal({ sellerId, listingId, onClose, onSuccess })
         return;
       }
 
+      // ⭐ SANITIZE INPUT
+      const sanitizedComment = comment ? DOMPurify.sanitize(comment) : null;
+
       const { error: insertError } = await supabase.from('reviews').insert([
         {
           reviewer_id: authData.user.id,
           seller_id: sellerId,
           listing_id: listingId,
           rating,
-          comment: comment || null,
+          comment: sanitizedComment,
         },
       ]);
 
@@ -170,4 +174,4 @@ export default function RatingModal({ sellerId, listingId, onClose, onSuccess })
       </div>
     </div>
   );
-                                                         }
+      }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Search, Filter, X } from 'lucide-react';
@@ -8,7 +8,7 @@ import LoadingSkeleton from '@/components/LoadingSkeleton';
 import EmptyState from '@/components/EmptyState';
 import FilterPanel from '@/components/FilterPanel';
 
-export default function SearchPage() {
+function SearchPageContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
 
@@ -37,14 +37,12 @@ export default function SearchPage() {
         .select('*')
         .eq('status', 'Active');
 
-      // Search by title, category, subject
       if (query) {
         queryBuilder = queryBuilder.or(
           `title.ilike.%${query}%,category.ilike.%${query}%,subject.ilike.%${query}%`
         );
       }
 
-      // Price filter
       if (filters.minPrice > 0) {
         queryBuilder = queryBuilder.gte('price', filters.minPrice);
       }
@@ -52,17 +50,14 @@ export default function SearchPage() {
         queryBuilder = queryBuilder.lte('price', filters.maxPrice);
       }
 
-      // Condition filter
       if (filters.condition) {
         queryBuilder = queryBuilder.eq('condition', filters.condition);
       }
 
-      // Category filter
       if (filters.category) {
         queryBuilder = queryBuilder.eq('category', filters.category);
       }
 
-      // Sorting
       if (filters.sortBy === 'newest') {
         queryBuilder = queryBuilder.order('created_at', { ascending: false });
       } else if (filters.sortBy === 'price-low') {
@@ -86,7 +81,6 @@ export default function SearchPage() {
   const handleSearch = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // URL will be updated manually
     await performSearch();
   };
 
@@ -111,7 +105,11 @@ export default function SearchPage() {
             className="p-2.5 rounded-lg hover:bg-gray-100 relative"
           >
             <Filter className="w-5 h-5" style={{ color: '#1877F2' }} />
-            {(filters.condition || filters.category || filters.sortBy !== 'newest' || filters.minPrice > 0 || filters.maxPrice < 100000) && (
+            {(filters.condition ||
+              filters.category ||
+              filters.sortBy !== 'newest' ||
+              filters.minPrice > 0 ||
+              filters.maxPrice < 100000) && (
               <span
                 className="absolute top-0 right-0 w-2 h-2 rounded-full"
                 style={{ background: '#27AE60' }}
@@ -191,7 +189,10 @@ export default function SearchPage() {
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm mb-1 line-clamp-2" style={{ color: '#1B2A4A' }}>
+                      <h3
+                        className="font-semibold text-sm mb-1 line-clamp-2"
+                        style={{ color: '#1B2A4A' }}
+                      >
                         {listing.title}
                       </h3>
 
@@ -227,7 +228,9 @@ export default function SearchPage() {
                       <div className="flex items-center justify-between">
                         <div>
                           {listing.is_free ? (
-                            <span className="text-lg font-bold text-green-600">Free</span>
+                            <span className="text-lg font-bold text-green-600">
+                              Free
+                            </span>
                           ) : (
                             <span className="text-lg font-bold" style={{ color: '#1B2A4A' }}>
                               ₹{listing.price?.toLocaleString()}
@@ -251,4 +254,18 @@ export default function SearchPage() {
       </div>
     </div>
   );
-            }
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <p className="text-gray-500">Loading search...</p>
+        </div>
+      }
+    >
+      <SearchPageContent />
+    </Suspense>
+  );
+  }

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { X, AlertCircle, Loader, CheckCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { checkRateLimit, recordAction } from '@/lib/rateLimiter';
+import DOMPurify from 'dompurify';
 
 const REPORT_REASONS = [
   { value: 'spam', label: '🔗 Spam or Duplicate' },
@@ -46,12 +47,15 @@ export default function ReportModal({ listingId, onClose }) {
         return;
       }
 
+      // ⭐ SANITIZE INPUT
+      const sanitizedDescription = description ? DOMPurify.sanitize(description) : null;
+
       const { error: insertError } = await supabase.from('reports').insert([
         {
           listing_id: listingId,
           reporter_id: authData.user.id,
           reason,
-          description: description || null,
+          description: sanitizedDescription,
           status: 'pending',
         },
       ]);
@@ -178,4 +182,4 @@ export default function ReportModal({ listingId, onClose }) {
       </div>
     </div>
   );
-    }
+                                       }

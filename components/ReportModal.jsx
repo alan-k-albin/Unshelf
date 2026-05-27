@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, AlertCircle, Loader, CheckCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
+import { checkRateLimit, recordAction } from '@/lib/rateLimiter';
 
 const REPORT_REASONS = [
   { value: 'spam', label: '🔗 Spam or Duplicate' },
@@ -37,6 +38,14 @@ export default function ReportModal({ listingId, onClose }) {
         return;
       }
 
+      // ⭐ CHECK RATE LIMIT
+      const rateLimit = await checkRateLimit(authData.user.id, 'CREATE_REPORT');
+      if (!rateLimit.allowed) {
+        setError(rateLimit.message);
+        setLoading(false);
+        return;
+      }
+
       const { error: insertError } = await supabase.from('reports').insert([
         {
           listing_id: listingId,
@@ -53,6 +62,12 @@ export default function ReportModal({ listingId, onClose }) {
         return;
       }
 
+      // ⭐ RECORD ACTION
+      await recordAction(authData.user.id, 'CREATE_REPORT', {
+        reason,
+        listing_id: listingId,
+      });
+
       setSuccess(true);
       setTimeout(() => {
         onClose();
@@ -67,7 +82,6 @@ export default function ReportModal({ listingId, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
       <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
-        {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: '#1B2A4A' }}>
             <AlertCircle className="w-5 h-5 text-red-600" />
@@ -90,14 +104,12 @@ export default function ReportModal({ listingId, onClose }) {
           </div>
         ) : (
           <>
-            {/* Error */}
             {error && (
               <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
                 <p className="text-xs text-red-700">{error}</p>
               </div>
             )}
 
-            {/* Reason Selection */}
             <div className="mb-6">
               <label className="block text-sm font-semibold mb-3" style={{ color: '#1B2A4A' }}>
                 What's the issue?
@@ -122,7 +134,6 @@ export default function ReportModal({ listingId, onClose }) {
               </div>
             </div>
 
-            {/* Description */}
             <div className="mb-6">
               <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
                 More details (Optional)
@@ -138,7 +149,6 @@ export default function ReportModal({ listingId, onClose }) {
               <p className="text-xs text-gray-500 mt-1">{description.length}/300</p>
             </div>
 
-            {/* Buttons */}
             <div className="flex gap-2">
               <button
                 onClick={onClose}
@@ -168,4 +178,4 @@ export default function ReportModal({ listingId, onClose }) {
       </div>
     </div>
   );
-                                     }
+    }

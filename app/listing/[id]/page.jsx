@@ -8,6 +8,7 @@ import LoadingSkeleton from '@/components/LoadingSkeleton';
 import RatingModal from '@/components/RatingModal';
 import ReviewCard from '@/components/ReviewCard';
 import SellerRating from '@/components/SellerRating';
+import ReportModal from '@/components/ReportModal';
 
 export default function ListingDetailPage() {
   const params = useParams();
@@ -19,6 +20,7 @@ export default function ListingDetailPage() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [contactLoading, setContactLoading] = useState(false);
 
@@ -36,7 +38,6 @@ export default function ListingDetailPage() {
 
   const loadListing = async () => {
     try {
-      // Get listing
       const { data: listingData, error: listingError } = await supabase
         .from('listings')
         .select('*')
@@ -46,7 +47,6 @@ export default function ListingDetailPage() {
       if (listingError) throw listingError;
       setListing(listingData);
 
-      // Get seller info
       const { data: sellerData } = await supabase
         .from('users')
         .select('*')
@@ -55,7 +55,6 @@ export default function ListingDetailPage() {
 
       setSeller(sellerData);
 
-      // Get reviews
       const { data: reviewsData } = await supabase
         .from('reviews')
         .select('*')
@@ -82,7 +81,6 @@ export default function ListingDetailPage() {
     try {
       const { data: authData } = await supabase.auth.getUser();
 
-      // Add to contacts
       await supabase.from('contacts').upsert(
         [
           {
@@ -96,9 +94,7 @@ export default function ListingDetailPage() {
         { onConflict: 'user_id,contact_user_id' }
       );
 
-      // Open WhatsApp
       window.open(`https://wa.me/91${seller.whatsapp_number}`, '_blank');
-
       router.push('/chats');
     } catch (err) {
       console.error('Contact error:', err);
@@ -229,6 +225,23 @@ export default function ListingDetailPage() {
             </div>
           )}
 
+          {/* Verification & Report */}
+          <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-200">
+            {seller.is_verified && (
+              <div className="flex items-center gap-1 px-2 py-1 rounded bg-green-100">
+                <span className="text-green-600">✓</span>
+                <span className="text-xs font-semibold text-green-700">Verified</span>
+              </div>
+            )}
+            <button
+              onClick={() => setShowReportModal(true)}
+              className="ml-auto flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold"
+              style={{ color: '#DC2626', background: '#FEE2E2' }}
+            >
+              🚩 Report
+            </button>
+          </div>
+
           {/* Contact Buttons */}
           <div className="space-y-2">
             <button
@@ -337,6 +350,14 @@ export default function ListingDetailPage() {
           onSuccess={() => loadListing()}
         />
       )}
+
+      {/* Report Modal */}
+      {showReportModal && (
+        <ReportModal
+          listingId={listing.id}
+          onClose={() => setShowReportModal(false)}
+        />
+      )}
     </div>
   );
-               }
+    }

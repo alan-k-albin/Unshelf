@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Upload, ArrowLeft, Loader, AlertCircle, CheckCircle } from 'lucide-react';
 import { validateImage, compressImage } from '@/lib/imageValidation';
+import { checkRateLimit, recordAction } from '@/lib/rateLimiter';
 import CATEGORIES from '@/app/data';
 
 export default function CreateListing() {
@@ -35,7 +36,6 @@ export default function CreateListing() {
     setError('');
     setCompressionProgress('');
 
-    // Validate image
     const validation = validateImage(file);
     if (!validation.valid) {
       setError(validation.error);
@@ -46,11 +46,9 @@ export default function CreateListing() {
       setIsCompressing(true);
       setCompressionProgress('Compressing image...');
 
-      // Compress image
       const compressedFile = await compressImage(file);
       setImage(compressedFile);
 
-      // Create preview
       const reader = new FileReader();
       reader.onload = (event) => {
         setImagePreview(event.target?.result);
@@ -83,7 +81,6 @@ export default function CreateListing() {
     setLoading(true);
 
     try {
-      // Validation
       if (!formData.title.trim()) {
         setError('Title is required');
         setLoading(false);
@@ -105,7 +102,6 @@ export default function CreateListing() {
         return;
       }
 
-      // Get auth user
       const { data: authData } = await supabase.auth.getUser();
       const authUserId = authData?.user?.id || null;
 
@@ -115,16 +111,22 @@ export default function CreateListing() {
         return;
       }
 
-      // Get user profile
+      // ⭐ CHECK RATE LIMIT
+      const rateLimit = await checkRateLimit(authUserId, 'CREATE_LISTING');
+      if (!rateLimit.allowed) {
+        setError(rateLimit.message);
+        setLoading(false);
+        return;
+      }
+
       const userStr = localStorage.getItem('user');
       const user = userStr ? JSON.parse(userStr) : null;
 
-      // Upload image if provided
       let imageUrl = null;
       if (image) {
         const fileName = `${Date.now()}_${Math.random().toString(36).slice(7)}.jpg`;
-        
-        const { data: uploadData, error: uploadError } = await supabase.storage
+
+        const { error: uploadError } = await supabase.storage
           .from('listings')
           .upload(fileName, image);
 
@@ -141,7 +143,6 @@ export default function CreateListing() {
         imageUrl = publicUrlData?.publicUrl || null;
       }
 
-      // Create listing
       const { error: insertError } = await supabase.from('listings').insert([
         {
           user_id: authUserId,
@@ -165,6 +166,9 @@ export default function CreateListing() {
         return;
       }
 
+      // ⭐ RECORD ACTION
+      await recordAction(authUserId, 'CREATE_LISTING', { title: formData.title });
+
       setSuccess('✓ Listing created successfully!');
       setTimeout(() => router.push('/'), 1500);
     } catch (err) {
@@ -176,7 +180,6 @@ export default function CreateListing() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
       <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
         <div className="flex items-center gap-3 px-4 py-4">
           <button onClick={() => router.back()} className="p-1">
@@ -188,9 +191,7 @@ export default function CreateListing() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Error Message */}
         {error && (
           <div
             className="mb-4 p-4 rounded-lg flex gap-3 border"
@@ -203,7 +204,6 @@ export default function CreateListing() {
           </div>
         )}
 
-        {/* Success Message */}
         {success && (
           <div
             className="mb-4 p-4 rounded-lg flex gap-3 border"
@@ -217,7 +217,6 @@ export default function CreateListing() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Title */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Item Title *
@@ -232,7 +231,6 @@ export default function CreateListing() {
             />
           </div>
 
-          {/* Category */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Category *
@@ -252,7 +250,6 @@ export default function CreateListing() {
             </select>
           </div>
 
-          {/* Subject */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Subject/Topic (Optional)
@@ -267,7 +264,6 @@ export default function CreateListing() {
             />
           </div>
 
-          {/* Condition */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Condition *
@@ -285,7 +281,6 @@ export default function CreateListing() {
             </select>
           </div>
 
-          {/* Price */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Price (₹)
@@ -313,7 +308,6 @@ export default function CreateListing() {
             </div>
           </div>
 
-          {/* Image Upload WITH VALIDATION */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Upload Image (Optional)
@@ -345,13 +339,11 @@ export default function CreateListing() {
               </label>
             </div>
 
-            {/* Compression Progress */}
             {compressionProgress && (
               <p className="text-xs text-green-600 mt-2">{compressionProgress}</p>
             )}
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading || isCompressing}

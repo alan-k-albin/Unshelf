@@ -57,7 +57,8 @@ export default function FilterPanel({ filters, setFilters, onClose }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+    // ✅ ONLY CHANGE: added pb-24
+    <div className="bg-white rounded-2xl shadow-lg p-5 space-y-4 max-h-[80vh] overflow-y-auto pb-24">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-bold text-lg" style={{ color: '#1B2A4A' }}>
@@ -214,4 +215,4 @@ export default function FilterPanel({ filters, setFilters, onClose }) {
       </button>
     </div>
   );
-      }
+}

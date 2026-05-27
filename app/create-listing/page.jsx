@@ -191,7 +191,8 @@ export default function CreateListing() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      {/* ✅ ONLY CHANGE: added pb-24 to prevent button being hidden behind nav bar */}
+      <div className="max-w-2xl mx-auto px-4 py-6 pb-24">
         {error && (
           <div
             className="mb-4 p-4 rounded-lg flex gap-3 border"
@@ -363,4 +364,4 @@ export default function CreateListing() {
       </div>
     </div>
   );
-      }
+}

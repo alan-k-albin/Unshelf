@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { Upload, ArrowLeft, Loader, AlertCircle, CheckCircle } from 'lucide-react';
 import { validateImage, compressImage } from '@/lib/imageValidation';
 import { checkRateLimit, recordAction } from '@/lib/rateLimiter';
-import CATEGORIES from '@/app/data';
+import { CATEGORIES } from '@/app/data';
 
 export default function CreateListing() {
   const router = useRouter();

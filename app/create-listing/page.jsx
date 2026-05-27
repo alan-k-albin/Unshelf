@@ -3,19 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Upload, ArrowLeft, Loader } from 'lucide-react';
-
-// ✅ ONLY CHANGE: Hardcoded categories instead of importing from data.js
-const CATEGORIES = [
-  'Textbooks',
-  'Handwritten Notes',
-  'Lab Manuals',
-  'Study Guides',
-  'Calculators',
-  'Entrance Exam Books',
-  'Coaching Materials',
-  'Other',
-];
+import { Upload, ArrowLeft, Loader, AlertCircle, CheckCircle } from 'lucide-react';
+import { validateImage, compressImage } from '@/lib/imageValidation';
+import CATEGORIES from '@/app/data';
 
 export default function CreateListing() {
   const router = useRouter();
@@ -24,6 +14,8 @@ export default function CreateListing() {
   const [success, setSuccess] = useState('');
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState('');
 
   const [formData, setFormData] = useState({
     title: '',
@@ -36,13 +28,43 @@ export default function CreateListing() {
     condition: 'Good',
   });
 
-  const handleImageSelect = (e) => {
+  const handleImageSelect = async (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setImage(file);
+    if (!file) return;
+
+    setError('');
+    setCompressionProgress('');
+
+    // Validate image
+    const validation = validateImage(file);
+    if (!validation.valid) {
+      setError(validation.error);
+      return;
+    }
+
+    try {
+      setIsCompressing(true);
+      setCompressionProgress('Compressing image...');
+
+      // Compress image
+      const compressedFile = await compressImage(file);
+      setImage(compressedFile);
+
+      // Create preview
       const reader = new FileReader();
-      reader.onload = (event) => setImagePreview(event.target?.result);
-      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        setImagePreview(event.target?.result);
+        setCompressionProgress(
+          `✓ Compressed: ${(file.size / 1024 / 1024).toFixed(1)}MB → ${(compressedFile.size / 1024 / 1024).toFixed(1)}MB`
+        );
+        setTimeout(() => setCompressionProgress(''), 3000);
+      };
+      reader.readAsDataURL(compressedFile);
+    } catch (err) {
+      setError('Failed to compress image. Please try another file.');
+      console.error(err);
+    } finally {
+      setIsCompressing(false);
     }
   };
 
@@ -61,11 +83,29 @@ export default function CreateListing() {
     setLoading(true);
 
     try {
-      if (!formData.title.trim()) { setError('Title is required'); setLoading(false); return; }
-      if (!formData.category) { setError('Please select a category'); setLoading(false); return; }
-      if (!formData.condition) { setError('Please select condition'); setLoading(false); return; }
-      if (!formData.isFree && !formData.price) { setError('Enter price or mark as free'); setLoading(false); return; }
+      // Validation
+      if (!formData.title.trim()) {
+        setError('Title is required');
+        setLoading(false);
+        return;
+      }
+      if (!formData.category) {
+        setError('Please select a category');
+        setLoading(false);
+        return;
+      }
+      if (!formData.condition) {
+        setError('Please select condition');
+        setLoading(false);
+        return;
+      }
+      if (!formData.isFree && !formData.price) {
+        setError('Enter price or mark as free');
+        setLoading(false);
+        return;
+      }
 
+      // Get auth user
       const { data: authData } = await supabase.auth.getUser();
       const authUserId = authData?.user?.id || null;
 
@@ -75,24 +115,33 @@ export default function CreateListing() {
         return;
       }
 
+      // Get user profile
       const userStr = localStorage.getItem('user');
       const user = userStr ? JSON.parse(userStr) : null;
 
+      // Upload image if provided
       let imageUrl = null;
       if (image) {
-        const fileName = `${Date.now()}_${image.name}`;
+        const fileName = `${Date.now()}_${Math.random().toString(36).slice(7)}.jpg`;
+        
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('listings')
           .upload(fileName, image);
 
-        if (uploadError) throw new Error(`Image upload failed: ${uploadError.message}`);
+        if (uploadError) {
+          setError(`Image upload failed: ${uploadError.message}`);
+          setLoading(false);
+          return;
+        }
 
         const { data: publicUrlData } = supabase.storage
           .from('listings')
           .getPublicUrl(fileName);
+
         imageUrl = publicUrlData?.publicUrl || null;
       }
 
+      // Create listing
       const { error: insertError } = await supabase.from('listings').insert([
         {
           user_id: authUserId,
@@ -110,9 +159,13 @@ export default function CreateListing() {
         },
       ]);
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        setError(`Failed to create listing: ${insertError.message}`);
+        setLoading(false);
+        return;
+      }
 
-      setSuccess('Listing created successfully!');
+      setSuccess('✓ Listing created successfully!');
       setTimeout(() => router.push('/'), 1500);
     } catch (err) {
       setError(err.message || 'Failed to create listing');
@@ -123,29 +176,48 @@ export default function CreateListing() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Header */}
       <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
         <div className="flex items-center gap-3 px-4 py-4">
           <button onClick={() => router.back()} className="p-1">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-bold" style={{ color: '#1B2A4A' }}>Create Listing</h1>
+          <h1 className="text-lg font-bold" style={{ color: '#1B2A4A' }}>
+            Create Listing
+          </h1>
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="max-w-2xl mx-auto px-4 py-6">
+        {/* Error Message */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2">
-            <p className="text-sm text-red-700">{error}</p>
+          <div
+            className="mb-4 p-4 rounded-lg flex gap-3 border"
+            style={{ background: '#FEF2F2', borderColor: '#FECACA' }}
+          >
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#DC2626' }} />
+            <p className="text-sm" style={{ color: '#DC2626' }}>
+              {error}
+            </p>
           </div>
         )}
 
+        {/* Success Message */}
         {success && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex gap-2">
-            <p className="text-sm text-green-700">{success}</p>
+          <div
+            className="mb-4 p-4 rounded-lg flex gap-3 border"
+            style={{ background: '#F0FDF4', borderColor: '#BBF7D0' }}
+          >
+            <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#16A34A' }} />
+            <p className="text-sm" style={{ color: '#16A34A' }}>
+              {success}
+            </p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Title */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Item Title *
@@ -160,6 +232,7 @@ export default function CreateListing() {
             />
           </div>
 
+          {/* Category */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Category *
@@ -172,11 +245,14 @@ export default function CreateListing() {
             >
               <option value="">Select Category</option>
               {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
               ))}
             </select>
           </div>
 
+          {/* Subject */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Subject/Topic (Optional)
@@ -191,6 +267,7 @@ export default function CreateListing() {
             />
           </div>
 
+          {/* Condition */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Condition *
@@ -208,6 +285,7 @@ export default function CreateListing() {
             </select>
           </div>
 
+          {/* Price */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Price (₹)
@@ -235,6 +313,7 @@ export default function CreateListing() {
             </div>
           </div>
 
+          {/* Image Upload WITH VALIDATION */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Upload Image (Optional)
@@ -244,25 +323,38 @@ export default function CreateListing() {
                 type="file"
                 accept="image/*"
                 onChange={handleImageSelect}
+                disabled={isCompressing}
                 className="hidden"
                 id="image-input"
               />
-              <label htmlFor="image-input" className="cursor-pointer flex flex-col items-center gap-2">
+              <label
+                htmlFor="image-input"
+                className="cursor-pointer flex flex-col items-center gap-2"
+              >
                 {imagePreview ? (
                   <img src={imagePreview} alt="Preview" className="w-24 h-24 object-cover rounded" />
                 ) : (
                   <>
                     <Upload className="w-6 h-6 text-gray-400" />
-                    <span className="text-sm text-gray-600">Click to upload image</span>
+                    <span className="text-sm text-gray-600">
+                      {isCompressing ? 'Compressing...' : 'Click to upload image'}
+                    </span>
+                    <span className="text-xs text-gray-500">JPG, PNG, WebP • Max 5MB</span>
                   </>
                 )}
               </label>
             </div>
+
+            {/* Compression Progress */}
+            {compressionProgress && (
+              <p className="text-xs text-green-600 mt-2">{compressionProgress}</p>
+            )}
           </div>
 
+          {/* Submit Button */}
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || isCompressing}
             className="w-full py-3 rounded-lg font-semibold text-white text-sm disabled:opacity-50 flex items-center justify-center gap-2"
             style={{ background: 'linear-gradient(135deg, #1877F2, #166FE5)' }}
           >
@@ -279,4 +371,4 @@ export default function CreateListing() {
       </div>
     </div>
   );
-}
+      }

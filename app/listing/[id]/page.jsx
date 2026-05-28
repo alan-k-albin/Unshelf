@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { ArrowLeft, MessageCircle, Share2, Loader } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Share2, Loader, Eye } from 'lucide-react';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
 import RatingModal from '@/components/RatingModal';
 import ReviewCard from '@/components/ReviewCard';
@@ -23,6 +23,12 @@ export default function ListingDetailPage() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [contactLoading, setContactLoading] = useState(false);
+
+  // ✅ FIX 2: WhatsApp number hidden by default
+  const [whatsappRevealed, setWhatsappRevealed] = useState(false);
+  const [whatsappNumber, setWhatsappNumber] = useState(null);
+  const [revealLoading, setRevealLoading] = useState(false);
+  const [revealCount, setRevealCount] = useState(0);
 
   useEffect(() => {
     loadListing();
@@ -47,9 +53,10 @@ export default function ListingDetailPage() {
       if (listingError) throw listingError;
       setListing(listingData);
 
+      // ✅ FIX 2: Fetch seller WITHOUT whatsapp_number
       const { data: sellerData } = await supabase
         .from('users')
-        .select('*')
+        .select('id, full_name, department, semester, is_verified, rating, total_reviews, email')
         .eq('id', listingData.user_id)
         .single();
 
@@ -70,35 +77,74 @@ export default function ListingDetailPage() {
     }
   };
 
-  const handleContact = async () => {
+  // ✅ FIX 2: Reveal WhatsApp only after explicit action + rate limit check
+  const handleRevealWhatsapp = async () => {
     if (!currentUser) {
       router.push('/login');
       return;
     }
 
-    setContactLoading(true);
+    // Prevent more than 5 reveals per session (anti-scraping)
+    if (revealCount >= 5) {
+      alert('Too many contact requests. Please try again later.');
+      return;
+    }
+
+    setRevealLoading(true);
 
     try {
       const { data: authData } = await supabase.auth.getUser();
+      if (!authData?.user) {
+        router.push('/login');
+        return;
+      }
 
+      // Fetch WhatsApp number only at this point
+      const { data: sellerContact, error } = await supabase
+        .from('users')
+        .select('whatsapp_number')
+        .eq('id', listing.user_id)
+        .single();
+
+      if (error || !sellerContact?.whatsapp_number) {
+        alert('Could not retrieve contact info. Please try again.');
+        return;
+      }
+
+      setWhatsappNumber(sellerContact.whatsapp_number);
+      setWhatsappRevealed(true);
+      setRevealCount(prev => prev + 1);
+
+      // Log contact to contacts table
       await supabase.from('contacts').upsert(
         [
           {
             user_id: authData.user.id,
             contact_user_id: listing.user_id,
             contact_name: seller.full_name,
-            contact_whatsapp: seller.whatsapp_number,
+            contact_whatsapp: sellerContact.whatsapp_number,
             contact_type: 'seller',
           },
         ],
         { onConflict: 'user_id,contact_user_id' }
       );
 
-      window.open(`https://wa.me/91${seller.whatsapp_number}`, '_blank');
+    } catch (err) {
+      console.error('Reveal error:', err);
+      alert('Error retrieving contact. Please try again.');
+    } finally {
+      setRevealLoading(false);
+    }
+  };
+
+  const handleContact = async () => {
+    if (!whatsappNumber) return;
+    setContactLoading(true);
+    try {
+      window.open(`https://wa.me/91${whatsappNumber}`, '_blank');
       router.push('/chats');
     } catch (err) {
       console.error('Contact error:', err);
-      alert('Error adding contact. Please try again.');
     } finally {
       setContactLoading(false);
     }
@@ -162,21 +208,15 @@ export default function ListingDetailPage() {
               className="text-xs px-2 py-1 rounded"
               style={{
                 background:
-                  listing.condition === 'Like New'
-                    ? '#E0F2FE'
-                    : listing.condition === 'Good'
-                    ? '#DCFCE7'
-                    : listing.condition === 'Used'
-                    ? '#FEF3C7'
-                    : '#FECACA',
+                  listing.condition === 'Like New' ? '#E0F2FE'
+                  : listing.condition === 'Good' ? '#DCFCE7'
+                  : listing.condition === 'Used' ? '#FEF3C7'
+                  : '#FECACA',
                 color:
-                  listing.condition === 'Like New'
-                    ? '#0369A1'
-                    : listing.condition === 'Good'
-                    ? '#166534'
-                    : listing.condition === 'Used'
-                    ? '#92400E'
-                    : '#DC2626',
+                  listing.condition === 'Like New' ? '#0369A1'
+                  : listing.condition === 'Good' ? '#166534'
+                  : listing.condition === 'Used' ? '#92400E'
+                  : '#DC2626',
               }}
             >
               {listing.condition}
@@ -242,31 +282,54 @@ export default function ListingDetailPage() {
             </button>
           </div>
 
-          {/* Contact Buttons */}
+          {/* ✅ FIX 2: Contact Buttons — WhatsApp hidden until revealed */}
           <div className="space-y-2">
-            <button
-              onClick={handleContact}
-              disabled={contactLoading}
-              className="w-full py-3 rounded-lg font-semibold text-white text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-              style={{
-                background: contactLoading
-                  ? '#94A3B8'
-                  : 'linear-gradient(135deg, #1877F2, #166FE5)',
-              }}
-            >
-              {contactLoading ? (
-                <>
-                  <Loader className="w-4 h-4 animate-spin" /> Connecting...
-                </>
-              ) : (
-                <>
-                  <MessageCircle className="w-4 h-4" /> Contact via WhatsApp
-                </>
-              )}
-            </button>
+            {!whatsappRevealed ? (
+              // Step 1: Show "Reveal Contact" button first
+              <button
+                onClick={handleRevealWhatsapp}
+                disabled={revealLoading}
+                className="w-full py-3 rounded-lg font-semibold text-white text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #1877F2, #166FE5)' }}
+              >
+                {revealLoading ? (
+                  <><Loader className="w-4 h-4 animate-spin" /> Loading...</>
+                ) : (
+                  <><Eye className="w-4 h-4" /> Contact via WhatsApp</>
+                )}
+              </button>
+            ) : (
+              // Step 2: After reveal, show actual WhatsApp number + open button
+              <div className="space-y-2">
+                <div className="w-full py-2.5 px-4 rounded-lg border border-green-300 bg-green-50 text-center">
+                  <p className="text-xs text-gray-500 mb-0.5">WhatsApp Number</p>
+                  <p className="font-bold text-green-700">+91 {whatsappNumber}</p>
+                </div>
+                <button
+                  onClick={handleContact}
+                  disabled={contactLoading}
+                  className="w-full py-3 rounded-lg font-semibold text-white text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg, #16A34A, #22C55E)' }}
+                >
+                  {contactLoading ? (
+                    <><Loader className="w-4 h-4 animate-spin" /> Connecting...</>
+                  ) : (
+                    <><MessageCircle className="w-4 h-4" /> Open WhatsApp</>
+                  )}
+                </button>
+              </div>
+            )}
 
             <button
-              onClick={() => window.open(`https://wa.me/91${seller.whatsapp_number}`, '_blank')}
+              onClick={() => {
+                const url = window.location.href;
+                if (navigator.share) {
+                  navigator.share({ title: listing.title, url });
+                } else {
+                  navigator.clipboard.writeText(url);
+                  alert('Link copied!');
+                }
+              }}
               className="w-full py-2.5 rounded-lg border border-gray-300 font-semibold text-sm"
               style={{ color: '#1877F2' }}
             >
@@ -360,4 +423,4 @@ export default function ListingDetailPage() {
       )}
     </div>
   );
-    }
+}

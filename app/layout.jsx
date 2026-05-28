@@ -106,13 +106,15 @@ export default function RootLayout({ children }) {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:block bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-            <Link
-              href="/"
-              className="text-2xl font-bold"
-              style={{ color: '#1B2A4A' }}
-            >
-              Unshelf
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+
+            {/* ✅ LOGO - Desktop */}
+            <Link href="/">
+              <img
+                src="/logo.png"
+                alt="Unshelf"
+                className="h-10 w-auto object-contain"
+              />
             </Link>
 
             <div className="flex items-center gap-6">
@@ -120,10 +122,7 @@ export default function RootLayout({ children }) {
                 Home
               </Link>
 
-              <Link
-                href="/search"
-                className="text-gray-600 hover:text-gray-900 transition"
-              >
+              <Link href="/search" className="text-gray-600 hover:text-gray-900 transition">
                 Browse
               </Link>
 
@@ -138,10 +137,7 @@ export default function RootLayout({ children }) {
                     Sell
                   </Link>
 
-                  <Link
-                    href="/chats"
-                    className="text-gray-600 hover:text-gray-900 transition relative"
-                  >
+                  <Link href="/chats" className="text-gray-600 hover:text-gray-900 transition relative">
                     <MessageCircle className="w-5 h-5" />
                   </Link>
 
@@ -161,9 +157,7 @@ export default function RootLayout({ children }) {
                           <p className="font-semibold" style={{ color: '#1B2A4A' }}>
                             {user?.fullName}
                           </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {user?.email}
-                          </p>
+                          <p className="text-xs text-gray-500 mt-1">{user?.email}</p>
                         </div>
 
                         <Link
@@ -201,9 +195,15 @@ export default function RootLayout({ children }) {
 
         {/* Mobile Navigation - Top */}
         <nav className="md:hidden bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-          <div className="px-4 py-3 flex items-center justify-between">
-            <Link href="/" className="text-xl font-bold" style={{ color: '#1B2A4A' }}>
-              Unshelf
+          <div className="px-4 py-2.5 flex items-center justify-between">
+
+            {/* ✅ LOGO - Mobile */}
+            <Link href="/">
+              <img
+                src="/logo.png"
+                alt="Unshelf"
+                className="h-9 w-auto object-contain"
+              />
             </Link>
 
             <button
@@ -220,65 +220,33 @@ export default function RootLayout({ children }) {
 
           {mobileMenuOpen && (
             <div className="bg-gray-50 border-t border-gray-200">
-              <Link
-                href="/"
-                onClick={closeMenus}
-                className="block px-4 py-3 text-sm text-gray-700 hover:bg-white transition"
-              >
+              <Link href="/" onClick={closeMenus} className="block px-4 py-3 text-sm text-gray-700 hover:bg-white transition">
                 Home
               </Link>
-
-              <Link
-                href="/search"
-                onClick={closeMenus}
-                className="block px-4 py-3 text-sm text-gray-700 hover:bg-white transition"
-              >
+              <Link href="/search" onClick={closeMenus} className="block px-4 py-3 text-sm text-gray-700 hover:bg-white transition">
                 Browse
               </Link>
 
               {isLoggedIn ? (
                 <>
-                  <Link
-                    href="/create-listing"
-                    onClick={closeMenus}
-                    className="block px-4 py-3 text-sm text-gray-700 hover:bg-white transition"
-                  >
+                  <Link href="/create-listing" onClick={closeMenus} className="block px-4 py-3 text-sm text-gray-700 hover:bg-white transition">
                     Create Listing
                   </Link>
-
-                  <Link
-                    href="/chats"
-                    onClick={closeMenus}
-                    className="block px-4 py-3 text-sm text-gray-700 hover:bg-white transition"
-                  >
+                  <Link href="/chats" onClick={closeMenus} className="block px-4 py-3 text-sm text-gray-700 hover:bg-white transition">
                     Chats
                   </Link>
-
-                  <Link
-                    href="/profile"
-                    onClick={closeMenus}
-                    className="block px-4 py-3 text-sm text-gray-700 hover:bg-white transition"
-                  >
+                  <Link href="/profile" onClick={closeMenus} className="block px-4 py-3 text-sm text-gray-700 hover:bg-white transition">
                     Profile
                   </Link>
-
                   <button
-                    onClick={() => {
-                      handleLogout();
-                      closeMenus();
-                    }}
+                    onClick={() => { handleLogout(); closeMenus(); }}
                     className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition border-t border-gray-200"
                   >
                     Logout
                   </button>
                 </>
               ) : (
-                <Link
-                  href="/login"
-                  onClick={closeMenus}
-                  className="block px-4 py-3 text-sm font-semibold transition"
-                  style={{ color: '#1877F2' }}
-                >
+                <Link href="/login" onClick={closeMenus} className="block px-4 py-3 text-sm font-semibold transition" style={{ color: '#1877F2' }}>
                   Login
                 </Link>
               )}
@@ -292,63 +260,40 @@ export default function RootLayout({ children }) {
         {/* Mobile Bottom Navigation */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 shadow-lg">
           <div className="flex justify-around items-center">
-            {/* Home */}
             <Link
               href="/"
-              className={`flex-1 flex flex-col items-center justify-center py-3 transition ${
-                pathname === '/'
-                  ? 'text-accent'
-                  : 'text-gray-600'
-              } hover:text-accent`}
+              className={`flex-1 flex flex-col items-center justify-center py-3 transition ${pathname === '/' ? 'text-accent' : 'text-gray-600'} hover:text-accent`}
             >
               <Home className="w-6 h-6" />
               <span className="text-xs mt-1 font-medium">Home</span>
             </Link>
 
-            {/* Chats */}
             <Link
               href="/chats"
-              className={`flex-1 flex flex-col items-center justify-center py-3 transition ${
-                pathname === '/chats'
-                  ? 'text-accent'
-                  : 'text-gray-600'
-              } hover:text-accent`}
+              className={`flex-1 flex flex-col items-center justify-center py-3 transition ${pathname === '/chats' ? 'text-accent' : 'text-gray-600'} hover:text-accent`}
             >
               <MessageCircle className="w-6 h-6" />
               <span className="text-xs mt-1 font-medium">Chats</span>
             </Link>
 
-            {/* Sell */}
             {isLoggedIn ? (
               <Link
                 href="/create-listing"
-                className={`flex-1 flex flex-col items-center justify-center py-3 transition ${
-                  pathname === '/create-listing'
-                    ? 'text-accent'
-                    : 'text-gray-600'
-                } hover:text-accent`}
+                className={`flex-1 flex flex-col items-center justify-center py-3 transition ${pathname === '/create-listing' ? 'text-accent' : 'text-gray-600'} hover:text-accent`}
               >
                 <Plus className="w-6 h-6" />
                 <span className="text-xs mt-1 font-medium">Sell</span>
               </Link>
             ) : (
-              <Link
-                href="/login"
-                className="flex-1 flex flex-col items-center justify-center py-3 text-gray-600 hover:text-accent transition"
-              >
+              <Link href="/login" className="flex-1 flex flex-col items-center justify-center py-3 text-gray-600 hover:text-accent transition">
                 <Plus className="w-6 h-6" />
                 <span className="text-xs mt-1 font-medium">Sell</span>
               </Link>
             )}
 
-            {/* Account */}
             <Link
               href={isLoggedIn ? '/profile' : '/login'}
-              className={`flex-1 flex flex-col items-center justify-center py-3 transition ${
-                pathname === '/profile'
-                  ? 'text-accent'
-                  : 'text-gray-600'
-              } hover:text-accent`}
+              className={`flex-1 flex flex-col items-center justify-center py-3 transition ${pathname === '/profile' ? 'text-accent' : 'text-gray-600'} hover:text-accent`}
             >
               <User className="w-6 h-6" />
               <span className="text-xs mt-1 font-medium">Account</span>
@@ -358,4 +303,4 @@ export default function RootLayout({ children }) {
       </body>
     </html>
   );
-    }
+                }

@@ -388,14 +388,7 @@ export default function HomePage() {
             <span className="text-xs mt-1">Chats</span>
           </Link>
 
-          {/* Sell - Floating Button */}
-          <button
-            onClick={handleCreateListing}
-            className="absolute -top-7 left-1/2 transform -translate-x-1/2 w-14 h-14 rounded-full flex items-center justify-center text-white shadow-2xl hover:shadow-3xl transition active:scale-90"
-            style={{ background: 'linear-gradient(135deg, #16A34A, #22C55E)' }}
-          >
-            <Plus className="w-6 h-6" />
-          </button>
+    
 
           {/* Browse */}
           <Link href="/search" className="flex-1 flex flex-col items-center justify-center py-3 text-gray-600 hover:text-gray-900 transition">

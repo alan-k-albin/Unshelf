@@ -12,20 +12,22 @@ import LoadingSkeleton from '@/components/LoadingSkeleton';
 import ConditionLabel from '@/components/ConditionLabel';
 
 const CATEGORY_ICONS = {
-  'Textbooks': { icon: BookOpen, lightBg: '#EEF2FF', darkBg: '#4F46E5' },
-  'Handwritten Notes': { icon: PenTool, lightBg: '#F3E8FF', darkBg: '#9333EA' },
-  'Study Guides': { icon: BookMarked, lightBg: '#ECFDF5', darkBg: '#16A34A' },
-  'Notebooks': { icon: Notebook, lightBg: '#F3E8FF', darkBg: '#9333EA' },
-  'Lab Manuals': { icon: Beaker, lightBg: '#FFF7ED', darkBg: '#EA580C' },
-  'Calculators/Tools': { icon: Calculator, lightBg: '#FEFCE8', darkBg: '#CA8A04' },
+  'Textbooks':          { icon: BookOpen,      lightBg: '#EEF2FF', darkBg: '#4F46E5' },
+  'Handwritten Notes':  { icon: PenTool,       lightBg: '#F3E8FF', darkBg: '#9333EA' },
+  'Study Guides':       { icon: BookMarked,    lightBg: '#ECFDF5', darkBg: '#16A34A' },
+  'Notebooks':          { icon: Notebook,      lightBg: '#F3E8FF', darkBg: '#9333EA' },
+  'Lab Manuals':        { icon: Beaker,        lightBg: '#FFF7ED', darkBg: '#EA580C' },
+  'Calculators/Tools':  { icon: Calculator,   lightBg: '#FEFCE8', darkBg: '#CA8A04' },
   'Coaching Materials': { icon: GraduationCap, lightBg: '#EEF2FF', darkBg: '#4F46E5' },
-  'Other': { icon: BookOpen, lightBg: '#F5F5F5', darkBg: '#6B7280' }
+  'Other':              { icon: BookOpen,      lightBg: '#F5F5F5', darkBg: '#6B7280' },
 };
 
 const ListingCard = ({ listing }) => {
   return (
     <Link href={`/listing/${listing.id}`}>
       <div className="group cursor-pointer h-full rounded-2xl overflow-hidden bg-white border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300">
+        
+        {/* Image */}
         <div className="relative w-full h-40 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
           {listing.image_url ? (
             <img
@@ -38,11 +40,16 @@ const ListingCard = ({ listing }) => {
               <BookOpen className="w-12 h-12 text-gray-300" />
             </div>
           )}
+
+          {/* Status Badge */}
           <div className={`absolute top-3 right-3 text-xs font-bold px-2.5 py-1 rounded-full backdrop-blur-sm ${
-            listing.status === 'Active' ? 'bg-green-100/80 text-green-700' : 'bg-gray-100/80 text-gray-700'
+            listing.status === 'Active'
+              ? 'bg-green-100/80 text-green-700'
+              : 'bg-gray-100/80 text-gray-700'
           }`}>
             {listing.status === 'Active' ? '●' : '✓'} {listing.status}
           </div>
+
           {listing.featured && (
             <div className="absolute top-3 left-3 bg-yellow-400/90 text-yellow-900 text-xs font-bold px-2.5 py-1 rounded-full">
               ⭐
@@ -50,20 +57,29 @@ const ListingCard = ({ listing }) => {
           )}
         </div>
 
+        {/* Content */}
         <div className="p-3.5">
           <h3 className="font-semibold text-sm line-clamp-2 mb-2" style={{ color: '#1B2A4A' }}>
             {listing.title}
           </h3>
+
           <div className="mb-2.5">
             <span className="inline-block bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded-full font-medium">
               {listing.category}
             </span>
           </div>
+
           <div className="flex gap-1.5 mb-2.5 text-xs">
             <span className="bg-gray-50 text-gray-600 px-2 py-1 rounded-full">{listing.department}</span>
             <span className="bg-gray-50 text-gray-600 px-2 py-1 rounded-full">{listing.semester}</span>
           </div>
-          {listing.condition && <div className="mb-2.5"><ConditionLabel condition={listing.condition} /></div>}
+
+          {listing.condition && (
+            <div className="mb-2.5">
+              <ConditionLabel condition={listing.condition} />
+            </div>
+          )}
+
           <div className="font-bold text-sm" style={{ color: listing.is_free ? '#16A34A' : '#1B2A4A' }}>
             {listing.is_free ? '📦 Free' : `₹${listing.price?.toLocaleString()}`}
           </div>
@@ -81,8 +97,10 @@ const CategoryCard = ({ name, categoryInfo }) => {
         className="group relative overflow-hidden rounded-2xl p-5 transition-all duration-300 hover:shadow-xl cursor-pointer h-32 flex flex-col items-center justify-center active:scale-95"
         style={{ background: categoryInfo?.lightBg }}
       >
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-          style={{ background: categoryInfo?.darkBg }} />
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          style={{ background: categoryInfo?.darkBg }}
+        />
         <div className="relative z-10 text-center">
           <div
             className="w-12 h-12 rounded-xl mb-2.5 flex items-center justify-center mx-auto text-white transition-all duration-300 group-hover:scale-110"
@@ -90,8 +108,10 @@ const CategoryCard = ({ name, categoryInfo }) => {
           >
             <IconComponent className="w-6 h-6" />
           </div>
-          <p className="font-semibold text-sm transition-colors duration-300 group-hover:text-white line-clamp-2"
-            style={{ color: categoryInfo?.darkBg }}>
+          <p
+            className="font-semibold text-sm transition-colors duration-300 group-hover:text-white line-clamp-2"
+            style={{ color: categoryInfo?.darkBg }}
+          >
             {name}
           </p>
         </div>
@@ -160,7 +180,7 @@ export default function HomePage() {
 
         <div className="relative z-10 max-w-4xl mx-auto text-center">
 
-          {/* ✅ LOGO - Replaces BookOpen icon */}
+          {/* Logo */}
           <img
             src="/logo.png"
             alt="Unshelf"
@@ -196,7 +216,7 @@ export default function HomePage() {
             </div>
           </form>
 
-          {/* CTA */}
+          {/* Hero CTA */}
           <button
             onClick={handleCreateListing}
             className="px-8 py-3 rounded-2xl font-semibold text-white text-sm transition hover:shadow-xl active:scale-95 inline-flex items-center gap-2"
@@ -228,9 +248,13 @@ export default function HomePage() {
         <section className="px-4 py-6 md:py-10 max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg md:text-xl font-bold" style={{ color: '#1B2A4A' }}>
-              For {userDept}
+              📚 For {userDept}
             </h2>
-            <Link href={`/search?department=${userDept}`} className="text-sm font-semibold" style={{ color: '#4F46E5' }}>
+            <Link
+              href={`/search?department=${userDept}`}
+              className="text-sm font-semibold"
+              style={{ color: '#4F46E5' }}
+            >
               View All →
             </Link>
           </div>
@@ -254,6 +278,7 @@ export default function HomePage() {
             Explore →
           </Link>
         </div>
+
         {isLoading ? (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {[1, 2, 3, 4].map(i => <LoadingSkeleton key={i} />)}
@@ -284,6 +309,7 @@ export default function HomePage() {
             <h3 className="font-bold text-sm mb-1.5" style={{ color: '#1B2A4A' }}>Verified Students</h3>
             <p className="text-xs text-gray-600 leading-snug">College email verified. Trade safely.</p>
           </div>
+
           <div className="rounded-2xl p-5 border border-green-200 bg-green-50/50 hover:shadow-lg transition">
             <div className="w-10 h-10 rounded-xl bg-green-200 flex items-center justify-center mb-3">
               <Zap className="w-5 h-5 text-green-700" />
@@ -291,6 +317,7 @@ export default function HomePage() {
             <h3 className="font-bold text-sm mb-1.5" style={{ color: '#1B2A4A' }}>Fair Prices</h3>
             <p className="text-xs text-gray-600 leading-snug">No middlemen. Student-set rates.</p>
           </div>
+
           <div className="rounded-2xl p-5 border border-yellow-200 bg-yellow-50/50 hover:shadow-lg transition">
             <div className="w-10 h-10 rounded-xl bg-yellow-200 flex items-center justify-center mb-3">
               <Users className="w-5 h-5 text-yellow-700" />
@@ -301,6 +328,28 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ===== CREATE LISTING CTA ===== */}
+      <section className="px-4 py-8 md:py-12 max-w-7xl mx-auto">
+        <div className="bg-gradient-to-r from-indigo-50 to-green-50 rounded-2xl p-8 border border-indigo-100 text-center">
+          <h3 className="text-xl md:text-2xl font-bold mb-3" style={{ color: '#1B2A4A' }}>
+            {isLoggedIn ? 'Ready to sell your materials?' : 'Have materials to share?'}
+          </h3>
+          <p className="text-gray-600 text-sm mb-6">
+            {isLoggedIn
+              ? 'List your books and notes. Help fellow students and earn money!'
+              : 'Join SJCET students buying and selling academic materials.'}
+          </p>
+          <button
+            onClick={handleCreateListing}
+            className="px-8 py-3 rounded-2xl font-semibold text-white transition hover:shadow-xl active:scale-95 inline-flex items-center gap-2"
+            style={{ background: 'linear-gradient(135deg, #16A34A, #22C55E)' }}
+          >
+            {isLoggedIn ? '✨ Create Listing' : '🚀 Get Started Free'}
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </section>
+
     </div>
   );
-                        }
+  }

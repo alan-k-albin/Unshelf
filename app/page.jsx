@@ -160,7 +160,7 @@ const CategoryCard = ({ name, categoryInfo }) => {
   );
 };
 
-export default function Home() {
+export default function HomePage() {
   const [listings, setListings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userDept, setUserDept] = useState('CS');

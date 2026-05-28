@@ -124,7 +124,7 @@ export default function CreateListing() {
 
       let imageUrl = null;
       if (image) {
-        const fileName = `${Date.now()}_${Math.random().toString(36).slice(7)}.jpg`;
+        const fileName = `${authUserId}/${Date.now()}.jpg`;
 
         const { error: uploadError } = await supabase.storage
           .from('listings')

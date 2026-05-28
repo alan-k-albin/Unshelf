@@ -172,14 +172,8 @@ export default function Login() {
     try {
       const deptMatch = email.match(/@([a-z]{2,3})\./i);
       const deptMap = {
-        cs: 'CS',
-        ecs: 'ECS',
-        eee: 'EEE',
-        me: 'ME',
-        civil: 'Civil',
-        mca: 'MCA',
-        mba: 'MBA',
-        ad: 'AD',
+        cs: 'CS', ecs: 'ECS', eee: 'EEE', me: 'ME',
+        civil: 'Civil', mca: 'MCA', mba: 'MBA', ad: 'AD',
       };
       const emailDept = deptMatch ? deptMap[deptMatch[1].toLowerCase()] : department;
 
@@ -206,23 +200,13 @@ export default function Login() {
 
       if (insertError) throw insertError;
 
-      localStorage.setItem(
-        'user',
-        JSON.stringify({
-          email,
-          fullName,
-          department: emailDept,
-          semester,
-          whatsapp,
-        })
-      );
-
+      localStorage.setItem('user', JSON.stringify({
+        email, fullName, department: emailDept, semester, whatsapp,
+      }));
       localStorage.setItem('lastActivity', Date.now().toString());
 
       setSuccess('Account created! Redirecting...');
-      setTimeout(() => {
-        router.push('/');
-      }, 1500);
+      setTimeout(() => { router.push('/'); }, 1500);
     } catch (err) {
       setError(err.message || 'Failed to create account');
       setLoading(false);
@@ -231,37 +215,38 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center px-4 py-8 overflow-y-auto relative">
-      {/* Decorative Elements */}
+      {/* Decorative Blobs */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-green-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse delay-2000" />
-      <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-purple-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse delay-1000" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-green-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '2s' }} />
+      <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-purple-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '1s' }} />
 
       <div className="w-full max-w-md relative z-10">
-        {/* Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-8 backdrop-blur-sm border border-white/80">
-          {/* Header */}
+
+          {/* ✅ HEADER WITH LOGO */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg">
-              <span className="text-white text-2xl font-bold">U</span>
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight" style={{ color: '#1B2A4A' }}>
-              Unshelf
-            </h1>
-            <p className="text-gray-500 text-sm mt-2">
+            <img
+              src="/logo.png"
+              alt="Unshelf"
+              className="h-20 w-auto mx-auto mb-3 object-contain"
+            />
+            <p className="text-gray-500 text-sm mt-1">
               {step === 1 && '📚 Welcome to your college marketplace'}
               {step === 2 && '✉️ Verify your email'}
               {step === 3 && '👤 Complete your profile'}
             </p>
           </div>
 
-          {/* Progress Indicator */}
+          {/* Progress Bar */}
           <div className="flex gap-2 mb-8">
             {[1, 2, 3].map((s) => (
               <div
                 key={s}
                 className="h-1.5 flex-1 rounded-full transition-all duration-500"
                 style={{
-                  background: s <= step ? 'linear-gradient(90deg, #1877F2, #27AE60)' : '#E5E7EB',
+                  background: s <= step
+                    ? 'linear-gradient(90deg, #1877F2, #27AE60)'
+                    : '#E5E7EB',
                 }}
               />
             ))}
@@ -269,7 +254,7 @@ export default function Login() {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 rounded-xl flex gap-3 border border-red-200 bg-red-50/50 animate-in fade-in">
+            <div className="mb-6 p-4 rounded-xl flex gap-3 border border-red-200 bg-red-50/50">
               <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-600" />
               <p className="text-sm text-red-700">{error}</p>
             </div>
@@ -277,7 +262,7 @@ export default function Login() {
 
           {/* Success Message */}
           {success && (
-            <div className="mb-6 p-4 rounded-xl flex gap-3 border border-green-200 bg-green-50/50 animate-in fade-in">
+            <div className="mb-6 p-4 rounded-xl flex gap-3 border border-green-200 bg-green-50/50">
               <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-green-600" />
               <p className="text-sm text-green-700">{success}</p>
             </div>
@@ -285,7 +270,7 @@ export default function Login() {
 
           {/* Step 1: Email */}
           {step === 1 && (
-            <div className="space-y-4 animate-in fade-in">
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
                   College Email Address
@@ -310,13 +295,9 @@ export default function Login() {
                 className="w-full py-3 rounded-xl font-semibold text-white text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:shadow-lg"
               >
                 {loading ? (
-                  <>
-                    <Loader className="w-4 h-4 animate-spin" /> Sending OTP...
-                  </>
+                  <><Loader className="w-4 h-4 animate-spin" /> Sending OTP...</>
                 ) : (
-                  <>
-                    Send OTP <ArrowRight className="w-4 h-4" />
-                  </>
+                  <>Send OTP <ArrowRight className="w-4 h-4" /></>
                 )}
               </button>
             </div>
@@ -324,7 +305,7 @@ export default function Login() {
 
           {/* Step 2: OTP */}
           {step === 2 && (
-            <div className="space-y-4 animate-in fade-in">
+            <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-semibold" style={{ color: '#1B2A4A' }}>
@@ -355,13 +336,9 @@ export default function Login() {
                 className="w-full py-3 rounded-xl font-semibold text-white text-sm disabled:opacity-50 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:shadow-lg transition-all"
               >
                 {loading ? (
-                  <>
-                    <Loader className="w-4 h-4 animate-spin" /> Verifying...
-                  </>
+                  <><Loader className="w-4 h-4 animate-spin" /> Verifying...</>
                 ) : (
-                  <>
-                    Verify OTP <ArrowRight className="w-4 h-4" />
-                  </>
+                  <>Verify OTP <ArrowRight className="w-4 h-4" /></>
                 )}
               </button>
 
@@ -386,11 +363,9 @@ export default function Login() {
 
           {/* Step 3: Profile */}
           {step === 3 && (
-            <div className="space-y-4 animate-in fade-in">
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
-                  Full Name
-                </label>
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>Full Name</label>
                 <input
                   type="text"
                   placeholder="Rahul Sharma"
@@ -402,9 +377,7 @@ export default function Login() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
-                  Department
-                </label>
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>Department</label>
                 <select
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
@@ -412,20 +385,14 @@ export default function Login() {
                   style={{ color: '#1B2A4A' }}
                 >
                   <option value="">Select Department</option>
-                  {['CS', 'CS AI', 'CS CY', 'ECS', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA', 'AD', 'IT'].map(
-                    (d) => (
-                      <option key={d} value={d}>
-                        {d}
-                      </option>
-                    )
-                  )}
+                  {['CS', 'CS AI', 'CS CY', 'ECS', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA', 'AD', 'IT'].map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
-                  Semester
-                </label>
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>Semester</label>
                 <select
                   value={semester}
                   onChange={(e) => setSemester(e.target.value)}
@@ -434,17 +401,13 @@ export default function Login() {
                 >
                   <option value="">Select Semester</option>
                   {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
-                    <option key={s} value={`S${s}`}>
-                      Semester {s}
-                    </option>
+                    <option key={s} value={`S${s}`}>Semester {s}</option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
-                  WhatsApp Number
-                </label>
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>WhatsApp Number</label>
                 <div className="relative">
                   <Smartphone className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
                   <input
@@ -465,19 +428,14 @@ export default function Login() {
                 className="w-full py-3 rounded-xl font-semibold text-white text-sm disabled:opacity-50 flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:shadow-lg transition-all mt-2"
               >
                 {loading ? (
-                  <>
-                    <Loader className="w-4 h-4 animate-spin" /> Creating Account...
-                  </>
+                  <><Loader className="w-4 h-4 animate-spin" /> Creating Account...</>
                 ) : (
-                  <>
-                    Complete Login <ArrowRight className="w-4 h-4" />
-                  </>
+                  <>Complete Login <ArrowRight className="w-4 h-4" /></>
                 )}
               </button>
             </div>
           )}
 
-          {/* Footer */}
           <p className="text-center text-xs text-gray-500 mt-6">
             By logging in, you agree to our Terms & Privacy Policy
           </p>
@@ -485,4 +443,4 @@ export default function Login() {
       </div>
     </div>
   );
-}
+    }

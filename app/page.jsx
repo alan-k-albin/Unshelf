@@ -290,8 +290,17 @@ export default function HomePage() {
             ))}
           </div>
         ) : (
+          // ✅ CHANGED: Empty state now shows Create Listing button instead of generic text
           <div className="bg-white rounded-2xl p-10 text-center border border-gray-100">
-            <p className="text-gray-600 text-sm">No listings yet. Be first! 📚</p>
+            <p className="text-gray-500 text-sm mb-4">No listings yet. Be the first to share! 📚</p>
+            <button
+              onClick={handleCreateListing}
+              className="px-6 py-2.5 rounded-2xl font-semibold text-white text-sm transition hover:shadow-lg active:scale-95 inline-flex items-center gap-2"
+              style={{ background: 'linear-gradient(135deg, #4F46E5, #6366F1)' }}
+            >
+              ✨ Create First Listing
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         )}
       </section>
@@ -328,28 +337,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== CREATE LISTING CTA ===== */}
-      <section className="px-4 py-8 md:py-12 max-w-7xl mx-auto">
-        <div className="bg-gradient-to-r from-indigo-50 to-green-50 rounded-2xl p-8 border border-indigo-100 text-center">
-          <h3 className="text-xl md:text-2xl font-bold mb-3" style={{ color: '#1B2A4A' }}>
-            {isLoggedIn ? 'Ready to sell your materials?' : 'Have materials to share?'}
-          </h3>
-          <p className="text-gray-600 text-sm mb-6">
-            {isLoggedIn
-              ? 'List your books and notes. Help fellow students and earn money!'
-              : 'Join SJCET students buying and selling academic materials.'}
-          </p>
-          <button
-            onClick={handleCreateListing}
-            className="px-8 py-3 rounded-2xl font-semibold text-white transition hover:shadow-xl active:scale-95 inline-flex items-center gap-2"
-            style={{ background: 'linear-gradient(135deg, #16A34A, #22C55E)' }}
-          >
-            {isLoggedIn ? '✨ Create Listing' : '🚀 Get Started Free'}
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-      </section>
+      {/* ✅ REMOVED: Last CTA section ("Have materials to share?") removed as requested */}
 
     </div>
   );
-  }
+}

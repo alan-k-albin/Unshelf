@@ -27,7 +27,6 @@ export default function ListingDetailPage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authUserId, setAuthUserId] = useState(null);
   const [contactLoading, setContactLoading] = useState(false);
-
   const [whatsappRevealed, setWhatsappRevealed] = useState(false);
   const [whatsappNumber, setWhatsappNumber] = useState(null);
   const [revealLoading, setRevealLoading] = useState(false);
@@ -38,22 +37,13 @@ export default function ListingDetailPage() {
   }, [listingId]);
 
   const initPage = async () => {
-    // FIX: Wait for auth session first before fetching seller
-    // This ensures the Supabase client sends the auth token with the request
     const { data: { session } } = await supabase.auth.getSession();
 
-    // Load current user from localStorage
     const userStr = localStorage.getItem('user');
-    if (userStr) {
-      setCurrentUser(JSON.parse(userStr));
-    }
+    if (userStr) setCurrentUser(JSON.parse(userStr));
 
-    // Store auth user id for ownership checks
-    if (session?.user?.id) {
-      setAuthUserId(session.user.id);
-    }
+    if (session?.user?.id) setAuthUserId(session.user.id);
 
-    // Now fetch listing with authenticated session ready
     await loadListing();
   };
 
@@ -79,17 +69,14 @@ export default function ListingDetailPage() {
 
       setListing(listingData);
 
-      // FIX: Fetch seller — session is guaranteed ready by initPage()
-      const { data: sellerData, error: sellerError } = await supabase
-        .from('users')
-        .select('id, full_name, department, semester, is_verified, rating, total_reviews, email')
-        .eq('id', listingData.user_id)
-        .single();
+      // ✅ FIX: Use RPC function (SECURITY DEFINER bypasses RLS)
+      const { data: sellerRows, error: sellerError } = await supabase
+        .rpc('get_user_public_profile', { user_id: listingData.user_id });
 
-      if (sellerError || !sellerData) {
-        setSeller({ full_name: 'Unknown Seller', department: '', semester: '' });
+      if (sellerError || !sellerRows || sellerRows.length === 0) {
+        setSeller({ full_name: 'Unknown Seller', department: '', semester: '', is_verified: false, rating: 0, total_reviews: 0 });
       } else {
-        setSeller(sellerData);
+        setSeller(sellerRows[0]);
       }
 
       const { data: reviewsData } = await supabase
@@ -128,31 +115,36 @@ export default function ListingDetailPage() {
         return;
       }
 
-      const { data: sellerContact, error } = await supabase
+      // ✅ Use RPC to get whatsapp too (bypasses RLS)
+      const { data: contactRows, error } = await supabase
+        .rpc('get_user_public_profile', { user_id: listing.user_id });
+
+      // Fallback: try direct query for whatsapp
+      const { data: whatsappData } = await supabase
         .from('users')
         .select('whatsapp_number')
         .eq('id', listing.user_id)
         .single();
 
-      if (error || !sellerContact?.whatsapp_number) {
+      const whatsapp = whatsappData?.whatsapp_number;
+
+      if (!whatsapp) {
         alert('Could not retrieve contact info. Please try again.');
         return;
       }
 
-      setWhatsappNumber(sellerContact.whatsapp_number);
+      setWhatsappNumber(whatsapp);
       setWhatsappRevealed(true);
       setRevealCount((prev) => prev + 1);
 
       await supabase.from('contacts').upsert(
-        [
-          {
-            user_id: session.user.id,
-            contact_user_id: listing.user_id,
-            contact_name: seller.full_name,
-            contact_whatsapp: sellerContact.whatsapp_number,
-            contact_type: 'seller',
-          },
-        ],
+        [{
+          user_id: session.user.id,
+          contact_user_id: listing.user_id,
+          contact_name: seller?.full_name || 'Seller',
+          contact_whatsapp: whatsapp,
+          contact_type: 'seller',
+        }],
         { onConflict: 'user_id,contact_user_id' }
       );
     } catch (err) {
@@ -179,12 +171,9 @@ export default function ListingDetailPage() {
   const handleDeleteListing = async () => {
     setDeleteLoading(true);
     try {
-      // Delete image from storage if exists
       if (listing.image_url) {
         const path = listing.image_url.split('/listings/')[1];
-        if (path) {
-          await supabase.storage.from('listings').remove([path]);
-        }
+        if (path) await supabase.storage.from('listings').remove([path]);
       }
 
       const { error: deleteError } = await supabase
@@ -204,7 +193,6 @@ export default function ListingDetailPage() {
     }
   };
 
-  // Check if current logged-in user owns this listing
   const isOwner = authUserId && listing && listing.user_id === authUserId;
 
   if (loading) {
@@ -226,18 +214,12 @@ export default function ListingDetailPage() {
           <button onClick={() => router.back()} className="p-1">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-bold flex-1" style={{ color: '#1B2A4A' }}>
-            Item Details
-          </h1>
+          <h1 className="text-lg font-bold flex-1" style={{ color: '#1B2A4A' }}>Item Details</h1>
         </div>
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
           <p className="text-5xl mb-4">📭</p>
-          <p className="text-lg font-semibold mb-2" style={{ color: '#1B2A4A' }}>
-            Listing not found
-          </p>
-          <p className="text-sm text-gray-500 mb-6">
-            This listing may have been removed or is no longer available.
-          </p>
+          <p className="text-lg font-semibold mb-2" style={{ color: '#1B2A4A' }}>Listing not found</p>
+          <p className="text-sm text-gray-500 mb-6">This listing may have been removed or is no longer available.</p>
           <button
             onClick={() => router.push('/')}
             className="px-6 py-3 rounded-xl font-semibold text-white text-sm"
@@ -257,10 +239,7 @@ export default function ListingDetailPage() {
         <button onClick={() => router.back()} className="p-1">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-lg font-bold flex-1" style={{ color: '#1B2A4A' }}>
-          Item Details
-        </h1>
-        {/* Delete button — only visible to the owner */}
+        <h1 className="text-lg font-bold flex-1" style={{ color: '#1B2A4A' }}>Item Details</h1>
         {isOwner && (
           <button
             onClick={() => setShowDeleteConfirm(true)}
@@ -275,107 +254,71 @@ export default function ListingDetailPage() {
         {/* Image */}
         {listing.image_url && (
           <div className="w-full h-64 bg-gray-200 rounded-xl overflow-hidden">
-            <img
-              src={listing.image_url}
-              alt={listing.title}
-              className="w-full h-full object-cover"
-            />
+            <img src={listing.image_url} alt={listing.title} className="w-full h-full object-cover" />
           </div>
         )}
 
         {/* Title & Price */}
         <div>
-          <h2 className="text-2xl font-bold mb-2" style={{ color: '#1B2A4A' }}>
-            {listing.title}
-          </h2>
-
+          <h2 className="text-2xl font-bold mb-2" style={{ color: '#1B2A4A' }}>{listing.title}</h2>
           <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">
-              {listing.category}
-            </span>
+            <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">{listing.category}</span>
             <span
               className="text-xs px-2 py-1 rounded"
               style={{
-                background:
-                  listing.condition === 'Like New' ? '#E0F2FE'
-                  : listing.condition === 'Good' ? '#DCFCE7'
-                  : listing.condition === 'Used' ? '#FEF3C7'
-                  : '#FECACA',
-                color:
-                  listing.condition === 'Like New' ? '#0369A1'
-                  : listing.condition === 'Good' ? '#166534'
-                  : listing.condition === 'Used' ? '#92400E'
-                  : '#DC2626',
+                background: listing.condition === 'Like New' ? '#E0F2FE' : listing.condition === 'Good' ? '#DCFCE7' : listing.condition === 'Used' ? '#FEF3C7' : '#FECACA',
+                color: listing.condition === 'Like New' ? '#0369A1' : listing.condition === 'Good' ? '#166534' : listing.condition === 'Used' ? '#92400E' : '#DC2626',
               }}
             >
               {listing.condition}
             </span>
-            {listing.semester && (
-              <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">
-                {listing.semester}
-              </span>
-            )}
-            {listing.department && (
-              <span className="text-xs px-2 py-1 rounded bg-purple-100 text-purple-700">
-                {listing.department}
-              </span>
-            )}
+            {listing.semester && <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">{listing.semester}</span>}
+            {listing.department && <span className="text-xs px-2 py-1 rounded bg-purple-100 text-purple-700">{listing.department}</span>}
           </div>
-
           {listing.is_free ? (
             <p className="text-3xl font-bold text-green-600">Free</p>
           ) : (
-            <p className="text-3xl font-bold" style={{ color: '#1B2A4A' }}>
-              ₹{listing.price?.toLocaleString()}
-            </p>
+            <p className="text-3xl font-bold" style={{ color: '#1B2A4A' }}>₹{listing.price?.toLocaleString()}</p>
           )}
         </div>
 
         {/* Subject */}
         {listing.subject && (
           <div>
-            <h3 className="font-semibold mb-2" style={{ color: '#1B2A4A' }}>
-              Subject/Topic
-            </h3>
+            <h3 className="font-semibold mb-2" style={{ color: '#1B2A4A' }}>Subject/Topic</h3>
             <p className="text-gray-600">{listing.subject}</p>
           </div>
         )}
 
         {/* Seller Card */}
         <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Listed by
-          </h3>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Listed by</h3>
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-3">
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
                 style={{ background: 'linear-gradient(135deg, #1877F2, #27AE60)' }}
               >
-                {seller.full_name?.charAt(0).toUpperCase() || 'U'}
+                {seller?.full_name?.charAt(0).toUpperCase() || 'U'}
               </div>
               <div>
-                <h3 className="font-semibold" style={{ color: '#1B2A4A' }}>
-                  {seller.full_name}
-                </h3>
+                <h3 className="font-semibold" style={{ color: '#1B2A4A' }}>{seller?.full_name || 'Unknown Seller'}</h3>
                 <p className="text-sm text-gray-500">
-                  {[seller.department, seller.semester].filter(Boolean).join(' • ')}
+                  {[seller?.department, seller?.semester].filter(Boolean).join(' • ')}
                 </p>
               </div>
             </div>
-            {seller.is_verified && (
-              <span className="text-green-600 text-lg">✓</span>
-            )}
+            {seller?.is_verified && <span className="text-green-600 text-lg">✓</span>}
           </div>
 
-          {seller.rating > 0 && (
+          {seller?.rating > 0 && (
             <div className="mb-3">
               <SellerRating rating={seller.rating} totalReviews={seller.total_reviews} />
             </div>
           )}
 
           <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-200">
-            {seller.is_verified && (
+            {seller?.is_verified && (
               <div className="flex items-center gap-1 px-2 py-1 rounded bg-green-100">
                 <span className="text-green-600">✓</span>
                 <span className="text-xs font-semibold text-green-700">Verified</span>
@@ -392,7 +335,7 @@ export default function ListingDetailPage() {
             )}
           </div>
 
-          {/* Contact Buttons — hidden if owner */}
+          {/* Contact Buttons */}
           <div className="space-y-2">
             {isOwner ? (
               <div className="w-full py-3 px-4 rounded-lg bg-gray-100 text-center">
@@ -405,11 +348,7 @@ export default function ListingDetailPage() {
                 className="w-full py-3 rounded-lg font-semibold text-white text-sm flex items-center justify-center gap-2 disabled:opacity-50"
                 style={{ background: 'linear-gradient(135deg, #1877F2, #166FE5)' }}
               >
-                {revealLoading ? (
-                  <><Loader className="w-4 h-4 animate-spin" /> Loading...</>
-                ) : (
-                  <><Eye className="w-4 h-4" /> Contact via WhatsApp</>
-                )}
+                {revealLoading ? <><Loader className="w-4 h-4 animate-spin" /> Loading...</> : <><Eye className="w-4 h-4" /> Contact via WhatsApp</>}
               </button>
             ) : (
               <div className="space-y-2">
@@ -423,11 +362,7 @@ export default function ListingDetailPage() {
                   className="w-full py-3 rounded-lg font-semibold text-white text-sm flex items-center justify-center gap-2 disabled:opacity-50"
                   style={{ background: 'linear-gradient(135deg, #16A34A, #22C55E)' }}
                 >
-                  {contactLoading ? (
-                    <><Loader className="w-4 h-4 animate-spin" /> Connecting...</>
-                  ) : (
-                    <><MessageCircle className="w-4 h-4" /> Open WhatsApp</>
-                  )}
+                  {contactLoading ? <><Loader className="w-4 h-4 animate-spin" /> Connecting...</> : <><MessageCircle className="w-4 h-4" /> Open WhatsApp</>}
                 </button>
               </div>
             )}
@@ -450,13 +385,12 @@ export default function ListingDetailPage() {
           </div>
         </div>
 
-        {/* Reviews Section */}
+        {/* Reviews */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold" style={{ color: '#1B2A4A' }}>
-              Reviews
-            </h3>
-            {currentUser && seller && currentUser.email !== seller.email && (
+            <h3 className="text-lg font-bold" style={{ color: '#1B2A4A' }}>Reviews</h3>
+            {/* ✅ FIX: Use isOwner instead of email comparison */}
+            {currentUser && !isOwner && (
               <button
                 onClick={() => setShowRatingModal(true)}
                 className="px-3 py-1.5 rounded-lg text-sm font-semibold"
@@ -470,7 +404,7 @@ export default function ListingDetailPage() {
           {reviews.length === 0 ? (
             <div className="text-center py-6">
               <p className="text-gray-500 text-sm mb-2">No reviews yet</p>
-              {currentUser && seller && currentUser.email !== seller.email && (
+              {currentUser && !isOwner && (
                 <button
                   onClick={() => setShowRatingModal(true)}
                   className="text-sm font-semibold"
@@ -486,11 +420,7 @@ export default function ListingDetailPage() {
                 <ReviewCard
                   key={review.id}
                   review={review}
-                  reviewer={
-                    review.reviewer_id === currentUser?.id
-                      ? currentUser
-                      : { full_name: 'User' }
-                  }
+                  reviewer={review.reviewer_id === authUserId ? currentUser : { full_name: 'User' }}
                 />
               ))}
             </div>
@@ -521,9 +451,7 @@ export default function ListingDetailPage() {
           )}
           <div className="flex justify-between">
             <span className="text-gray-600">Posted</span>
-            <span className="font-semibold">
-              {new Date(listing.created_at).toLocaleDateString()}
-            </span>
+            <span className="font-semibold">{new Date(listing.created_at).toLocaleDateString()}</span>
           </div>
         </div>
       </div>
@@ -536,12 +464,8 @@ export default function ListingDetailPage() {
               <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Trash2 className="w-7 h-7 text-red-500" />
               </div>
-              <h3 className="text-lg font-bold mb-1" style={{ color: '#1B2A4A' }}>
-                Delete Listing?
-              </h3>
-              <p className="text-sm text-gray-500">
-                This will permanently remove "{listing.title}" and cannot be undone.
-              </p>
+              <h3 className="text-lg font-bold mb-1" style={{ color: '#1B2A4A' }}>Delete Listing?</h3>
+              <p className="text-sm text-gray-500">This will permanently remove "{listing.title}" and cannot be undone.</p>
             </div>
             <div className="flex gap-3">
               <button
@@ -558,11 +482,7 @@ export default function ListingDetailPage() {
                 className="flex-1 py-3 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 disabled:opacity-50"
                 style={{ background: 'linear-gradient(135deg, #DC2626, #B91C1C)' }}
               >
-                {deleteLoading ? (
-                  <><Loader className="w-4 h-4 animate-spin" /> Deleting...</>
-                ) : (
-                  'Delete'
-                )}
+                {deleteLoading ? <><Loader className="w-4 h-4 animate-spin" /> Deleting...</> : 'Delete'}
               </button>
             </div>
           </div>

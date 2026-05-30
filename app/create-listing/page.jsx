@@ -3,10 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Upload, ArrowLeft, Loader, AlertCircle, CheckCircle } from 'lucide-react';
+import { Upload, ArrowLeft, Loader, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { validateImage, compressImage } from '@/lib/imageValidation';
 import { checkRateLimit, recordAction } from '@/lib/rateLimiter';
 import { CATEGORIES } from '@/app/data';
+
+const DEPARTMENTS = ['CS', 'CS AI', 'CS CY', 'ECS', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA', 'AD', 'IT'];
+const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 export default function CreateListing() {
   const router = useRouter();
@@ -21,8 +24,9 @@ export default function CreateListing() {
   const [formData, setFormData] = useState({
     title: '',
     category: '',
-    department: '',
-    semester: '',
+    // FIX 4: Added optional department and semester fields
+    targetDepartment: '',
+    targetSemester: '',
     subject: '',
     price: '',
     isFree: false,
@@ -66,6 +70,12 @@ export default function CreateListing() {
     }
   };
 
+  const handleRemoveImage = () => {
+    setImage(null);
+    setImagePreview(null);
+    setCompressionProgress('');
+  };
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -101,6 +111,12 @@ export default function CreateListing() {
         setLoading(false);
         return;
       }
+      // FIX 5: Image is now mandatory
+      if (!image) {
+        setError('Please upload at least one image of the item');
+        setLoading(false);
+        return;
+      }
 
       const { data: authData } = await supabase.auth.getUser();
       const authUserId = authData?.user?.id || null;
@@ -111,7 +127,6 @@ export default function CreateListing() {
         return;
       }
 
-      // ⭐ CHECK RATE LIMIT
       const rateLimit = await checkRateLimit(authUserId, 'CREATE_LISTING');
       if (!rateLimit.allowed) {
         setError(rateLimit.message);
@@ -122,34 +137,34 @@ export default function CreateListing() {
       const userStr = localStorage.getItem('user');
       const user = userStr ? JSON.parse(userStr) : null;
 
+      // Upload image (now always present due to mandatory check above)
       let imageUrl = null;
-      if (image) {
-        const fileName = `${authUserId}/${Date.now()}.jpg`;
+      const fileName = `${authUserId}/${Date.now()}.jpg`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('listings')
-          .upload(fileName, image);
+      const { error: uploadError } = await supabase.storage
+        .from('listings')
+        .upload(fileName, image);
 
-        if (uploadError) {
-          setError(`Image upload failed: ${uploadError.message}`);
-          setLoading(false);
-          return;
-        }
-
-        const { data: publicUrlData } = supabase.storage
-          .from('listings')
-          .getPublicUrl(fileName);
-
-        imageUrl = publicUrlData?.publicUrl || null;
+      if (uploadError) {
+        setError(`Image upload failed: ${uploadError.message}`);
+        setLoading(false);
+        return;
       }
+
+      const { data: publicUrlData } = supabase.storage
+        .from('listings')
+        .getPublicUrl(fileName);
+
+      imageUrl = publicUrlData?.publicUrl || null;
 
       const { error: insertError } = await supabase.from('listings').insert([
         {
           user_id: authUserId,
           title: formData.title.trim(),
           category: formData.category,
-          department: user?.department || '',
-          semester: user?.semester || '',
+          // FIX 4: Use targetDepartment/targetSemester if provided, else fall back to user's own
+          department: formData.targetDepartment || user?.department || '',
+          semester: formData.targetSemester || user?.semester || '',
           subject: formData.subject || null,
           price: formData.isFree ? 0 : parseInt(formData.price),
           is_free: formData.isFree,
@@ -166,7 +181,6 @@ export default function CreateListing() {
         return;
       }
 
-      // ⭐ RECORD ACTION
       await recordAction(authUserId, 'CREATE_LISTING', { title: formData.title });
 
       setSuccess('✓ Listing created successfully!');
@@ -191,7 +205,6 @@ export default function CreateListing() {
         </div>
       </div>
 
-      {/* ✅ ONLY CHANGE: added pb-24 to prevent button being hidden behind nav bar */}
       <div className="max-w-2xl mx-auto px-4 py-6 pb-24">
         {error && (
           <div
@@ -218,6 +231,8 @@ export default function CreateListing() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
+
+          {/* Title */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Item Title *
@@ -232,6 +247,7 @@ export default function CreateListing() {
             />
           </div>
 
+          {/* Category */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Category *
@@ -251,9 +267,10 @@ export default function CreateListing() {
             </select>
           </div>
 
+          {/* Subject */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
-              Subject/Topic (Optional)
+              Subject/Topic <span className="font-normal text-gray-400">(Optional)</span>
             </label>
             <input
               type="text"
@@ -265,6 +282,53 @@ export default function CreateListing() {
             />
           </div>
 
+          {/* FIX 4: Target Department & Semester (optional) */}
+          <div className="p-4 rounded-lg border border-gray-200 bg-gray-50 space-y-4">
+            <p className="text-sm font-semibold" style={{ color: '#1B2A4A' }}>
+              For which students? <span className="font-normal text-gray-400">(Optional)</span>
+            </p>
+            <p className="text-xs text-gray-500 -mt-2">
+              Help buyers find your listing by specifying which department or semester it's useful for.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold mb-1.5 text-gray-600">
+                  Department
+                </label>
+                <select
+                  name="targetDepartment"
+                  value={formData.targetDepartment}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="">Any</option>
+                  {DEPARTMENTS.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1.5 text-gray-600">
+                  Semester
+                </label>
+                <select
+                  name="targetSemester"
+                  value={formData.targetSemester}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="">Any</option>
+                  {SEMESTERS.map((s) => (
+                    <option key={s} value={`S${s}`}>Semester {s}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Condition */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
               Condition *
@@ -275,16 +339,17 @@ export default function CreateListing() {
               onChange={handleInputChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option>✨ Like New</option>
-              <option>👍 Good</option>
-              <option>📖 Used</option>
-              <option>⚙️ Heavily Used</option>
+              <option value="Like New">✨ Like New</option>
+              <option value="Good">👍 Good</option>
+              <option value="Used">📖 Used</option>
+              <option value="Heavily Used">⚙️ Heavily Used</option>
             </select>
           </div>
 
+          {/* Price */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
-              Price (₹)
+              Price (₹) *
             </label>
             <div className="flex gap-3">
               <input
@@ -294,9 +359,10 @@ export default function CreateListing() {
                 value={formData.price}
                 onChange={handleInputChange}
                 disabled={formData.isFree}
+                min="0"
                 className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
               />
-              <label className="flex items-center gap-2 px-4">
+              <label className="flex items-center gap-2 px-4 cursor-pointer">
                 <input
                   type="checkbox"
                   name="isFree"
@@ -309,42 +375,72 @@ export default function CreateListing() {
             </div>
           </div>
 
+          {/* FIX 5: Image upload - now mandatory */}
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
-              Upload Image (Optional)
+              Item Image *{' '}
+              <span className="font-normal text-gray-400 text-xs">
+                (Required — helps buyers see what they're getting)
+              </span>
             </label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-blue-500 transition">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageSelect}
-                disabled={isCompressing}
-                className="hidden"
-                id="image-input"
-              />
-              <label
-                htmlFor="image-input"
-                className="cursor-pointer flex flex-col items-center gap-2"
-              >
-                {imagePreview ? (
-                  <img src={imagePreview} alt="Preview" className="w-24 h-24 object-cover rounded" />
-                ) : (
-                  <>
-                    <Upload className="w-6 h-6 text-gray-400" />
-                    <span className="text-sm text-gray-600">
-                      {isCompressing ? 'Compressing...' : 'Click to upload image'}
-                    </span>
-                    <span className="text-xs text-gray-500">JPG, PNG, WebP • Max 5MB</span>
-                  </>
-                )}
-              </label>
-            </div>
 
-            {compressionProgress && (
-              <p className="text-xs text-green-600 mt-2">{compressionProgress}</p>
+            {imagePreview ? (
+              <div className="relative w-full rounded-lg overflow-hidden border border-gray-200">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-full h-52 object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="absolute top-2 right-2 w-8 h-8 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition"
+                >
+                  <X className="w-4 h-4 text-white" />
+                </button>
+                {compressionProgress && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-3 py-1.5">
+                    <p className="text-xs text-green-300">{compressionProgress}</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div
+                className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition hover:border-blue-400 hover:bg-blue-50"
+                style={{ borderColor: '#CBD5E1' }}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  disabled={isCompressing}
+                  className="hidden"
+                  id="image-input"
+                />
+                <label
+                  htmlFor="image-input"
+                  className="cursor-pointer flex flex-col items-center gap-2"
+                >
+                  {isCompressing ? (
+                    <>
+                      <Loader className="w-8 h-8 text-blue-400 animate-spin" />
+                      <span className="text-sm text-blue-600 font-medium">Compressing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-8 h-8 text-gray-400" />
+                      <span className="text-sm font-medium text-gray-600">
+                        Tap to upload a photo
+                      </span>
+                      <span className="text-xs text-gray-400">JPG, PNG, WebP • Max 5MB</span>
+                    </>
+                  )}
+                </label>
+              </div>
             )}
           </div>
 
+          {/* Submit */}
           <button
             type="submit"
             disabled={loading || isCompressing}
@@ -364,4 +460,4 @@ export default function CreateListing() {
       </div>
     </div>
   );
-}
+               }

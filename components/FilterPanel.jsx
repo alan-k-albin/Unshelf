@@ -286,7 +286,7 @@ export default function FilterPanel({ filters, setFilters, onClose, onApply, onC
       {/* Footer — always visible above nav bar */}
       <div
         className="flex-shrink-0 px-5 py-4 border-t border-gray-100 flex gap-3 bg-white"
-        style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
+        style={{ paddingBottom: 'calc(1rem + 64px)' }}
       >
         <button
           type="button"

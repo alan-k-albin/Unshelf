@@ -24,7 +24,6 @@ export default function ProfilePage() {
 
   const loadProfile = async () => {
     try {
-      // Get current user
       const userStr = localStorage.getItem('user');
       if (!userStr) {
         router.push('/login');
@@ -61,12 +60,15 @@ export default function ProfilePage() {
         .select('id')
         .eq('user_id', dbUser?.id);
 
-      // Calculate stats
+      // FIX 3 & 8: Use actual listing count and actual member-since year from created_at
       setUserStats({
         totalListings: userListings?.length || 0,
         totalContacts: contacts?.length || 0,
         rating: dbUser?.rating || 0,
         totalReviews: dbUser?.total_reviews || 0,
+        memberSince: dbUser?.created_at
+          ? new Date(dbUser.created_at).getFullYear()
+          : new Date().getFullYear(),
       });
     } catch (err) {
       console.error('Profile load error:', err);
@@ -75,7 +77,7 @@ export default function ProfilePage() {
     }
   };
 
-    const handleLogout = async () => {
+  const handleLogout = async () => {
     await supabase.auth.signOut();
     localStorage.removeItem('user');
     localStorage.removeItem('lastActivity');
@@ -111,7 +113,11 @@ export default function ProfilePage() {
           <h1 className="text-lg font-bold flex-1" style={{ color: '#1B2A4A' }}>
             My Profile
           </h1>
-          <button onClick={() => router.push('/profile/edit')} className="p-2 hover:bg-gray-100 rounded-lg">
+          {/* FIX 9: Settings navigates to /profile/settings */}
+          <button
+            onClick={() => router.push('/profile/settings')}
+            className="p-2 hover:bg-gray-100 rounded-lg"
+          >
             <Settings className="w-5 h-5" style={{ color: '#1877F2' }} />
           </button>
         </div>
@@ -126,15 +132,20 @@ export default function ProfilePage() {
               className="w-16 h-16 rounded-xl flex items-center justify-center text-white text-2xl font-bold flex-shrink-0"
               style={{ background: 'linear-gradient(135deg, #1877F2, #27AE60)' }}
             >
-              {user.fullName?.charAt(0).toUpperCase() || 'U'}
+              {user.full_name?.charAt(0).toUpperCase() ||
+                user.fullName?.charAt(0).toUpperCase() ||
+                'U'}
             </div>
 
             <div className="flex-1 min-w-0">
               <h2 className="text-xl font-bold" style={{ color: '#1B2A4A' }}>
-                {user.fullName}
+                {user.full_name || user.fullName}
               </h2>
+              {/* FIX 6: Show both department and semester */}
               <p className="text-sm text-gray-500 mt-1">
-                {user.department} • {user.semester}
+                {user.department && <span>{user.department}</span>}
+                {user.department && user.semester && <span> • </span>}
+                {user.semester && <span>{user.semester}</span>}
               </p>
               <p className="text-xs text-gray-400 mt-1">{user.email}</p>
             </div>
@@ -161,6 +172,7 @@ export default function ProfilePage() {
           {/* Stats Grid */}
           <div className="grid grid-cols-3 gap-3 mb-6">
             <div className="text-center p-3 rounded-lg" style={{ background: '#EFF6FF' }}>
+              {/* FIX 3: Shows real-time listing count from DB */}
               <div className="text-2xl font-bold" style={{ color: '#1877F2' }}>
                 {userStats.totalListings}
               </div>
@@ -175,15 +187,17 @@ export default function ProfilePage() {
             </div>
 
             <div className="text-center p-3 rounded-lg" style={{ background: '#FEF3C7' }}>
-              <div className="text-2xl font-bold" style={{ color: '#D97706' }}>
+              <div className="text-2xl font-bold text-lg" style={{ color: '#D97706' }}>
                 Member
               </div>
-              <div className="text-xs text-gray-600 mt-1">Since 2024</div>
+              {/* FIX 8: Use actual year from created_at */}
+              <div className="text-xs text-gray-600 mt-1">Since {userStats.memberSince}</div>
             </div>
           </div>
 
           {/* Buttons */}
           <div className="space-y-2">
+            {/* FIX 9: Edit Profile goes to /profile/edit */}
             <button
               onClick={handleEditProfile}
               className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
@@ -250,7 +264,10 @@ export default function ProfilePage() {
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-sm line-clamp-2" style={{ color: '#1B2A4A' }}>
+                      <h4
+                        className="font-semibold text-sm line-clamp-2"
+                        style={{ color: '#1B2A4A' }}
+                      >
                         {listing.title}
                       </h4>
 
@@ -284,7 +301,10 @@ export default function ProfilePage() {
                           {listing.is_free ? (
                             <span className="text-lg font-bold text-green-600">Free</span>
                           ) : (
-                            <span className="text-lg font-bold" style={{ color: '#1B2A4A' }}>
+                            <span
+                              className="text-lg font-bold"
+                              style={{ color: '#1B2A4A' }}
+                            >
                               ₹{listing.price?.toLocaleString()}
                             </span>
                           )}
@@ -303,4 +323,4 @@ export default function ProfilePage() {
       </div>
     </div>
   );
-        }
+  }

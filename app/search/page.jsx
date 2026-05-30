@@ -17,19 +17,24 @@ function SearchPageContent() {
   const [searchInput, setSearchInput] = useState(query);
   const [showFilters, setShowFilters] = useState(false);
 
-  const [filters, setFilters] = useState({
+  // FIX 7: Separate "applied" filters from "pending" (draft) filters in the panel
+  const defaultFilters = {
     minPrice: 0,
     maxPrice: 100000,
     condition: '',
     category: '',
     sortBy: 'newest',
-  });
+  };
 
+  const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
+  const [pendingFilters, setPendingFilters] = useState(defaultFilters);
+
+  // Only search when appliedFilters or query changes (not on every panel change)
   useEffect(() => {
-    performSearch();
-  }, [filters, query]);
+    performSearch(query, appliedFilters);
+  }, [appliedFilters, query]);
 
-  const performSearch = async () => {
+  const performSearch = async (searchQuery, filters) => {
     setLoading(true);
     try {
       let queryBuilder = supabase
@@ -37,9 +42,9 @@ function SearchPageContent() {
         .select('*')
         .eq('status', 'Active');
 
-      if (query) {
+      if (searchQuery) {
         queryBuilder = queryBuilder.or(
-          `title.ilike.%${query}%,category.ilike.%${query}%,subject.ilike.%${query}%`
+          `title.ilike.%${searchQuery}%,category.ilike.%${searchQuery}%,subject.ilike.%${searchQuery}%`
         );
       }
 
@@ -49,15 +54,12 @@ function SearchPageContent() {
       if (filters.maxPrice < 100000) {
         queryBuilder = queryBuilder.lte('price', filters.maxPrice);
       }
-
       if (filters.condition) {
         queryBuilder = queryBuilder.eq('condition', filters.condition);
       }
-
       if (filters.category) {
         queryBuilder = queryBuilder.eq('category', filters.category);
       }
-
       if (filters.sortBy === 'newest') {
         queryBuilder = queryBuilder.order('created_at', { ascending: false });
       } else if (filters.sortBy === 'price-low') {
@@ -67,7 +69,6 @@ function SearchPageContent() {
       }
 
       const { data, error } = await queryBuilder;
-
       if (error) throw error;
       setListings(data || []);
     } catch (err) {
@@ -80,9 +81,27 @@ function SearchPageContent() {
 
   const handleSearch = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    await performSearch();
+    performSearch(searchInput, appliedFilters);
   };
+
+  // FIX 7: Apply button commits pending filters to applied filters
+  const handleApplyFilters = () => {
+    setAppliedFilters({ ...pendingFilters });
+    setShowFilters(false);
+  };
+
+  const handleClearFilters = () => {
+    setPendingFilters(defaultFilters);
+    setAppliedFilters(defaultFilters);
+    setShowFilters(false);
+  };
+
+  const hasActiveFilters =
+    appliedFilters.condition !== '' ||
+    appliedFilters.category !== '' ||
+    appliedFilters.sortBy !== 'newest' ||
+    appliedFilters.minPrice > 0 ||
+    appliedFilters.maxPrice < 100000;
 
   return (
     <div className="min-h-screen bg-white pb-20">
@@ -99,17 +118,17 @@ function SearchPageContent() {
               className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+          {/* FIX 7: Filter button opens panel; filters only apply when user taps Apply */}
           <button
             type="button"
-            onClick={() => setShowFilters(!showFilters)}
+            onClick={() => {
+              setPendingFilters({ ...appliedFilters }); // sync pending with current applied
+              setShowFilters(!showFilters);
+            }}
             className="p-2.5 rounded-lg hover:bg-gray-100 relative"
           >
             <Filter className="w-5 h-5" style={{ color: '#1877F2' }} />
-            {(filters.condition ||
-              filters.category ||
-              filters.sortBy !== 'newest' ||
-              filters.minPrice > 0 ||
-              filters.maxPrice < 100000) && (
+            {hasActiveFilters && (
               <span
                 className="absolute top-0 right-0 w-2 h-2 rounded-full"
                 style={{ background: '#27AE60' }}
@@ -117,16 +136,54 @@ function SearchPageContent() {
             )}
           </button>
         </form>
+
+        {/* Active filter chips */}
+        {hasActiveFilters && (
+          <div className="flex gap-2 mt-2 flex-wrap">
+            {appliedFilters.condition && (
+              <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1">
+                {appliedFilters.condition}
+                <button onClick={() => setAppliedFilters((f) => ({ ...f, condition: '' }))}>
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {appliedFilters.category && (
+              <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1">
+                {appliedFilters.category}
+                <button onClick={() => setAppliedFilters((f) => ({ ...f, category: '' }))}>
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {appliedFilters.sortBy !== 'newest' && (
+              <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1">
+                {appliedFilters.sortBy === 'price-low' ? 'Price ↑' : 'Price ↓'}
+                <button onClick={() => setAppliedFilters((f) => ({ ...f, sortBy: 'newest' }))}>
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            <button
+              onClick={handleClearFilters}
+              className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Filter Panel - Mobile */}
+      {/* Filter Panel - Mobile Drawer */}
       {showFilters && (
         <div className="fixed inset-0 bg-black/50 z-30 flex items-end md:hidden">
-          <div className="w-full max-h-[80vh] rounded-t-2xl overflow-hidden">
+          <div className="w-full max-h-[85vh] rounded-t-2xl overflow-hidden flex flex-col">
             <FilterPanel
-              filters={filters}
-              setFilters={setFilters}
+              filters={pendingFilters}
+              setFilters={setPendingFilters}
               onClose={() => setShowFilters(false)}
+              onApply={handleApplyFilters}
+              onClear={handleClearFilters}
             />
           </div>
         </div>
@@ -134,25 +191,25 @@ function SearchPageContent() {
 
       {/* Main Content */}
       <div className="flex gap-4 px-4 py-6">
-        {/* Filter Panel - Desktop */}
+        {/* Filter Panel - Desktop Sidebar */}
         <div className="hidden md:block w-64">
           <FilterPanel
-            filters={filters}
-            setFilters={setFilters}
+            filters={pendingFilters}
+            setFilters={setPendingFilters}
             onClose={() => {}}
+            onApply={handleApplyFilters}
+            onClear={handleClearFilters}
           />
         </div>
 
         {/* Listings Grid */}
         <div className="flex-1">
-          {/* Results Count */}
           <div className="mb-4">
             <p className="text-sm text-gray-600">
               {loading ? 'Searching...' : `${listings.length} results found`}
             </p>
           </div>
 
-          {/* Loading State */}
           {loading && (
             <div className="space-y-4">
               {[1, 2, 3, 4].map((i) => (
@@ -161,12 +218,10 @@ function SearchPageContent() {
             </div>
           )}
 
-          {/* Empty State */}
           {!loading && listings.length === 0 && (
             <EmptyState message="No listings found. Try different filters!" />
           )}
 
-          {/* Listings */}
           {!loading && listings.length > 0 && (
             <div className="space-y-3">
               {listings.map((listing) => (
@@ -176,7 +231,6 @@ function SearchPageContent() {
                   className="p-4 border border-gray-200 rounded-xl cursor-pointer hover:shadow-md transition"
                 >
                   <div className="flex gap-4">
-                    {/* Image */}
                     {listing.image_url && (
                       <div className="w-20 h-20 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                         <img
@@ -187,7 +241,6 @@ function SearchPageContent() {
                       </div>
                     )}
 
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <h3
                         className="font-semibold text-sm mb-1 line-clamp-2"
@@ -228,11 +281,12 @@ function SearchPageContent() {
                       <div className="flex items-center justify-between">
                         <div>
                           {listing.is_free ? (
-                            <span className="text-lg font-bold text-green-600">
-                              Free
-                            </span>
+                            <span className="text-lg font-bold text-green-600">Free</span>
                           ) : (
-                            <span className="text-lg font-bold" style={{ color: '#1B2A4A' }}>
+                            <span
+                              className="text-lg font-bold"
+                              style={{ color: '#1B2A4A' }}
+                            >
                               ₹{listing.price?.toLocaleString()}
                             </span>
                           )}
@@ -268,4 +322,4 @@ export default function SearchPage() {
       <SearchPageContent />
     </Suspense>
   );
-  }
+      }

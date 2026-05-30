@@ -19,12 +19,12 @@ export default function ListingDetailPage() {
   const [seller, setSeller] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [contactLoading, setContactLoading] = useState(false);
 
-  // ✅ FIX 2: WhatsApp number hidden by default
   const [whatsappRevealed, setWhatsappRevealed] = useState(false);
   const [whatsappNumber, setWhatsappNumber] = useState(null);
   const [revealLoading, setRevealLoading] = useState(false);
@@ -44,23 +44,40 @@ export default function ListingDetailPage() {
 
   const loadListing = async () => {
     try {
+      if (!listingId) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+
       const { data: listingData, error: listingError } = await supabase
         .from('listings')
         .select('*')
         .eq('id', listingId)
         .single();
 
-      if (listingError) throw listingError;
+      // FIX 2: Properly handle not found vs other errors
+      if (listingError || !listingData) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+
       setListing(listingData);
 
-      // ✅ FIX 2: Fetch seller WITHOUT whatsapp_number
-      const { data: sellerData } = await supabase
+      // FIX 1: Fetch seller info including full_name clearly
+      const { data: sellerData, error: sellerError } = await supabase
         .from('users')
         .select('id, full_name, department, semester, is_verified, rating, total_reviews, email')
         .eq('id', listingData.user_id)
         .single();
 
-      setSeller(sellerData);
+      if (sellerError || !sellerData) {
+        // Still show listing even if seller fetch fails
+        setSeller({ full_name: 'Unknown Seller', department: '', semester: '' });
+      } else {
+        setSeller(sellerData);
+      }
 
       const { data: reviewsData } = await supabase
         .from('reviews')
@@ -72,19 +89,18 @@ export default function ListingDetailPage() {
       setReviews(reviewsData || []);
     } catch (err) {
       console.error('Load listing error:', err);
+      setNotFound(true);
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ FIX 2: Reveal WhatsApp only after explicit action + rate limit check
   const handleRevealWhatsapp = async () => {
     if (!currentUser) {
       router.push('/login');
       return;
     }
 
-    // Prevent more than 5 reveals per session (anti-scraping)
     if (revealCount >= 5) {
       alert('Too many contact requests. Please try again later.');
       return;
@@ -99,7 +115,6 @@ export default function ListingDetailPage() {
         return;
       }
 
-      // Fetch WhatsApp number only at this point
       const { data: sellerContact, error } = await supabase
         .from('users')
         .select('whatsapp_number')
@@ -113,9 +128,8 @@ export default function ListingDetailPage() {
 
       setWhatsappNumber(sellerContact.whatsapp_number);
       setWhatsappRevealed(true);
-      setRevealCount(prev => prev + 1);
+      setRevealCount((prev) => prev + 1);
 
-      // Log contact to contacts table
       await supabase.from('contacts').upsert(
         [
           {
@@ -128,7 +142,6 @@ export default function ListingDetailPage() {
         ],
         { onConflict: 'user_id,contact_user_id' }
       );
-
     } catch (err) {
       console.error('Reveal error:', err);
       alert('Error retrieving contact. Please try again.');
@@ -162,10 +175,34 @@ export default function ListingDetailPage() {
     );
   }
 
-  if (!listing || !seller) {
+  // FIX 2: Show proper not-found UI with back button instead of blank page
+  if (notFound || !listing) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-gray-500">Listing not found</p>
+      <div className="min-h-screen bg-white">
+        <div className="sticky top-0 bg-white border-b border-gray-200 z-10 flex items-center gap-3 px-4 py-4">
+          <button onClick={() => router.back()} className="p-1">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-lg font-bold flex-1" style={{ color: '#1B2A4A' }}>
+            Item Details
+          </h1>
+        </div>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
+          <p className="text-5xl mb-4">📭</p>
+          <p className="text-lg font-semibold mb-2" style={{ color: '#1B2A4A' }}>
+            Listing not found
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            This listing may have been removed or is no longer available.
+          </p>
+          <button
+            onClick={() => router.push('/')}
+            className="px-6 py-3 rounded-xl font-semibold text-white text-sm"
+            style={{ background: 'linear-gradient(135deg, #1877F2, #166FE5)' }}
+          >
+            Browse Listings
+          </button>
+        </div>
       </div>
     );
   }
@@ -200,7 +237,7 @@ export default function ListingDetailPage() {
             {listing.title}
           </h2>
 
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
             <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">
               {listing.category}
             </span>
@@ -221,6 +258,17 @@ export default function ListingDetailPage() {
             >
               {listing.condition}
             </span>
+            {/* FIX 1: Show semester and department on listing if available */}
+            {listing.semester && (
+              <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">
+                {listing.semester}
+              </span>
+            )}
+            {listing.department && (
+              <span className="text-xs px-2 py-1 rounded bg-purple-100 text-purple-700">
+                {listing.department}
+              </span>
+            )}
           </div>
 
           {listing.is_free ? (
@@ -232,7 +280,7 @@ export default function ListingDetailPage() {
           )}
         </div>
 
-        {/* Description */}
+        {/* Subject */}
         {listing.subject && (
           <div>
             <h3 className="font-semibold mb-2" style={{ color: '#1B2A4A' }}>
@@ -242,19 +290,30 @@ export default function ListingDetailPage() {
           </div>
         )}
 
-        {/* Seller Card */}
+        {/* Seller Card - FIX 1: Prominently show seller name */}
         <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            Listed by
+          </h3>
           <div className="flex items-start justify-between mb-3">
-            <div>
-              <h3 className="font-semibold" style={{ color: '#1B2A4A' }}>
-                {seller.full_name}
-              </h3>
-              <p className="text-sm text-gray-600">
-                {seller.department} • {seller.semester}
-              </p>
+            <div className="flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+                style={{ background: 'linear-gradient(135deg, #1877F2, #27AE60)' }}
+              >
+                {seller.full_name?.charAt(0).toUpperCase() || 'U'}
+              </div>
+              <div>
+                <h3 className="font-semibold" style={{ color: '#1B2A4A' }}>
+                  {seller.full_name}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {[seller.department, seller.semester].filter(Boolean).join(' • ')}
+                </p>
+              </div>
             </div>
             {seller.is_verified && (
-              <span className="text-green-600">✓</span>
+              <span className="text-green-600 text-lg">✓</span>
             )}
           </div>
 
@@ -265,7 +324,7 @@ export default function ListingDetailPage() {
             </div>
           )}
 
-          {/* Verification & Report */}
+          {/* Verified badge & Report */}
           <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-200">
             {seller.is_verified && (
               <div className="flex items-center gap-1 px-2 py-1 rounded bg-green-100">
@@ -282,10 +341,9 @@ export default function ListingDetailPage() {
             </button>
           </div>
 
-          {/* ✅ FIX 2: Contact Buttons — WhatsApp hidden until revealed */}
+          {/* Contact Buttons */}
           <div className="space-y-2">
             {!whatsappRevealed ? (
-              // Step 1: Show "Reveal Contact" button first
               <button
                 onClick={handleRevealWhatsapp}
                 disabled={revealLoading}
@@ -299,7 +357,6 @@ export default function ListingDetailPage() {
                 )}
               </button>
             ) : (
-              // Step 2: After reveal, show actual WhatsApp number + open button
               <div className="space-y-2">
                 <div className="w-full py-2.5 px-4 rounded-lg border border-green-300 bg-green-50 text-center">
                   <p className="text-xs text-gray-500 mb-0.5">WhatsApp Number</p>
@@ -344,7 +401,7 @@ export default function ListingDetailPage() {
             <h3 className="text-lg font-bold" style={{ color: '#1B2A4A' }}>
               Reviews
             </h3>
-            {currentUser && currentUser.email !== seller.email && (
+            {currentUser && seller && currentUser.email !== seller.email && (
               <button
                 onClick={() => setShowRatingModal(true)}
                 className="px-3 py-1.5 rounded-lg text-sm font-semibold"
@@ -358,7 +415,7 @@ export default function ListingDetailPage() {
           {reviews.length === 0 ? (
             <div className="text-center py-6">
               <p className="text-gray-500 text-sm mb-2">No reviews yet</p>
-              {currentUser && currentUser.email !== seller.email && (
+              {currentUser && seller && currentUser.email !== seller.email && (
                 <button
                   onClick={() => setShowRatingModal(true)}
                   className="text-sm font-semibold"
@@ -395,6 +452,18 @@ export default function ListingDetailPage() {
             <span className="text-gray-600">Condition</span>
             <span className="font-semibold">{listing.condition}</span>
           </div>
+          {listing.department && (
+            <div className="flex justify-between">
+              <span className="text-gray-600">Department</span>
+              <span className="font-semibold">{listing.department}</span>
+            </div>
+          )}
+          {listing.semester && (
+            <div className="flex justify-between">
+              <span className="text-gray-600">Semester</span>
+              <span className="font-semibold">{listing.semester}</span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span className="text-gray-600">Posted</span>
             <span className="font-semibold">
@@ -423,4 +492,4 @@ export default function ListingDetailPage() {
       )}
     </div>
   );
-}
+    }

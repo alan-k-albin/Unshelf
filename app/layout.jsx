@@ -22,9 +22,9 @@ export default function RootLayout({ children }) {
   const [user, setUser] = useState(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [firstLoad, setFirstLoad] = useState(true);
   const [error, setError] = useState(null);
 
-  // ✅ Hide bottom nav on login and profile pages
   const hideBottomNav = pathname === '/login' || pathname === '/profile';
 
   useEffect(() => {
@@ -33,14 +33,18 @@ export default function RootLayout({ children }) {
       if (storedUser) {
         setIsLoggedIn(true);
         setUser(JSON.parse(storedUser));
+      } else {
+        setIsLoggedIn(false);
+        setUser(null);
       }
     } catch (err) {
       console.error('Error loading user:', err);
       setError('Failed to load user data');
     } finally {
       setLoading(false);
+      setFirstLoad(false);
     }
-  }, []);
+  }, [pathname]);
 
   const handleLogout = async () => {
     try {
@@ -58,7 +62,7 @@ export default function RootLayout({ children }) {
     }
   };
 
-  if (loading) {
+  if (loading && firstLoad) {
     return (
       <html lang="en">
         <body className="bg-light">
@@ -97,7 +101,7 @@ export default function RootLayout({ children }) {
           </div>
         )}
 
-        {/* ✅ Desktop Navigation */}
+        {/* Desktop Navigation */}
         <nav className="hidden md:block bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
             <Link href="/">
@@ -170,7 +174,7 @@ export default function RootLayout({ children }) {
           </div>
         </nav>
 
-        {/* ✅ Mobile Top Nav - Logo ONLY, no hamburger */}
+        {/* Mobile Top Nav - Logo ONLY */}
         <nav className="md:hidden bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
           <div className="px-4 py-2.5 flex items-center justify-center">
             <Link href="/">
@@ -182,7 +186,7 @@ export default function RootLayout({ children }) {
         {/* Main Content */}
         <main className={!hideBottomNav ? 'pb-20 md:pb-0' : ''}>{children}</main>
 
-        {/* ✅ Mobile Bottom Nav - Hidden on /login and /profile */}
+        {/* Mobile Bottom Nav - Hidden on /login and /profile */}
         {!hideBottomNav && (
           <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 shadow-lg">
             <div className="flex justify-around items-center">
@@ -230,4 +234,4 @@ export default function RootLayout({ children }) {
       </body>
     </html>
   );
-    }
+          }

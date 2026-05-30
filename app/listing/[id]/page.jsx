@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { ArrowLeft, MessageCircle, Share2, Loader, Eye } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Share2, Loader, Eye, Trash2 } from 'lucide-react';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
 import RatingModal from '@/components/RatingModal';
 import ReviewCard from '@/components/ReviewCard';
@@ -22,7 +22,10 @@ export default function ListingDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [authUserId, setAuthUserId] = useState(null);
   const [contactLoading, setContactLoading] = useState(false);
 
   const [whatsappRevealed, setWhatsappRevealed] = useState(false);
@@ -31,15 +34,27 @@ export default function ListingDetailPage() {
   const [revealCount, setRevealCount] = useState(0);
 
   useEffect(() => {
-    loadListing();
-    loadCurrentUser();
+    initPage();
   }, [listingId]);
 
-  const loadCurrentUser = () => {
+  const initPage = async () => {
+    // FIX: Wait for auth session first before fetching seller
+    // This ensures the Supabase client sends the auth token with the request
+    const { data: { session } } = await supabase.auth.getSession();
+
+    // Load current user from localStorage
     const userStr = localStorage.getItem('user');
     if (userStr) {
       setCurrentUser(JSON.parse(userStr));
     }
+
+    // Store auth user id for ownership checks
+    if (session?.user?.id) {
+      setAuthUserId(session.user.id);
+    }
+
+    // Now fetch listing with authenticated session ready
+    await loadListing();
   };
 
   const loadListing = async () => {
@@ -56,7 +71,6 @@ export default function ListingDetailPage() {
         .eq('id', listingId)
         .single();
 
-      // FIX 2: Properly handle not found vs other errors
       if (listingError || !listingData) {
         setNotFound(true);
         setLoading(false);
@@ -65,7 +79,7 @@ export default function ListingDetailPage() {
 
       setListing(listingData);
 
-      // FIX 1: Fetch seller info including full_name clearly
+      // FIX: Fetch seller — session is guaranteed ready by initPage()
       const { data: sellerData, error: sellerError } = await supabase
         .from('users')
         .select('id, full_name, department, semester, is_verified, rating, total_reviews, email')
@@ -73,7 +87,6 @@ export default function ListingDetailPage() {
         .single();
 
       if (sellerError || !sellerData) {
-        // Still show listing even if seller fetch fails
         setSeller({ full_name: 'Unknown Seller', department: '', semester: '' });
       } else {
         setSeller(sellerData);
@@ -109,8 +122,8 @@ export default function ListingDetailPage() {
     setRevealLoading(true);
 
     try {
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData?.user) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
         router.push('/login');
         return;
       }
@@ -133,7 +146,7 @@ export default function ListingDetailPage() {
       await supabase.from('contacts').upsert(
         [
           {
-            user_id: authData.user.id,
+            user_id: session.user.id,
             contact_user_id: listing.user_id,
             contact_name: seller.full_name,
             contact_whatsapp: sellerContact.whatsapp_number,
@@ -163,6 +176,37 @@ export default function ListingDetailPage() {
     }
   };
 
+  const handleDeleteListing = async () => {
+    setDeleteLoading(true);
+    try {
+      // Delete image from storage if exists
+      if (listing.image_url) {
+        const path = listing.image_url.split('/listings/')[1];
+        if (path) {
+          await supabase.storage.from('listings').remove([path]);
+        }
+      }
+
+      const { error: deleteError } = await supabase
+        .from('listings')
+        .delete()
+        .eq('id', listing.id);
+
+      if (deleteError) throw deleteError;
+
+      router.push('/profile');
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Failed to delete listing. Please try again.');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
+  // Check if current logged-in user owns this listing
+  const isOwner = authUserId && listing && listing.user_id === authUserId;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white pb-20">
@@ -175,7 +219,6 @@ export default function ListingDetailPage() {
     );
   }
 
-  // FIX 2: Show proper not-found UI with back button instead of blank page
   if (notFound || !listing) {
     return (
       <div className="min-h-screen bg-white">
@@ -217,6 +260,15 @@ export default function ListingDetailPage() {
         <h1 className="text-lg font-bold flex-1" style={{ color: '#1B2A4A' }}>
           Item Details
         </h1>
+        {/* Delete button — only visible to the owner */}
+        {isOwner && (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="p-2 rounded-lg hover:bg-red-50 transition"
+          >
+            <Trash2 className="w-5 h-5 text-red-500" />
+          </button>
+        )}
       </div>
 
       <div className="px-4 py-6 space-y-6">
@@ -258,7 +310,6 @@ export default function ListingDetailPage() {
             >
               {listing.condition}
             </span>
-            {/* FIX 1: Show semester and department on listing if available */}
             {listing.semester && (
               <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">
                 {listing.semester}
@@ -290,7 +341,7 @@ export default function ListingDetailPage() {
           </div>
         )}
 
-        {/* Seller Card - FIX 1: Prominently show seller name */}
+        {/* Seller Card */}
         <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
             Listed by
@@ -317,14 +368,12 @@ export default function ListingDetailPage() {
             )}
           </div>
 
-          {/* Seller Rating */}
           {seller.rating > 0 && (
             <div className="mb-3">
               <SellerRating rating={seller.rating} totalReviews={seller.total_reviews} />
             </div>
           )}
 
-          {/* Verified badge & Report */}
           <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-200">
             {seller.is_verified && (
               <div className="flex items-center gap-1 px-2 py-1 rounded bg-green-100">
@@ -332,18 +381,24 @@ export default function ListingDetailPage() {
                 <span className="text-xs font-semibold text-green-700">Verified</span>
               </div>
             )}
-            <button
-              onClick={() => setShowReportModal(true)}
-              className="ml-auto flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold"
-              style={{ color: '#DC2626', background: '#FEE2E2' }}
-            >
-              🚩 Report
-            </button>
+            {!isOwner && (
+              <button
+                onClick={() => setShowReportModal(true)}
+                className="ml-auto flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold"
+                style={{ color: '#DC2626', background: '#FEE2E2' }}
+              >
+                🚩 Report
+              </button>
+            )}
           </div>
 
-          {/* Contact Buttons */}
+          {/* Contact Buttons — hidden if owner */}
           <div className="space-y-2">
-            {!whatsappRevealed ? (
+            {isOwner ? (
+              <div className="w-full py-3 px-4 rounded-lg bg-gray-100 text-center">
+                <p className="text-sm text-gray-500 font-medium">This is your listing</p>
+              </div>
+            ) : !whatsappRevealed ? (
               <button
                 onClick={handleRevealWhatsapp}
                 disabled={revealLoading}
@@ -473,6 +528,47 @@ export default function ListingDetailPage() {
         </div>
       </div>
 
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center px-4 pb-6">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <div className="text-center mb-5">
+              <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Trash2 className="w-7 h-7 text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold mb-1" style={{ color: '#1B2A4A' }}>
+                Delete Listing?
+              </h3>
+              <p className="text-sm text-gray-500">
+                This will permanently remove "{listing.title}" and cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleteLoading}
+                className="flex-1 py-3 rounded-xl font-semibold text-sm border-2 border-gray-200"
+                style={{ color: '#6B7280' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteListing}
+                disabled={deleteLoading}
+                className="flex-1 py-3 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #DC2626, #B91C1C)' }}
+              >
+                {deleteLoading ? (
+                  <><Loader className="w-4 h-4 animate-spin" /> Deleting...</>
+                ) : (
+                  'Delete'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Rating Modal */}
       {showRatingModal && (
         <RatingModal
@@ -492,4 +588,4 @@ export default function ListingDetailPage() {
       )}
     </div>
   );
-    }
+}

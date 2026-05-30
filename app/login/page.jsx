@@ -137,6 +137,30 @@ export default function Login() {
         return;
       }
 
+      // Check if user already has a profile in the users table
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id, full_name, department, semester, whatsapp_number')
+        .eq('id', data.user.id)
+        .single();
+
+      if (existingUser) {
+        // User already has a profile — save to localStorage and go home directly
+        localStorage.setItem('user', JSON.stringify({
+          email,
+          fullName: existingUser.full_name,
+          full_name: existingUser.full_name,
+          department: existingUser.department,
+          semester: existingUser.semester,
+          whatsapp: existingUser.whatsapp_number,
+        }));
+        localStorage.setItem('lastActivity', Date.now().toString());
+        setSuccess('Welcome back! Redirecting...');
+        setTimeout(() => { router.push('/'); }, 1200);
+        return;
+      }
+
+      // New user — go to profile completion step
       setSuccess('OTP verified! Complete your profile.');
       setTimeout(() => {
         setStep(3);
@@ -186,22 +210,31 @@ export default function Login() {
         return;
       }
 
-      const { error: insertError } = await supabase.from('users').insert([
-        {
-          id: authUserId,
-          email,
-          full_name: fullName,
-          department: emailDept,
-          semester,
-          whatsapp_number: whatsapp,
-          is_verified: true,
-        },
-      ]);
+      // FIXED: upsert instead of insert — handles both new users and re-registrations
+      const { error: upsertError } = await supabase.from('users').upsert(
+        [
+          {
+            id: authUserId,
+            email,
+            full_name: fullName,
+            department: emailDept || department,
+            semester,
+            whatsapp_number: whatsapp,
+            is_verified: true,
+          },
+        ],
+        { onConflict: 'id' }
+      );
 
-      if (insertError) throw insertError;
+      if (upsertError) throw upsertError;
 
       localStorage.setItem('user', JSON.stringify({
-        email, fullName, department: emailDept, semester, whatsapp,
+        email,
+        fullName,
+        full_name: fullName,
+        department: emailDept || department,
+        semester,
+        whatsapp,
       }));
       localStorage.setItem('lastActivity', Date.now().toString());
 
@@ -223,7 +256,7 @@ export default function Login() {
       <div className="w-full max-w-md relative z-10">
         <div className="bg-white rounded-2xl shadow-2xl p-8 backdrop-blur-sm border border-white/80">
 
-          {/* ✅ HEADER WITH LOGO */}
+          {/* HEADER WITH LOGO */}
           <div className="text-center mb-8">
             <img
               src="/logo.png"
@@ -443,4 +476,4 @@ export default function Login() {
       </div>
     </div>
   );
-    }
+        }

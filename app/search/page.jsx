@@ -8,6 +8,16 @@ import LoadingSkeleton from '@/components/LoadingSkeleton';
 import EmptyState from '@/components/EmptyState';
 import FilterPanel from '@/components/FilterPanel';
 
+const defaultFilters = {
+  minPrice: 0,
+  maxPrice: 100000,
+  minPriceText: '',
+  maxPriceText: '',
+  conditions: [],   // array — multi-select
+  categories: [],   // array — multi-select
+  sortBy: 'newest',
+};
+
 function SearchPageContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
@@ -17,19 +27,9 @@ function SearchPageContent() {
   const [searchInput, setSearchInput] = useState(query);
   const [showFilters, setShowFilters] = useState(false);
 
-  // FIX 7: Separate "applied" filters from "pending" (draft) filters in the panel
-  const defaultFilters = {
-    minPrice: 0,
-    maxPrice: 100000,
-    condition: '',
-    category: '',
-    sortBy: 'newest',
-  };
-
   const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
   const [pendingFilters, setPendingFilters] = useState(defaultFilters);
 
-  // Only search when appliedFilters or query changes (not on every panel change)
   useEffect(() => {
     performSearch(query, appliedFilters);
   }, [appliedFilters, query]);
@@ -54,12 +54,17 @@ function SearchPageContent() {
       if (filters.maxPrice < 100000) {
         queryBuilder = queryBuilder.lte('price', filters.maxPrice);
       }
-      if (filters.condition) {
-        queryBuilder = queryBuilder.eq('condition', filters.condition);
+
+      // Multi-select conditions: use .in() if any selected
+      if (filters.conditions && filters.conditions.length > 0) {
+        queryBuilder = queryBuilder.in('condition', filters.conditions);
       }
-      if (filters.category) {
-        queryBuilder = queryBuilder.eq('category', filters.category);
+
+      // Multi-select categories: use .in() if any selected
+      if (filters.categories && filters.categories.length > 0) {
+        queryBuilder = queryBuilder.in('category', filters.categories);
       }
+
       if (filters.sortBy === 'newest') {
         queryBuilder = queryBuilder.order('created_at', { ascending: false });
       } else if (filters.sortBy === 'price-low') {
@@ -79,26 +84,39 @@ function SearchPageContent() {
     }
   };
 
-  const handleSearch = async (e) => {
+  const handleSearch = (e) => {
     e.preventDefault();
     performSearch(searchInput, appliedFilters);
   };
 
-  // FIX 7: Apply button commits pending filters to applied filters
   const handleApplyFilters = () => {
     setAppliedFilters({ ...pendingFilters });
     setShowFilters(false);
   };
 
   const handleClearFilters = () => {
-    setPendingFilters(defaultFilters);
-    setAppliedFilters(defaultFilters);
+    setPendingFilters({ ...defaultFilters });
+    setAppliedFilters({ ...defaultFilters });
     setShowFilters(false);
   };
 
+  const removeCondition = (cond) => {
+    setAppliedFilters((f) => ({
+      ...f,
+      conditions: f.conditions.filter((c) => c !== cond),
+    }));
+  };
+
+  const removeCategory = (cat) => {
+    setAppliedFilters((f) => ({
+      ...f,
+      categories: f.categories.filter((c) => c !== cat),
+    }));
+  };
+
   const hasActiveFilters =
-    appliedFilters.condition !== '' ||
-    appliedFilters.category !== '' ||
+    appliedFilters.conditions.length > 0 ||
+    appliedFilters.categories.length > 0 ||
     appliedFilters.sortBy !== 'newest' ||
     appliedFilters.minPrice > 0 ||
     appliedFilters.maxPrice < 100000;
@@ -118,11 +136,10 @@ function SearchPageContent() {
               className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          {/* FIX 7: Filter button opens panel; filters only apply when user taps Apply */}
           <button
             type="button"
             onClick={() => {
-              setPendingFilters({ ...appliedFilters }); // sync pending with current applied
+              setPendingFilters({ ...appliedFilters });
               setShowFilters(!showFilters);
             }}
             className="p-2.5 rounded-lg hover:bg-gray-100 relative"
@@ -130,7 +147,7 @@ function SearchPageContent() {
             <Filter className="w-5 h-5" style={{ color: '#1877F2' }} />
             {hasActiveFilters && (
               <span
-                className="absolute top-0 right-0 w-2 h-2 rounded-full"
+                className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white"
                 style={{ background: '#27AE60' }}
               />
             )}
@@ -140,26 +157,52 @@ function SearchPageContent() {
         {/* Active filter chips */}
         {hasActiveFilters && (
           <div className="flex gap-2 mt-2 flex-wrap">
-            {appliedFilters.condition && (
-              <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1">
-                {appliedFilters.condition}
-                <button onClick={() => setAppliedFilters((f) => ({ ...f, condition: '' }))}>
+            {appliedFilters.conditions.map((cond) => (
+              <span
+                key={cond}
+                className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1"
+              >
+                {cond}
+                <button onClick={() => removeCondition(cond)}>
                   <X className="w-3 h-3" />
                 </button>
               </span>
-            )}
-            {appliedFilters.category && (
-              <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1">
-                {appliedFilters.category}
-                <button onClick={() => setAppliedFilters((f) => ({ ...f, category: '' }))}>
+            ))}
+            {appliedFilters.categories.map((cat) => (
+              <span
+                key={cat}
+                className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700 flex items-center gap-1"
+              >
+                {cat}
+                <button onClick={() => removeCategory(cat)}>
                   <X className="w-3 h-3" />
                 </button>
               </span>
-            )}
+            ))}
             {appliedFilters.sortBy !== 'newest' && (
               <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1">
                 {appliedFilters.sortBy === 'price-low' ? 'Price ↑' : 'Price ↓'}
-                <button onClick={() => setAppliedFilters((f) => ({ ...f, sortBy: 'newest' }))}>
+                <button
+                  onClick={() => setAppliedFilters((f) => ({ ...f, sortBy: 'newest' }))}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {(appliedFilters.minPrice > 0 || appliedFilters.maxPrice < 100000) && (
+              <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 flex items-center gap-1">
+                ₹{appliedFilters.minPrice} – {appliedFilters.maxPrice >= 100000 ? 'Any' : `₹${appliedFilters.maxPrice}`}
+                <button
+                  onClick={() =>
+                    setAppliedFilters((f) => ({
+                      ...f,
+                      minPrice: 0,
+                      maxPrice: 100000,
+                      minPriceText: '',
+                      maxPriceText: '',
+                    }))
+                  }
+                >
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -174,10 +217,10 @@ function SearchPageContent() {
         )}
       </div>
 
-      {/* Filter Panel - Mobile Drawer */}
+      {/* Filter Panel — Mobile Drawer */}
       {showFilters && (
         <div className="fixed inset-0 bg-black/50 z-30 flex items-end md:hidden">
-          <div className="w-full max-h-[85vh] rounded-t-2xl overflow-hidden flex flex-col">
+          <div className="w-full">
             <FilterPanel
               filters={pendingFilters}
               setFilters={setPendingFilters}
@@ -191,8 +234,8 @@ function SearchPageContent() {
 
       {/* Main Content */}
       <div className="flex gap-4 px-4 py-6">
-        {/* Filter Panel - Desktop Sidebar */}
-        <div className="hidden md:block w-64">
+        {/* Filter Panel — Desktop Sidebar */}
+        <div className="hidden md:block w-64 flex-shrink-0">
           <FilterPanel
             filters={pendingFilters}
             setFilters={setPendingFilters}
@@ -202,7 +245,7 @@ function SearchPageContent() {
           />
         </div>
 
-        {/* Listings Grid */}
+        {/* Listings */}
         <div className="flex-1">
           <div className="mb-4">
             <p className="text-sm text-gray-600">
@@ -240,7 +283,6 @@ function SearchPageContent() {
                         />
                       </div>
                     )}
-
                     <div className="flex-1 min-w-0">
                       <h3
                         className="font-semibold text-sm mb-1 line-clamp-2"
@@ -248,7 +290,6 @@ function SearchPageContent() {
                       >
                         {listing.title}
                       </h3>
-
                       <div className="flex flex-wrap gap-2 mb-2">
                         <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">
                           {listing.category}
@@ -257,36 +298,26 @@ function SearchPageContent() {
                           className="text-xs px-2 py-1 rounded"
                           style={{
                             background:
-                              listing.condition === 'Like New'
-                                ? '#E0F2FE'
-                                : listing.condition === 'Good'
-                                ? '#DCFCE7'
-                                : listing.condition === 'Used'
-                                ? '#FEF3C7'
-                                : '#FECACA',
+                              listing.condition === 'Like New' ? '#E0F2FE'
+                              : listing.condition === 'Good' ? '#DCFCE7'
+                              : listing.condition === 'Used' ? '#FEF3C7'
+                              : '#FECACA',
                             color:
-                              listing.condition === 'Like New'
-                                ? '#0369A1'
-                                : listing.condition === 'Good'
-                                ? '#166534'
-                                : listing.condition === 'Used'
-                                ? '#92400E'
-                                : '#DC2626',
+                              listing.condition === 'Like New' ? '#0369A1'
+                              : listing.condition === 'Good' ? '#166534'
+                              : listing.condition === 'Used' ? '#92400E'
+                              : '#DC2626',
                           }}
                         >
                           {listing.condition}
                         </span>
                       </div>
-
                       <div className="flex items-center justify-between">
                         <div>
                           {listing.is_free ? (
                             <span className="text-lg font-bold text-green-600">Free</span>
                           ) : (
-                            <span
-                              className="text-lg font-bold"
-                              style={{ color: '#1B2A4A' }}
-                            >
+                            <span className="text-lg font-bold" style={{ color: '#1B2A4A' }}>
                               ₹{listing.price?.toLocaleString()}
                             </span>
                           )}
@@ -294,9 +325,11 @@ function SearchPageContent() {
                             {new Date(listing.created_at).toLocaleDateString()}
                           </p>
                         </div>
-                        <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-                          {listing.semester}
-                        </span>
+                        {listing.semester && (
+                          <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                            {listing.semester}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -322,4 +355,4 @@ export default function SearchPage() {
       <SearchPageContent />
     </Suspense>
   );
-      }
+              }

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import {
   BookOpen, PenTool, BookMarked, Notebook, Beaker, Calculator, GraduationCap,
-  Search as SearchIcon, ArrowRight, Shield, Zap, Users, RefreshCw
+  Search as SearchIcon, ArrowRight, Shield, Zap, Users
 } from 'lucide-react';
 import { CATEGORIES } from './data';
 import { supabase } from '@/lib/supabaseClient';
@@ -16,10 +16,10 @@ const CATEGORY_ICONS = {
   'Textbooks':          { icon: BookOpen,      lightBg: '#EEF2FF', darkBg: '#4F46E5' },
   'Handwritten Notes':  { icon: PenTool,       lightBg: '#F3E8FF', darkBg: '#9333EA' },
   'Study Guides':       { icon: BookMarked,    lightBg: '#ECFDF5', darkBg: '#16A34A' },
-  'Notebooks':          { icon: Notebook,      lightBg: '#F3E8FF', darkBg: '#9333EA' },
+  'Notebooks':          { icon: Notebook,      lightBg: '#FFF1F2', darkBg: '#E11D48' },
   'Lab Manuals':        { icon: Beaker,        lightBg: '#FFF7ED', darkBg: '#EA580C' },
   'Calculators/Tools':  { icon: Calculator,    lightBg: '#FEFCE8', darkBg: '#CA8A04' },
-  'Coaching Materials': { icon: GraduationCap, lightBg: '#EEF2FF', darkBg: '#4F46E5' },
+  'Coaching Materials': { icon: GraduationCap, lightBg: '#E0F2FE', darkBg: '#0284C7' },
   'Other':              { icon: BookOpen,      lightBg: '#F5F5F5', darkBg: '#6B7280' },
 };
 
@@ -86,7 +86,6 @@ const CategoryCard = ({ name, categoryInfo }) => {
 export default function HomePage() {
   const [listings, setListings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [userDept, setUserDept] = useState('CS');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -119,12 +118,6 @@ export default function HomePage() {
   };
 
   // #9: Pull to refresh
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchListings();
-    setRefreshing(false);
-    showToast('Listings refreshed!');
-  };
 
   // #6: Search navigates to search page with query
   const handleSearch = (e) => {
@@ -153,14 +146,6 @@ export default function HomePage() {
         <div className="absolute -bottom-10 left-10 w-56 h-56 bg-indigo-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '2s' }} />
 
         <div className="relative z-10 max-w-4xl mx-auto text-center">
-          {/* #9: Refresh button top right */}
-          <div className="flex justify-end mb-2">
-            <button onClick={handleRefresh} disabled={refreshing}
-              className="p-2 rounded-lg hover:bg-white/50 transition">
-              <RefreshCw className={`w-5 h-5 text-gray-400 ${refreshing ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
-
           <img src="/logo.png" alt="Unshelf" className="h-28 w-auto mx-auto mb-4 object-contain" />
 
           <h1 className="text-3xl md:text-4xl font-bold mb-2.5 tracking-tight" style={{ color: '#1B2A4A' }}>

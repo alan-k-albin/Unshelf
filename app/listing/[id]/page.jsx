@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { ArrowLeft, MessageCircle, Share2, Loader, Eye, Trash2, CheckSquare, X } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Share2, Loader, Eye, Trash2, CheckSquare, Edit, RefreshCw, X } from 'lucide-react';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
 import RatingModal from '@/components/RatingModal';
 import ReviewCard from '@/components/ReviewCard';
@@ -34,16 +34,12 @@ export default function ListingDetailPage() {
   const [whatsappNumber, setWhatsappNumber] = useState(null);
   const [revealLoading, setRevealLoading] = useState(false);
   const [revealCount, setRevealCount] = useState(0);
-  // #8: Image zoom
   const [showImageZoom, setShowImageZoom] = useState(false);
-  // #9: Pull to refresh
   const [refreshing, setRefreshing] = useState(false);
 
   const { toast, showToast, hideToast } = useToast();
 
-  useEffect(() => {
-    initPage();
-  }, [listingId]);
+  useEffect(() => { initPage(); }, [listingId]);
 
   const initPage = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -61,7 +57,6 @@ export default function ListingDetailPage() {
         .from('listings').select('*').eq('id', listingId).single();
 
       if (listingError || !listingData) { setNotFound(true); setLoading(false); return; }
-
       setListing(listingData);
 
       const { data: sellerRows, error: sellerError } = await supabase
@@ -86,7 +81,6 @@ export default function ListingDetailPage() {
     }
   };
 
-  // #9: Pull to refresh
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadListing();
@@ -97,7 +91,6 @@ export default function ListingDetailPage() {
   const handleRevealWhatsapp = async () => {
     if (!currentUser) { router.push('/login'); return; }
     if (revealCount >= 5) { showToast('Too many requests. Try again later.', 'error'); return; }
-
     setRevealLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -119,7 +112,6 @@ export default function ListingDetailPage() {
         { onConflict: 'user_id,contact_user_id' }
       );
     } catch (err) {
-      console.error('Reveal error:', err);
       showToast('Error retrieving contact.', 'error');
     } finally {
       setRevealLoading(false);
@@ -150,7 +142,6 @@ export default function ListingDetailPage() {
       if (deleteError) throw deleteError;
       router.push('/profile');
     } catch (err) {
-      console.error('Delete error:', err);
       showToast('Failed to delete listing.', 'error');
     } finally {
       setDeleteLoading(false);
@@ -158,18 +149,15 @@ export default function ListingDetailPage() {
     }
   };
 
-  // #4: Mark as Sold
   const handleMarkAsSold = async () => {
     setSoldLoading(true);
     try {
-      const { error } = await supabase
-        .from('listings').update({ status: 'Sold' }).eq('id', listing.id);
+      const { error } = await supabase.from('listings').update({ status: 'Sold' }).eq('id', listing.id);
       if (error) throw error;
       setListing((prev) => ({ ...prev, status: 'Sold' }));
       showToast('Listing marked as sold!');
       setShowSoldConfirm(false);
     } catch (err) {
-      console.error('Mark sold error:', err);
       showToast('Failed to mark as sold.', 'error');
     } finally {
       setSoldLoading(false);
@@ -182,7 +170,6 @@ export default function ListingDetailPage() {
       navigator.share({ title: listing.title, url });
     } else {
       navigator.clipboard.writeText(url);
-      // #10: Toast instead of alert
       showToast('Link copied to clipboard!');
     }
   };
@@ -211,7 +198,8 @@ export default function ListingDetailPage() {
           <p className="text-5xl mb-4">📭</p>
           <p className="text-lg font-semibold mb-2" style={{ color: '#1B2A4A' }}>Listing not found</p>
           <p className="text-sm text-gray-500 mb-6">This listing may have been removed or is no longer available.</p>
-          <button onClick={() => router.push('/')} className="px-6 py-3 rounded-xl font-semibold text-white text-sm"
+          <button onClick={() => router.push('/')}
+            className="px-6 py-3 rounded-xl font-semibold text-white text-sm"
             style={{ background: 'linear-gradient(135deg, #1877F2, #166FE5)' }}>Browse Listings</button>
         </div>
       </div>
@@ -219,24 +207,17 @@ export default function ListingDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-24">
-      {/* Toast */}
+    <div className="min-h-screen bg-white pb-36">
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
-      {/* #8: Image Zoom Modal */}
+      {/* Image Zoom Modal */}
       {showImageZoom && listing.image_url && (
-        <div
-          className="fixed inset-0 bg-black z-50 flex items-center justify-center"
-          onClick={() => setShowImageZoom(false)}
-        >
+        <div className="fixed inset-0 bg-black z-50 flex items-center justify-center"
+          onClick={() => setShowImageZoom(false)}>
           <button className="absolute top-4 right-4 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
             <X className="w-6 h-6 text-white" />
           </button>
-          <img
-            src={listing.image_url}
-            alt={listing.title}
-            className="max-w-full max-h-full object-contain"
-          />
+          <img src={listing.image_url} alt={listing.title} className="max-w-full max-h-full object-contain" />
         </div>
       )}
 
@@ -244,52 +225,30 @@ export default function ListingDetailPage() {
       <div className="sticky top-0 bg-white border-b border-gray-200 z-10 flex items-center gap-3 px-4 py-4">
         <button onClick={() => router.back()} className="p-1"><ArrowLeft className="w-5 h-5" /></button>
         <h1 className="text-lg font-bold flex-1" style={{ color: '#1B2A4A' }}>Item Details</h1>
-        {/* #9: Refresh button */}
+        {/* Refresh — properly visible with label */}
         <button
           onClick={handleRefresh}
           disabled={refreshing}
-          className="p-2 rounded-lg hover:bg-gray-100 transition text-sm font-semibold"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold border border-gray-200 hover:bg-gray-50 transition"
           style={{ color: '#1877F2' }}
         >
-          {refreshing ? <Loader className="w-4 h-4 animate-spin" /> : '↻'}
+          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          <span className="text-xs">Refresh</span>
         </button>
-        {isOwner && !isSold && (
-          <>
-            {/* #4: Mark as Sold button */}
-            <button
-              onClick={() => setShowSoldConfirm(true)}
-              className="p-2 rounded-lg hover:bg-green-50 transition"
-              title="Mark as Sold"
-            >
-              <CheckSquare className="w-5 h-5 text-green-600" />
-            </button>
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="p-2 rounded-lg hover:bg-red-50 transition"
-            >
-              <Trash2 className="w-5 h-5 text-red-500" />
-            </button>
-          </>
-        )}
       </div>
 
       <div className="px-4 py-6 space-y-6">
-        {/* #8: Tappable image for zoom */}
+        {/* Image */}
         {listing.image_url && (
-          <div
-            className="w-full h-64 bg-gray-200 rounded-xl overflow-hidden cursor-zoom-in relative"
-            onClick={() => setShowImageZoom(true)}
-          >
+          <div className="w-full h-64 bg-gray-200 rounded-xl overflow-hidden cursor-zoom-in relative"
+            onClick={() => setShowImageZoom(true)}>
             <img src={listing.image_url} alt={listing.title} className="w-full h-full object-cover" />
             <div className="absolute bottom-2 right-2 bg-black/40 text-white text-xs px-2 py-1 rounded-full">
               Tap to zoom
             </div>
-            {/* Sold overlay */}
             {isSold && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <span className="text-white text-2xl font-bold bg-red-600 px-6 py-2 rounded-xl rotate-[-15deg]">
-                  SOLD
-                </span>
+                <span className="text-white text-2xl font-bold bg-red-600 px-6 py-2 rounded-xl rotate-[-15deg]">SOLD</span>
               </div>
             )}
           </div>
@@ -299,9 +258,7 @@ export default function ListingDetailPage() {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <h2 className="text-2xl font-bold flex-1" style={{ color: '#1B2A4A' }}>{listing.title}</h2>
-            {isSold && (
-              <span className="text-xs font-bold px-2 py-1 rounded-full bg-red-100 text-red-600">SOLD</span>
-            )}
+            {isSold && <span className="text-xs font-bold px-2 py-1 rounded-full bg-red-100 text-red-600">SOLD</span>}
           </div>
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">{listing.category}</span>
@@ -309,8 +266,7 @@ export default function ListingDetailPage() {
               style={{
                 background: listing.condition === 'Like New' ? '#E0F2FE' : listing.condition === 'Good' ? '#DCFCE7' : listing.condition === 'Used' ? '#FEF3C7' : '#FECACA',
                 color: listing.condition === 'Like New' ? '#0369A1' : listing.condition === 'Good' ? '#166534' : listing.condition === 'Used' ? '#92400E' : '#DC2626',
-              }}
-            >{listing.condition}</span>
+              }}>{listing.condition}</span>
             {listing.semester && <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">{listing.semester}</span>}
             {listing.department && <span className="text-xs px-2 py-1 rounded bg-purple-100 text-purple-700">{listing.department}</span>}
           </div>
@@ -327,7 +283,7 @@ export default function ListingDetailPage() {
           </div>
         )}
 
-        {/* Seller Card — FIX #3: show department */}
+        {/* Seller Card */}
         <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Listed by</h3>
           <div className="flex items-start justify-between mb-3">
@@ -338,7 +294,6 @@ export default function ListingDetailPage() {
               </div>
               <div>
                 <h3 className="font-semibold" style={{ color: '#1B2A4A' }}>{seller?.full_name || 'Unknown Seller'}</h3>
-                {/* FIX #3: Both department and semester shown */}
                 <p className="text-sm text-gray-500">
                   {[seller?.department, seller?.semester].filter(Boolean).join(' • ') || 'SJCET'}
                 </p>
@@ -399,7 +354,6 @@ export default function ListingDetailPage() {
               </div>
             )}
 
-            {/* #10: Toast instead of alert for share */}
             <button onClick={handleShare}
               className="w-full py-2.5 rounded-lg border border-gray-300 font-semibold text-sm"
               style={{ color: '#1877F2' }}>
@@ -442,14 +396,49 @@ export default function ListingDetailPage() {
           <div className="flex justify-between"><span className="text-gray-600">Condition</span><span className="font-semibold">{listing.condition}</span></div>
           {listing.department && <div className="flex justify-between"><span className="text-gray-600">Department</span><span className="font-semibold">{listing.department}</span></div>}
           {listing.semester && <div className="flex justify-between"><span className="text-gray-600">Semester</span><span className="font-semibold">{listing.semester}</span></div>}
-          <div className="flex justify-between"><span className="text-gray-600">Status</span>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Status</span>
             <span className={`font-semibold ${isSold ? 'text-red-600' : 'text-green-600'}`}>{listing.status}</span>
           </div>
           <div className="flex justify-between"><span className="text-gray-600">Posted</span><span className="font-semibold">{new Date(listing.created_at).toLocaleDateString()}</span></div>
         </div>
       </div>
 
-      {/* Mark as Sold Confirm Modal */}
+      {/* ── OWNER ACTION BUTTONS — floating above nav bar ── */}
+      {isOwner && !isSold && (
+        <div className="fixed bottom-20 left-0 right-0 z-20 px-4 pb-2">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-3 flex gap-3">
+            {/* Edit button */}
+            <button
+              onClick={() => router.push(`/edit-listing/${listing.id}`)}
+              className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 border-2 transition active:scale-95"
+              style={{ borderColor: '#1877F2', color: '#1877F2', background: '#EFF6FF' }}
+            >
+              <Edit className="w-4 h-4" />
+              Edit Listing
+            </button>
+            {/* Mark as Sold button */}
+            <button
+              onClick={() => setShowSoldConfirm(true)}
+              className="flex-1 py-3 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 transition active:scale-95"
+              style={{ background: 'linear-gradient(135deg, #16A34A, #22C55E)' }}
+            >
+              <CheckSquare className="w-4 h-4" />
+              Mark as Sold
+            </button>
+            {/* Delete button */}
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="py-3 px-4 rounded-xl font-semibold text-sm flex items-center justify-center transition active:scale-95"
+              style={{ background: '#FEE2E2', color: '#DC2626' }}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mark as Sold Confirm */}
       {showSoldConfirm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center px-4 pb-6">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
@@ -458,7 +447,7 @@ export default function ListingDetailPage() {
                 <CheckSquare className="w-7 h-7 text-green-600" />
               </div>
               <h3 className="text-lg font-bold mb-1" style={{ color: '#1B2A4A' }}>Mark as Sold?</h3>
-              <p className="text-sm text-gray-500">This will mark "{listing.title}" as sold. Buyers won't be able to contact you for this listing.</p>
+              <p className="text-sm text-gray-500">Buyers won't be able to contact you for this listing.</p>
             </div>
             <div className="flex gap-3">
               <button onClick={() => setShowSoldConfirm(false)} disabled={soldLoading}
@@ -474,7 +463,7 @@ export default function ListingDetailPage() {
         </div>
       )}
 
-      {/* Delete Confirm Modal */}
+      {/* Delete Confirm */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center px-4 pb-6">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
@@ -508,4 +497,4 @@ export default function ListingDetailPage() {
       )}
     </div>
   );
-                                         }
+    }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Edit2, Bell, Shield, LogOut, ChevronRight, Info } from 'lucide-react';
+import { ArrowLeft, Edit2, Bell, Shield, LogOut, ChevronRight, Info, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function SettingsPage() {
@@ -33,6 +33,12 @@ export default function SettingsPage() {
           icon: <Info className="w-5 h-5" style={{ color: '#6B7280' }} />,
           label: 'About Unshelf',
           description: 'Version 1.0 • SJCET Campus Marketplace',
+          action: null,
+        },
+        {
+          icon: <Users className="w-5 h-5" style={{ color: '#6B7280' }} />,
+          label: 'Developed by Alan K Albin',
+          description: 'Built by a student, for students.',
           action: null,
         },
         {

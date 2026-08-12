@@ -72,11 +72,11 @@ const CategoryCard = ({ name, style }) => {
   return (
     <Link href={`/search?category=${name}`}>
       <div
-        className={`group relative rounded-2xl p-4 h-28 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${style?.rotate} hover:rotate-0 hover:scale-[1.04] hover:shadow-xl active:scale-95`}
+        className={`group relative rounded-2xl p-3.5 h-24 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${style?.rotate} hover:rotate-0 hover:scale-[1.04] hover:shadow-xl active:scale-95`}
         style={{ background: style?.paper, boxShadow: '0 2px 0 rgba(27,42,74,0.06)' }}
       >
         <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-6 h-2.5 rounded-sm bg-white/70 border border-black/5 rotate-1" />
-        <IconComponent className="w-7 h-7 mb-2" style={{ color: style?.ink }} strokeWidth={1.5} />
+        <IconComponent className="w-6 h-6 mb-1.5" style={{ color: style?.ink }} strokeWidth={1.5} />
         <p className="font-medium text-[13px] leading-tight text-center line-clamp-2" style={{ color: style?.ink }}>{name}</p>
       </div>
     </Link>
@@ -154,7 +154,7 @@ export default function HomePage() {
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
       {/* HERO SECTION */}
-      <section className="relative px-4 pt-10 pb-12 md:pt-16 md:pb-16 overflow-hidden">
+      <section className="relative px-4 pt-6 pb-7 md:pt-10 md:pb-9 overflow-hidden">
         {/* corkboard texture */}
         <div
           className="absolute inset-0"
@@ -165,53 +165,50 @@ export default function HomePage() {
             backgroundSize: '22px 22px',
           }}
         />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 55%, #FBF8F1 100%)' }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 60%, #FBF8F1 100%)' }} />
 
         {/* floating decorative "pinned" scraps */}
-        <div className="hidden md:block absolute top-10 left-[6%] w-20 h-24 bg-white rounded-sm shadow-lg border border-black/5 float-1 opacity-90">
+        <div className="hidden lg:block absolute top-6 left-[6%] w-16 h-20 bg-white rounded-sm shadow-lg border border-black/5 float-1 opacity-90">
           <div className="w-full h-full p-2 flex flex-col gap-1">
             <div className="h-1.5 w-full bg-[#E5DCC6] rounded-full" />
             <div className="h-1.5 w-3/4 bg-[#E5DCC6] rounded-full" />
-            <div className="h-1.5 w-full bg-[#E5DCC6] rounded-full" />
-            <BookOpen className="w-5 h-5 mt-auto ml-auto text-[#B23A2E]" strokeWidth={1.5} />
+            <BookOpen className="w-4 h-4 mt-auto ml-auto text-[#B23A2E]" strokeWidth={1.5} />
           </div>
         </div>
-        <div className="hidden md:flex absolute top-24 right-[8%] w-16 h-16 bg-[#F4C95D] rounded-full shadow-lg items-center justify-center float-2 opacity-90">
-          <Calculator className="w-6 h-6 text-[#1B2A4A]" strokeWidth={1.75} />
+        <div className="hidden lg:flex absolute top-10 right-[8%] w-14 h-14 bg-[#F4C95D] rounded-full shadow-lg items-center justify-center float-2 opacity-90">
+          <Calculator className="w-5 h-5 text-[#1B2A4A]" strokeWidth={1.75} />
         </div>
-        <div className="hidden md:block absolute bottom-8 left-[12%] w-14 h-14 bg-[#8BB8A8] rounded-full shadow-lg float-2 opacity-80" style={{ animationDelay: '1s' }} />
 
         <div className="relative z-10 max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 border border-[#1B2A4A]/10 mb-4 shadow-sm">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 border border-[#1B2A4A]/10 mb-3 shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-[#27AE60]" />
-            <p className="text-[11px] font-semibold tracking-[0.15em] uppercase font-body" style={{ color: '#1B2A4A' }}>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase font-body" style={{ color: '#1B2A4A' }}>
               The campus exchange
             </p>
           </div>
 
-          <h1 className="font-display text-[2.6rem] leading-[1.05] md:text-6xl font-semibold mb-4 tracking-tight" style={{ color: '#1B2A4A' }}>
-            Every book has<br />
-            <span className="italic" style={{ color: '#B23A2E' }}>another</span> reader
+          <h1 className="font-display text-3xl leading-[1.1] md:text-5xl font-semibold mb-2.5 tracking-tight" style={{ color: '#1B2A4A' }}>
+            Every book has <span className="italic" style={{ color: '#B23A2E' }}>another</span> reader
           </h1>
-          <p className="font-body text-[#5B5647] mb-8 text-[15px] max-w-md mx-auto leading-relaxed">
-            Textbooks, notes and lab manuals, passed on by students who've already used them. Fair prices, verified by college email.
+          <p className="font-body text-[#5B5647] mb-5 text-[13px] md:text-sm max-w-md mx-auto leading-relaxed hidden sm:block">
+            Textbooks, notes and lab manuals, passed on by students who've already used them.
           </p>
 
           {/* #6: Search bar properly navigates to search page */}
-          <form onSubmit={handleSearch} className="max-w-xl mx-auto mb-6">
+          <form onSubmit={handleSearch} className="max-w-xl mx-auto mb-4 mt-4 sm:mt-0">
             <div className="relative group">
-              <SearchIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#8A8272] group-focus-within:text-[#1B2A4A] transition" />
+              <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-[17px] h-[17px] text-[#8A8272] group-focus-within:text-[#1B2A4A] transition" />
               <input
                 type="text"
                 placeholder="Search textbooks, notes, subjects..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="font-body w-full pl-12 pr-14 py-4 rounded-full border-2 border-[#1B2A4A]/10 text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition bg-white shadow-lg shadow-[#1B2A4A]/5"
+                className="font-body w-full pl-11 pr-12 py-3 rounded-full border-2 border-[#1B2A4A]/10 text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition bg-white shadow-md shadow-[#1B2A4A]/5"
                 style={{ color: '#1B2A4A' }}
               />
               <button type="submit"
                 aria-label="Search"
-                className="absolute right-2 top-2 bottom-2 aspect-square rounded-full font-semibold text-white transition hover:shadow-lg hover:scale-105 active:scale-95 flex items-center justify-center"
+                className="absolute right-1.5 top-1.5 bottom-1.5 aspect-square rounded-full font-semibold text-white transition hover:shadow-lg hover:scale-105 active:scale-95 flex items-center justify-center"
                 style={{ background: '#1B2A4A' }}>
                 <ArrowRight className="w-4 h-4" />
               </button>
@@ -219,24 +216,17 @@ export default function HomePage() {
           </form>
 
           <button onClick={handleCreateListing}
-            className="font-body px-8 py-3.5 rounded-full font-semibold text-white text-sm transition hover:shadow-xl hover:-translate-y-0.5 active:scale-95 inline-flex items-center gap-2"
+            className="font-body px-6 py-2.5 rounded-full font-semibold text-white text-sm transition hover:shadow-xl hover:-translate-y-0.5 active:scale-95 inline-flex items-center gap-2"
             style={{ background: 'linear-gradient(135deg, #27AE60, #1F9550)' }}>
             {isLoggedIn ? 'Start Selling' : 'Browse Listings'}
             <ArrowRight className="w-4 h-4" />
           </button>
-          {!isLoggedIn && <p className="font-body text-xs text-[#8A8272] mt-3">Sign up free — no payment needed</p>}
         </div>
       </section>
 
       {/* CATEGORIES */}
-      <section className="px-4 py-10 md:py-14 max-w-7xl mx-auto">
-        <div className="text-center mb-7">
-          <h2 className="font-display text-2xl md:text-3xl font-semibold" style={{ color: '#1B2A4A' }}>
-            Browse the shelf
-          </h2>
-          <p className="font-body text-sm text-[#8A8272] mt-1">Pinned up and ready to grab</p>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <section className="px-4 pt-5 pb-8 md:pt-8 md:pb-12 max-w-7xl mx-auto">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {CATEGORIES.map((cat) => (
             <CategoryCard key={cat} name={cat} style={CATEGORY_STYLE[cat]} />
           ))}

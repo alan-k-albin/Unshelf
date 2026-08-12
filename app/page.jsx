@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import {
-  BookOpen, PenTool, BookMarked, StickyNote, Beaker, Calculator, GraduationCap,
+  BookOpen, Pencil, ScrollText, StickyNote, FlaskConical, Calculator, GraduationCap,
   Search as SearchIcon, ArrowRight, Shield, Zap, Users, Sparkles
 } from 'lucide-react';
 import { CATEGORIES } from './data';
@@ -14,10 +14,10 @@ import { Toast, useToast } from '@/components/Toast';
 
 const CATEGORY_STYLE = {
   'Textbooks':          { icon: BookOpen,      paper: '#FDECEA', ink: '#B23A2E', rotate: '-rotate-2' },
-  'Handwritten Notes':  { icon: PenTool,       paper: '#EAF1FB', ink: '#2C5AA0', rotate: 'rotate-2' },
-  'Study Guides':       { icon: BookMarked,    paper: '#EAF6EE', ink: '#227A4B', rotate: 'rotate-1' },
+  'Handwritten Notes':  { icon: Pencil,        paper: '#EAF1FB', ink: '#2C5AA0', rotate: 'rotate-2' },
+  'Study Guides':       { icon: ScrollText,    paper: '#EAF6EE', ink: '#227A4B', rotate: 'rotate-1' },
   'Notebooks':          { icon: StickyNote,    paper: '#FBF0DC', ink: '#B8860B', rotate: '-rotate-1' },
-  'Lab Manuals':        { icon: Beaker,        paper: '#F3EAFB', ink: '#7B3FA0', rotate: 'rotate-2' },
+  'Lab Manuals':        { icon: FlaskConical,  paper: '#F3EAFB', ink: '#7B3FA0', rotate: 'rotate-2' },
   'Calculators/Tools':  { icon: Calculator,    paper: '#EAF6F4', ink: '#1D7A6E', rotate: '-rotate-2' },
   'Coaching Materials': { icon: GraduationCap, paper: '#FCEFF6', ink: '#B0396F', rotate: 'rotate-1' },
   'Other':              { icon: BookOpen,      paper: '#F1EFEA', ink: '#5B5647', rotate: '-rotate-1' },
@@ -76,10 +76,7 @@ const CategoryCard = ({ name, style }) => {
         style={{ background: style?.paper, boxShadow: '0 2px 0 rgba(27,42,74,0.06)' }}
       >
         <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-6 h-2.5 rounded-sm bg-white/70 border border-black/5 rotate-1" />
-        <div className="w-10 h-10 rounded-full mb-2 flex items-center justify-center mx-auto bg-white/70"
-          style={{ color: style?.ink }}>
-          <IconComponent className="w-[18px] h-[18px]" strokeWidth={1.75} />
-        </div>
+        <IconComponent className="w-7 h-7 mb-2" style={{ color: style?.ink }} strokeWidth={1.5} />
         <p className="font-medium text-[13px] leading-tight text-center line-clamp-2" style={{ color: style?.ink }}>{name}</p>
       </div>
     </Link>
@@ -185,10 +182,6 @@ export default function HomePage() {
         <div className="hidden md:block absolute bottom-8 left-[12%] w-14 h-14 bg-[#8BB8A8] rounded-full shadow-lg float-2 opacity-80" style={{ animationDelay: '1s' }} />
 
         <div className="relative z-10 max-w-4xl mx-auto text-center">
-          <div className="inline-block relative mb-5">
-            <img src="/logo.png" alt="Unshelf" className="h-24 w-auto mx-auto object-contain relative z-10" />
-          </div>
-
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 border border-[#1B2A4A]/10 mb-4 shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-[#27AE60]" />
             <p className="text-[11px] font-semibold tracking-[0.15em] uppercase font-body" style={{ color: '#1B2A4A' }}>

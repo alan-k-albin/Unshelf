@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
-import { Search, Filter, X, Plus, HelpCircle, BookOpen, Wrench, AlertCircle } from 'lucide-react';
+import { Search, Filter, X, Plus, HelpCircle, BookOpen, Wrench, Briefcase } from 'lucide-react';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
 import EmptyState from '@/components/EmptyState';
 import FilterPanel from '@/components/FilterPanel';
@@ -32,8 +32,10 @@ function SearchPageContent() {
   const initialType = searchParams.get('type') || 'listings';
   const initialCategory = searchParams.get('category') || '';
   const initialDepartment = searchParams.get('department') || '';
+  const initialServiceType = searchParams.get('service_type') || 'all';
 
   const [activeType, setActiveType] = useState(initialType);
+  const [serviceTypeFilter, setServiceTypeFilter] = useState(initialServiceType);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchInput, setSearchInput] = useState(initialQuery);
@@ -51,13 +53,15 @@ function SearchPageContent() {
   useEffect(() => {
     const typeParam = searchParams.get('type') || 'listings';
     setActiveType(typeParam);
+    const serviceTypeParam = searchParams.get('service_type') || 'all';
+    setServiceTypeFilter(serviceTypeParam);
   }, [searchParams]);
 
   useEffect(() => {
-    performSearch(searchInput, appliedFilters, activeType);
-  }, [appliedFilters, activeType]);
+    performSearch(searchInput, appliedFilters, activeType, serviceTypeFilter);
+  }, [appliedFilters, activeType, serviceTypeFilter]);
 
-  const performSearch = async (searchQuery, filters, type) => {
+  const performSearch = async (searchQuery, filters, type, serviceType) => {
     setLoading(true);
     try {
       if (type === 'requests') {
@@ -86,8 +90,34 @@ function SearchPageContent() {
         if (error) throw error;
         setItems(data || []);
       } else if (type === 'services') {
-        // Will be wired to services table in Feature 3
-        setItems([]);
+        let queryBuilder = supabase
+          .from('services')
+          .select('*')
+          .eq('status', 'open');
+
+        if (serviceType && serviceType !== 'all') {
+          queryBuilder = queryBuilder.eq('service_type', serviceType);
+        }
+
+        if (searchQuery) {
+          queryBuilder = queryBuilder.or(
+            `title.ilike.%${searchQuery}%,category.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,rate.ilike.%${searchQuery}%`
+          );
+        }
+
+        if (initialDepartment) {
+          queryBuilder = queryBuilder.eq('department', initialDepartment);
+        }
+
+        if (filters.categories && filters.categories.length > 0) {
+          queryBuilder = queryBuilder.in('category', filters.categories);
+        }
+
+        queryBuilder = queryBuilder.order('created_at', { ascending: false });
+
+        const { data, error } = await queryBuilder;
+        if (error) throw error;
+        setItems(data || []);
       } else {
         // Default: listings
         let queryBuilder = supabase
@@ -142,7 +172,7 @@ function SearchPageContent() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    performSearch(searchInput, appliedFilters, activeType);
+    performSearch(searchInput, appliedFilters, activeType, serviceTypeFilter);
   };
 
   const handleTabSwitch = (newType) => {
@@ -150,8 +180,24 @@ function SearchPageContent() {
     const newParams = new URLSearchParams(searchParams.toString());
     if (newType === 'listings') {
       newParams.delete('type');
+      newParams.delete('service_type');
+    } else if (newType === 'requests') {
+      newParams.set('type', 'requests');
+      newParams.delete('service_type');
+    } else if (newType === 'services') {
+      newParams.set('type', 'services');
+    }
+    router.replace(`/search?${newParams.toString()}`);
+  };
+
+  const handleServiceTypeChange = (st) => {
+    setServiceTypeFilter(st);
+    const newParams = new URLSearchParams(searchParams.toString());
+    newParams.set('type', 'services');
+    if (st === 'all') {
+      newParams.delete('service_type');
     } else {
-      newParams.set('type', newType);
+      newParams.set('service_type', st);
     }
     router.replace(`/search?${newParams.toString()}`);
   };
@@ -189,11 +235,11 @@ function SearchPageContent() {
     appliedFilters.maxPrice < 100000;
 
   return (
-    <div className="min-h-screen bg-white pb-24">
+    <div className="min-h-screen bg-[#FDFBF7] pb-24">
       {/* Sticky Top Section */}
-      <div className="sticky top-0 bg-white border-b border-gray-200 z-20 shadow-xs">
+      <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-[#EDE6D6] z-20 shadow-xs">
         {/* Search Bar */}
-        <div className="px-4 pt-3 pb-2">
+        <div className="px-4 pt-3 pb-2 max-w-7xl mx-auto">
           <form onSubmit={handleSearch} className="flex gap-2 items-center">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
@@ -203,12 +249,12 @@ function SearchPageContent() {
                   activeType === 'requests'
                     ? 'Search material requests (e.g. Physics notes)...'
                     : activeType === 'services'
-                    ? 'Search student services...'
+                    ? 'Search student services (e.g. Python tutoring, lab records)...'
                     : 'Search textbooks, notes, lab manuals...'
                 }
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1B2A4A]/20 transition text-[#1B2A4A]"
               />
             </div>
 
@@ -221,11 +267,10 @@ function SearchPageContent() {
                 }}
                 className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-100 relative"
               >
-                <Filter className="w-5 h-5" style={{ color: '#1877F2' }} />
+                <Filter className="w-5 h-5 text-[#1877F2]" />
                 {hasActiveFilters && (
                   <span
-                    className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full border-2 border-white"
-                    style={{ background: '#27AE60' }}
+                    className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full border-2 border-white bg-[#27AE60]"
                   />
                 )}
               </button>
@@ -234,10 +279,10 @@ function SearchPageContent() {
         </div>
 
         {/* Type Navigation Tabs */}
-        <div className="flex px-4 border-t border-gray-100 overflow-x-auto gap-2 py-1.5 scrollbar-none">
+        <div className="flex px-4 border-t border-gray-100 overflow-x-auto gap-2 py-2 scrollbar-none max-w-7xl mx-auto">
           <button
             onClick={() => handleTabSwitch('listings')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
               activeType === 'listings'
                 ? 'bg-[#1B2A4A] text-white shadow-xs'
                 : 'text-gray-600 hover:bg-gray-100'
@@ -249,7 +294,7 @@ function SearchPageContent() {
 
           <button
             onClick={() => handleTabSwitch('requests')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
               activeType === 'requests'
                 ? 'bg-[#1877F2] text-white shadow-xs'
                 : 'text-gray-600 hover:bg-gray-100'
@@ -261,20 +306,58 @@ function SearchPageContent() {
 
           <button
             onClick={() => handleTabSwitch('services')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
               activeType === 'services'
-                ? 'bg-[#D97706] text-white shadow-xs'
+                ? 'bg-[#15803D] text-white shadow-xs'
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
-            <Wrench className="w-3.5 h-3.5" />
+            <Briefcase className="w-3.5 h-3.5" />
             Student Services
           </button>
         </div>
 
-        {/* Active filter chips */}
+        {/* Sub-tabs for Services (All / Offering / Seeking) */}
+        {activeType === 'services' && (
+          <div className="flex px-4 pb-2 pt-1 gap-2 border-t border-gray-100 max-w-7xl mx-auto">
+            <button
+              onClick={() => handleServiceTypeChange('all')}
+              className={`text-[11px] font-bold px-3 py-1 rounded-lg border transition ${
+                serviceTypeFilter === 'all'
+                  ? 'bg-[#1B2A4A] text-white border-[#1B2A4A]'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              All Services
+            </button>
+            <button
+              onClick={() => handleServiceTypeChange('offering')}
+              className={`text-[11px] font-bold px-3 py-1 rounded-lg border transition flex items-center gap-1 ${
+                serviceTypeFilter === 'offering'
+                  ? 'bg-[#15803D] text-white border-[#15803D]'
+                  : 'bg-[#F0FDF4] text-[#15803D] border-[#BBF7D0] hover:border-[#15803D]'
+              }`}
+            >
+              <Briefcase className="w-3 h-3" />
+              Offered by Peers
+            </button>
+            <button
+              onClick={() => handleServiceTypeChange('seeking')}
+              className={`text-[11px] font-bold px-3 py-1 rounded-lg border transition flex items-center gap-1 ${
+                serviceTypeFilter === 'seeking'
+                  ? 'bg-[#B45309] text-white border-[#B45309]'
+                  : 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A] hover:border-[#B45309]'
+              }`}
+            >
+              <Wrench className="w-3 h-3" />
+              Needed / Requests
+            </button>
+          </div>
+        )}
+
+        {/* Active filter chips for listings */}
         {hasActiveFilters && activeType === 'listings' && (
-          <div className="flex gap-2 px-4 pb-2 flex-wrap">
+          <div className="flex gap-2 px-4 pb-2 flex-wrap max-w-7xl mx-auto">
             {appliedFilters.conditions.map((cond) => (
               <span
                 key={cond}
@@ -334,7 +417,7 @@ function SearchPageContent() {
         {/* Results Area */}
         <div className="flex-1 min-w-0">
           {/* Section Header & Create Action */}
-          <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
+          <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
             <p className="text-sm font-medium text-gray-600">
               {loading
                 ? 'Searching...'
@@ -358,10 +441,10 @@ function SearchPageContent() {
             ) : activeType === 'services' ? (
               <Link
                 href="/create-service"
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs transition"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#15803D] hover:bg-[#166534] text-white text-xs font-semibold shadow-xs transition"
               >
                 <Plus className="w-4 h-4" />
-                Offer / Request Service
+                + Post Service
               </Link>
             ) : (
               <Link
@@ -388,10 +471,69 @@ function SearchPageContent() {
                 activeType === 'requests'
                   ? 'No material requests found. Be the first to ask your campus peers!'
                   : activeType === 'services'
-                  ? 'No services listed yet.'
+                  ? 'No student services listed matching your criteria.'
                   : 'No listings found. Try adjusting your filters or search terms!'
               }
             />
+          )}
+
+          {/* SERVICE RESULTS */}
+          {!loading && items.length > 0 && activeType === 'services' && (
+            <div className="space-y-3">
+              {items.map((srv) => {
+                const isOff = srv.service_type === 'offering';
+                return (
+                  <div
+                    key={srv.id}
+                    onClick={() => router.push(`/service/${srv.id}`)}
+                    className="p-4 border-2 border-[#EDE6D6] rounded-2xl cursor-pointer hover:shadow-md hover:border-[#15803D]/50 transition bg-white"
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className={`text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 ${
+                            isOff
+                              ? 'bg-[#F0FDF4] text-[#15803D] border border-[#BBF7D0]'
+                              : 'bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]'
+                          }`}
+                        >
+                          {isOff ? <Briefcase className="w-3 h-3" /> : <Wrench className="w-3 h-3" />}
+                          {isOff ? 'Offering' : 'Seeking'}
+                        </span>
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700 font-semibold">
+                          {srv.category}
+                        </span>
+                      </div>
+                      <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200 whitespace-nowrap">
+                        💰 {srv.rate || 'Negotiable'}
+                      </span>
+                    </div>
+
+                    <h3 className="font-display font-bold text-base mb-1.5 text-[#1B2A4A]">
+                      {srv.title}
+                    </h3>
+
+                    {srv.description && (
+                      <p className="text-xs text-[#5B5647] line-clamp-2 mb-2.5">
+                        {srv.description}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2.5 border-t border-gray-100 text-xs">
+                      <div className="flex gap-2 text-gray-500 flex-wrap">
+                        {srv.department && <span>🏛️ {srv.department}</span>}
+                        {srv.semester && <span>🎓 {srv.semester}</span>}
+                        <span>• {new Date(srv.created_at).toLocaleDateString()}</span>
+                      </div>
+
+                      <span className="font-bold text-[#15803D] hover:underline">
+                        View Service →
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
 
           {/* REQUEST RESULTS */}
@@ -403,7 +545,7 @@ function SearchPageContent() {
                   <div
                     key={req.id}
                     onClick={() => router.push(`/request/${req.id}`)}
-                    className="p-4 border border-gray-200 rounded-2xl cursor-pointer hover:shadow-md hover:border-blue-300 transition bg-white"
+                    className="p-4 border-2 border-[#E0E7FF] rounded-2xl cursor-pointer hover:shadow-md hover:border-blue-400 transition bg-white"
                   >
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -425,7 +567,7 @@ function SearchPageContent() {
                       </span>
                     </div>
 
-                    <h3 className="font-semibold text-base mb-1.5" style={{ color: '#1B2A4A' }}>
+                    <h3 className="font-semibold text-base mb-1.5 text-[#1B2A4A]">
                       {req.title}
                     </h3>
 
@@ -478,8 +620,7 @@ function SearchPageContent() {
                     )}
                     <div className="flex-1 min-w-0">
                       <h3
-                        className="font-semibold text-sm mb-1 line-clamp-2"
-                        style={{ color: '#1B2A4A' }}
+                        className="font-semibold text-sm mb-1 line-clamp-2 text-[#1B2A4A]"
                       >
                         {listing.title}
                       </h3>
@@ -510,7 +651,7 @@ function SearchPageContent() {
                           {listing.is_free ? (
                             <span className="text-base font-bold text-green-600">Free</span>
                           ) : (
-                            <span className="text-base font-bold" style={{ color: '#1B2A4A' }}>
+                            <span className="text-base font-bold text-[#1B2A4A]">
                               ₹{listing.price?.toLocaleString()}
                             </span>
                           )}

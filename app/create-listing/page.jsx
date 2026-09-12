@@ -505,7 +505,7 @@ export default function CreateListing() {
                     <>
                       <Upload className="w-8 h-8 text-gray-400" />
                       <span className="text-sm font-medium text-gray-600">
-                        Tap to upload photos (1–4 photos)
+                        Tap to upload photos (1–5 photos)
                       </span>
                       <span className="text-xs text-gray-400">JPG, PNG, WebP • Max 5MB each</span>
                     </>

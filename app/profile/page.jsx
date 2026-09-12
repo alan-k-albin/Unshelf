@@ -224,8 +224,17 @@ function ListingCard({ listing, router, sold = false }) {
     >
       <div className="flex gap-4">
         <div className="relative w-20 h-20 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-          {listing.image_url && (
-            <img src={listing.image_url} alt={listing.title} className="w-full h-full object-cover" />
+          {(listing.image_urls?.[0] || listing.image_url) && (
+            <img
+              src={listing.image_urls?.[0] || listing.image_url}
+              alt={listing.title}
+              className="w-full h-full object-cover"
+            />
+          )}
+          {listing.image_urls?.length > 1 && (
+            <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1 py-0.5 rounded font-medium">
+              +{listing.image_urls.length - 1}
+            </div>
           )}
           {sold && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">

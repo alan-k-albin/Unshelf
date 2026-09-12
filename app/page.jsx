@@ -23,31 +23,42 @@ const CATEGORY_STYLE = {
   'Other':              { icon: BookOpen,      paper: '#F1EFEA', ink: '#5B5647', rotate: '-rotate-1' },
 };
 
-const ListingCard = ({ listing }) => (
-  <Link href={`/listing/${listing.id}`}>
-    <div className="group cursor-pointer h-full rounded-2xl overflow-hidden bg-white border-2 border-[#EDE6D6] hover:border-[#1B2A4A] hover:-translate-y-1 hover:shadow-xl transition-all duration-300">
-      <div className="relative w-full h-40 bg-[#F3EFE4] overflow-hidden">
-        {listing.image_url ? (
-          <img src={listing.image_url} alt={listing.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <BookOpen className="w-10 h-10 text-[#C9BFA8]" strokeWidth={1.5} />
+const ListingCard = ({ listing }) => {
+  const displayImage = (listing.image_urls && listing.image_urls.length > 0)
+    ? listing.image_urls[0]
+    : listing.image_url;
+  const hasMultipleImages = listing.image_urls && listing.image_urls.length > 1;
+
+  return (
+    <Link href={`/listing/${listing.id}`}>
+      <div className="group cursor-pointer h-full rounded-2xl overflow-hidden bg-white border-2 border-[#EDE6D6] hover:border-[#1B2A4A] hover:-translate-y-1 hover:shadow-xl transition-all duration-300">
+        <div className="relative w-full h-40 bg-[#F3EFE4] overflow-hidden">
+          {displayImage ? (
+            <img src={displayImage} alt={listing.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <BookOpen className="w-10 h-10 text-[#C9BFA8]" strokeWidth={1.5} />
+            </div>
+          )}
+          {hasMultipleImages && (
+            <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/60 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-xs">
+              <span>📷 {listing.image_urls.length}</span>
+            </div>
+          )}
+          <div className={`absolute top-2.5 right-2.5 flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full backdrop-blur-sm ${
+            listing.status === 'Active' ? 'bg-[#EAF3EC]/90 text-[#1F7A44]' : 'bg-white/85 text-gray-500'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${listing.status === 'Active' ? 'bg-[#27AE60]' : 'bg-gray-400'}`} />
+            {listing.status}
           </div>
-        )}
-        <div className={`absolute top-2.5 right-2.5 flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full backdrop-blur-sm ${
-          listing.status === 'Active' ? 'bg-[#EAF3EC]/90 text-[#1F7A44]' : 'bg-white/85 text-gray-500'
-        }`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${listing.status === 'Active' ? 'bg-[#27AE60]' : 'bg-gray-400'}`} />
-          {listing.status}
+          {listing.featured && (
+            <div className="absolute top-2.5 left-2.5 flex items-center gap-1 bg-[#1B2A4A] text-[#F4C95D] text-[10px] font-bold tracking-wide px-2 py-1 rounded-full uppercase shadow">
+              <Sparkles className="w-2.5 h-2.5" />
+              Featured
+            </div>
+          )}
         </div>
-        {listing.featured && (
-          <div className="absolute top-2.5 left-2.5 flex items-center gap-1 bg-[#1B2A4A] text-[#F4C95D] text-[10px] font-bold tracking-wide px-2 py-1 rounded-full uppercase shadow">
-            <Sparkles className="w-2.5 h-2.5" />
-            Featured
-          </div>
-        )}
-      </div>
       <div className="p-3.5">
         <h3 className="font-display font-semibold text-sm leading-snug line-clamp-2 mb-2" style={{ color: '#1B2A4A' }}>{listing.title}</h3>
         <div className="mb-2.5">
@@ -65,7 +76,8 @@ const ListingCard = ({ listing }) => (
       </div>
     </div>
   </Link>
-);
+  );
+};
 
 const CategoryCard = ({ name, style }) => {
   const IconComponent = style?.icon || BookOpen;

@@ -274,13 +274,18 @@ function SearchPageContent() {
                   className="p-4 border border-gray-200 rounded-xl cursor-pointer hover:shadow-md transition"
                 >
                   <div className="flex gap-4">
-                    {listing.image_url && (
-                      <div className="w-20 h-20 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                    {(listing.image_urls?.[0] || listing.image_url) && (
+                      <div className="relative w-20 h-20 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                         <img
-                          src={listing.image_url}
+                          src={listing.image_urls?.[0] || listing.image_url}
                           alt={listing.title}
                           className="w-full h-full object-cover"
                         />
+                        {listing.image_urls?.length > 1 && (
+                          <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1 py-0.5 rounded font-medium">
+                            +{listing.image_urls.length - 1}
+                          </div>
+                        )}
                       </div>
                     )}
                     <div className="flex-1 min-w-0">

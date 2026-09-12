@@ -19,9 +19,7 @@ export default function EditListing() {
   const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [image, setImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [existingImageUrl, setExistingImageUrl] = useState(null);
+  const [images, setImages] = useState([]); // Array of { url?: string, file?: File, preview: string }
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionProgress, setCompressionProgress] = useState('');
   const [authUserId, setAuthUserId] = useState(null);
@@ -63,10 +61,11 @@ export default function EditListing() {
         condition: listing.condition || 'Good',
       });
 
-      if (listing.image_url) {
-        setExistingImageUrl(listing.image_url);
-        setImagePreview(listing.image_url);
-      }
+      const existingUrls = (listing.image_urls && listing.image_urls.length > 0)
+        ? listing.image_urls
+        : (listing.image_url ? [listing.image_url] : []);
+
+      setImages(existingUrls.map((url) => ({ url, preview: url })));
     } catch (err) {
       setPageError('Failed to load listing.');
     } finally {
@@ -75,40 +74,50 @@ export default function EditListing() {
   };
 
   const handleImageSelect = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
     setError('');
     setCompressionProgress('');
 
-    const validation = validateImage(file);
-    if (!validation.valid) { setError(validation.error); return; }
+    if (images.length + files.length > 4) {
+      setError('You can have a maximum of 4 photos per listing');
+      return;
+    }
+
+    for (const file of files) {
+      const validation = validateImage(file);
+      if (!validation.valid) { setError(validation.error); return; }
+    }
 
     try {
       setIsCompressing(true);
-      setCompressionProgress('Compressing image...');
-      const compressedFile = await compressImage(file);
-      setImage(compressedFile);
+      setCompressionProgress(`Compressing ${files.length} image(s)...`);
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setImagePreview(event.target?.result);
-        setCompressionProgress(
-          `✓ Compressed: ${(file.size / 1024 / 1024).toFixed(1)}MB → ${(compressedFile.size / 1024 / 1024).toFixed(1)}MB`
-        );
-        setTimeout(() => setCompressionProgress(''), 3000);
-      };
-      reader.readAsDataURL(compressedFile);
+      const newImages = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const compressedFile = await compressImage(file);
+        const preview = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (event) => resolve(event.target?.result);
+          reader.readAsDataURL(compressedFile);
+        });
+        newImages.push({ file: compressedFile, preview });
+      }
+
+      setImages((prev) => [...prev, ...newImages]);
+      setCompressionProgress('✓ Images ready');
+      setTimeout(() => setCompressionProgress(''), 3000);
     } catch (err) {
       setError('Failed to compress image. Please try another file.');
     } finally {
       setIsCompressing(false);
+      e.target.value = '';
     }
   };
 
-  const handleRemoveImage = () => {
-    setImage(null);
-    setImagePreview(null);
-    setExistingImageUrl(null);
+  const handleRemoveImage = (indexToRemove) => {
+    setImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
     setCompressionProgress('');
   };
 
@@ -127,21 +136,35 @@ export default function EditListing() {
       if (!formData.title.trim()) { setError('Title is required'); setLoading(false); return; }
       if (!formData.category) { setError('Please select a category'); setLoading(false); return; }
       if (!formData.isFree && !formData.price) { setError('Enter price or mark as free'); setLoading(false); return; }
-      if (!imagePreview) { setError('Please upload at least one image'); setLoading(false); return; }
+      if (images.length === 0) { setError('Please upload at least one image'); setLoading(false); return; }
 
-      let imageUrl = existingImageUrl;
+      const finalUrls = [];
+      const timestamp = Date.now();
 
-      if (image) {
-        if (existingImageUrl) {
-          const oldPath = existingImageUrl.split('/listings/')[1];
-          if (oldPath) await supabase.storage.from('listings').remove([oldPath]);
+      for (let i = 0; i < images.length; i++) {
+        const item = images[i];
+        if (item.url) {
+          // Keep existing image URL
+          finalUrls.push(item.url);
+        } else if (item.file) {
+          // Upload new image
+          const fileName = `${authUserId}/${timestamp}-${i}.jpg`;
+          const { error: uploadError } = await supabase.storage.from('listings').upload(fileName, item.file);
+          if (uploadError) { setError(`Image upload failed: ${uploadError.message}`); setLoading(false); return; }
+          const { data: publicUrlData } = supabase.storage.from('listings').getPublicUrl(fileName);
+          if (publicUrlData?.publicUrl) {
+            finalUrls.push(publicUrlData.publicUrl);
+          }
         }
-        const fileName = `${authUserId}/${Date.now()}.jpg`;
-        const { error: uploadError } = await supabase.storage.from('listings').upload(fileName, image);
-        if (uploadError) { setError(`Image upload failed: ${uploadError.message}`); setLoading(false); return; }
-        const { data: publicUrlData } = supabase.storage.from('listings').getPublicUrl(fileName);
-        imageUrl = publicUrlData?.publicUrl || null;
       }
+
+      if (finalUrls.length === 0) {
+        setError('At least one valid image is required');
+        setLoading(false);
+        return;
+      }
+
+      const primaryImageUrl = finalUrls[0];
 
       const { error: updateError } = await supabase.from('listings').update({
         title: formData.title.trim(),
@@ -152,7 +175,8 @@ export default function EditListing() {
         price: formData.isFree ? 0 : parseInt(formData.price),
         is_free: formData.isFree,
         condition: formData.condition,
-        image_url: imageUrl,
+        image_url: primaryImageUrl,
+        image_urls: finalUrls,
       }).eq('id', listingId);
 
       if (updateError) throw updateError;
@@ -298,42 +322,113 @@ export default function EditListing() {
             </div>
           </div>
 
-          {/* Image */}
+          {/* Images */}
           <div>
-            <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
-              Item Image *{' '}
-              <span className="font-normal text-gray-400 text-xs">(Keep existing or upload a new one)</span>
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-semibold" style={{ color: '#1B2A4A' }}>
+                Item Photos *{' '}
+                <span className="font-normal text-gray-400 text-xs">
+                  (1–4 photos. First photo is cover)
+                </span>
+              </label>
+              {images.length > 0 && (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                  {images.length} / 4 photos
+                </span>
+              )}
+            </div>
 
-            {imagePreview ? (
-              <div className="relative w-full rounded-lg overflow-hidden border border-gray-200">
-                <img src={imagePreview} alt="Preview" className="w-full h-52 object-cover" />
-                <button type="button" onClick={handleRemoveImage}
-                  className="absolute top-2 right-2 w-8 h-8 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition">
-                  <X className="w-4 h-4 text-white" />
-                </button>
-                <div className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
-                  {image ? '✓ New image selected' : '📷 Current image'}
+            {images.length > 0 ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {images.map((imgItem, idx) => (
+                    <div
+                      key={idx}
+                      className="relative rounded-xl overflow-hidden border-2 border-gray-200 aspect-square group bg-gray-50"
+                    >
+                      <img
+                        src={imgItem.preview}
+                        alt={`Photo ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      {idx === 0 && (
+                        <div className="absolute top-1.5 left-1.5 bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow">
+                          Cover
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(idx)}
+                        className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition"
+                      >
+                        <X className="w-3.5 h-3.5 text-white" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {images.length < 4 && (
+                    <div className="aspect-square border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition flex items-center justify-center">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageSelect}
+                        disabled={isCompressing}
+                        className="hidden"
+                        id="edit-add-more-images"
+                      />
+                      <label
+                        htmlFor="edit-add-more-images"
+                        className="cursor-pointer w-full h-full flex flex-col items-center justify-center p-2 text-center"
+                      >
+                        {isCompressing ? (
+                          <Loader className="w-6 h-6 text-blue-500 animate-spin" />
+                        ) : (
+                          <>
+                            <Upload className="w-5 h-5 text-gray-400 mb-1" />
+                            <span className="text-xs font-medium text-gray-600">+ Add photo</span>
+                          </>
+                        )}
+                      </label>
+                    </div>
+                  )}
                 </div>
+
                 {compressionProgress && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-3 py-1.5">
-                    <p className="text-xs text-green-300">{compressionProgress}</p>
-                  </div>
+                  <p className="text-xs text-green-600 font-medium">{compressionProgress}</p>
                 )}
               </div>
             ) : (
-              <div className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition hover:border-blue-400 hover:bg-blue-50"
-                style={{ borderColor: '#CBD5E1' }}>
-                <input type="file" accept="image/*" onChange={handleImageSelect}
-                  disabled={isCompressing} className="hidden" id="image-input" />
-                <label htmlFor="image-input" className="cursor-pointer flex flex-col items-center gap-2">
+              <div
+                className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition hover:border-blue-400 hover:bg-blue-50"
+                style={{ borderColor: '#CBD5E1' }}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageSelect}
+                  disabled={isCompressing}
+                  className="hidden"
+                  id="edit-image-input"
+                />
+                <label
+                  htmlFor="edit-image-input"
+                  className="cursor-pointer flex flex-col items-center gap-2"
+                >
                   {isCompressing ? (
-                    <><Loader className="w-8 h-8 text-blue-400 animate-spin" />
-                    <span className="text-sm text-blue-600 font-medium">Compressing...</span></>
+                    <>
+                      <Loader className="w-8 h-8 text-blue-400 animate-spin" />
+                      <span className="text-sm text-blue-600 font-medium">Compressing...</span>
+                    </>
                   ) : (
-                    <><Upload className="w-8 h-8 text-gray-400" />
-                    <span className="text-sm font-medium text-gray-600">Tap to upload a photo</span>
-                    <span className="text-xs text-gray-400">JPG, PNG, WebP • Max 5MB</span></>
+                    <>
+                      <Upload className="w-8 h-8 text-gray-400" />
+                      <span className="text-sm font-medium text-gray-600">
+                        Tap to upload photos (1–4 photos)
+                      </span>
+                      <span className="text-xs text-gray-400">JPG, PNG, WebP • Max 5MB each</span>
+                    </>
                   )}
                 </label>
               </div>

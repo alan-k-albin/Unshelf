@@ -255,7 +255,7 @@ export default function ServiceDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] pb-32">
-      <Toast toast={toast} onClose={hideToast} />
+      {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
       {/* TOP NAVIGATION BAR */}
       <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-[#EDE6D6] z-20">

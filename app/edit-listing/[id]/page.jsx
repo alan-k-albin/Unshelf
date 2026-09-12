@@ -79,8 +79,8 @@ export default function EditListing() {
     setError('');
     setCompressionProgress('');
 
-    if (images.length + files.length > 4) {
-      setError('You can have a maximum of 4 photos per listing');
+    if (images.length + files.length > 5) {
+      setError('You can have a maximum of 5 photos per listing');
       return;
     }
 
@@ -328,19 +328,19 @@ export default function EditListing() {
               <label className="block text-sm font-semibold" style={{ color: '#1B2A4A' }}>
                 Item Photos *{' '}
                 <span className="font-normal text-gray-400 text-xs">
-                  (1–4 photos. First photo is cover)
+                  (1–5 photos. First photo is cover)
                 </span>
               </label>
               {images.length > 0 && (
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
-                  {images.length} / 4 photos
+                  {images.length} / 5 photos
                 </span>
               )}
             </div>
 
             {images.length > 0 ? (
               <div className="space-y-3">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                   {images.map((imgItem, idx) => (
                     <div
                       key={idx}
@@ -366,7 +366,7 @@ export default function EditListing() {
                     </div>
                   ))}
 
-                  {images.length < 4 && (
+                  {images.length < 5 && (
                     <div className="aspect-square border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition flex items-center justify-center">
                       <input
                         type="file"

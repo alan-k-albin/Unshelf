@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import {
   BookOpen, Pencil, ScrollText, StickyNote, FlaskConical, Calculator, GraduationCap,
-  Search as SearchIcon, ArrowRight, Shield, Zap, Users, Sparkles
+  Search as SearchIcon, ArrowRight, Shield, Zap, Users, Sparkles, HelpCircle, Wrench, Briefcase
 } from 'lucide-react';
 import { CATEGORIES } from './data';
 import { supabase } from '@/lib/supabaseClient';
@@ -22,6 +22,12 @@ const CATEGORY_STYLE = {
   'Coaching Materials': { icon: GraduationCap, paper: '#FCEFF6', ink: '#B0396F', rotate: 'rotate-1' },
   'Other':              { icon: BookOpen,      paper: '#F1EFEA', ink: '#5B5647', rotate: '-rotate-1' },
 };
+
+const ACTION_TILES = [
+  { name: 'Request Material', href: '/search?type=requests', icon: HelpCircle, paper: '#EFF6FF', ink: '#1D4ED8', rotate: 'rotate-1' },
+  { name: 'Request Service', href: '/search?type=services&service_type=seeking', icon: Wrench, paper: '#FFFBEB', ink: '#B45309', rotate: '-rotate-2' },
+  { name: 'Offer Service', href: '/search?type=services&service_type=offering', icon: Briefcase, paper: '#F0FDF4', ink: '#15803D', rotate: 'rotate-2' },
+];
 
 const ListingCard = ({ listing }) => {
   const displayImage = (listing.image_urls && listing.image_urls.length > 0)
@@ -59,30 +65,99 @@ const ListingCard = ({ listing }) => {
             </div>
           )}
         </div>
-      <div className="p-3.5">
-        <h3 className="font-display font-semibold text-sm leading-snug line-clamp-2 mb-2" style={{ color: '#1B2A4A' }}>{listing.title}</h3>
-        <div className="mb-2.5">
-          <span className="inline-block text-[11px] px-2 py-0.5 rounded-full font-medium border border-[#1B2A4A]/15 text-[#1B2A4A]/70">{listing.category}</span>
-        </div>
-        <div className="flex gap-1.5 mb-2.5 text-[11px] text-[#8A8272]">
-          {listing.department && <span>{listing.department}</span>}
-          {listing.department && listing.semester && <span>·</span>}
-          {listing.semester && <span>{listing.semester}</span>}
-        </div>
-        {listing.condition && <div className="mb-2.5"><ConditionLabel condition={listing.condition} /></div>}
-        <div className="font-display font-bold text-base" style={{ color: listing.is_free ? '#27AE60' : '#1B2A4A' }}>
-          {listing.is_free ? 'Free' : `₹${listing.price?.toLocaleString()}`}
+        <div className="p-3.5">
+          <h3 className="font-display font-semibold text-sm leading-snug line-clamp-2 mb-2" style={{ color: '#1B2A4A' }}>{listing.title}</h3>
+          <div className="mb-2.5">
+            <span className="inline-block text-[11px] px-2 py-0.5 rounded-full font-medium border border-[#1B2A4A]/15 text-[#1B2A4A]/70">{listing.category}</span>
+          </div>
+          <div className="flex gap-1.5 mb-2.5 text-[11px] text-[#8A8272]">
+            {listing.department && <span>{listing.department}</span>}
+            {listing.department && listing.semester && <span>·</span>}
+            {listing.semester && <span>{listing.semester}</span>}
+          </div>
+          {listing.condition && <div className="mb-2.5"><ConditionLabel condition={listing.condition} /></div>}
+          <div className="font-display font-bold text-base" style={{ color: listing.is_free ? '#27AE60' : '#1B2A4A' }}>
+            {listing.is_free ? 'Free' : `₹${listing.price?.toLocaleString()}`}
+          </div>
         </div>
       </div>
-    </div>
-  </Link>
+    </Link>
   );
 };
 
-const CategoryCard = ({ name, style }) => {
-  const IconComponent = style?.icon || BookOpen;
+const RequestFeedCard = ({ request }) => {
+  const urgencyColors = {
+    High: { bg: '#FEF2F2', text: '#DC2626', border: '#FECACA' },
+    Medium: { bg: '#FFFBEB', text: '#D97706', border: '#FDE68A' },
+    Low: { bg: '#F0FDF4', text: '#16A34A', border: '#BBF7D0' },
+  };
+  const urg = urgencyColors[request.urgency] || urgencyColors.Medium;
+
   return (
-    <Link href={`/search?category=${name}`}>
+    <Link href={`/request/${request.id}`}>
+      <div className="group cursor-pointer h-full rounded-2xl overflow-hidden bg-white border-2 border-[#E0E7FF] hover:border-[#1877F2] hover:-translate-y-1 hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
+        <div>
+          <div className="relative w-full h-40 bg-gradient-to-br from-[#EFF6FF] to-[#E0E7FF] p-4 flex flex-col justify-between overflow-hidden">
+            <div className="flex items-center justify-between gap-1 z-10">
+              <span className="bg-[#1877F2] text-white text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full uppercase shadow-sm">
+                📢 Needed
+              </span>
+              <span
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs"
+                style={{ background: urg.bg, color: urg.text, borderColor: urg.border }}
+              >
+                {request.urgency || 'Medium'}
+              </span>
+            </div>
+
+            <div className="my-auto z-10">
+              <HelpCircle className="w-8 h-8 text-[#1877F2]/60 mb-1" strokeWidth={1.75} />
+              <p className="text-xs font-semibold text-[#1B2A4A] line-clamp-1">
+                Student Material Request
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] text-[#1B2A4A]/70 z-10">
+              <span className="font-medium truncate max-w-[120px]">{request.category}</span>
+              <span>{new Date(request.created_at).toLocaleDateString()}</span>
+            </div>
+
+            <div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-white/40 pointer-events-none" />
+          </div>
+
+          <div className="p-3.5">
+            <h3 className="font-display font-semibold text-sm leading-snug line-clamp-2 mb-2" style={{ color: '#1B2A4A' }}>
+              {request.title}
+            </h3>
+            <div className="flex gap-1.5 mb-2.5 text-[11px] text-[#8A8272]">
+              {request.department && <span>{request.department}</span>}
+              {request.department && request.semester && <span>·</span>}
+              {request.semester && <span>{request.semester}</span>}
+            </div>
+            {request.subject && (
+              <p className="text-[11px] text-[#1B2A4A]/70 line-clamp-1 mb-2">
+                📖 {request.subject}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="p-3.5 pt-0">
+          <div className="w-full py-1.5 px-3 rounded-lg bg-blue-50 text-[#1877F2] text-xs font-semibold text-center group-hover:bg-[#1877F2] group-hover:text-white transition">
+            I Have This →
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+};
+
+const CategoryCard = ({ name, style, href }) => {
+  const IconComponent = style?.icon || BookOpen;
+  const targetHref = href || `/search?category=${encodeURIComponent(name)}`;
+
+  return (
+    <Link href={targetHref}>
       <div
         className={`group relative rounded-2xl p-3.5 h-24 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${style?.rotate} hover:rotate-0 hover:scale-[1.04] hover:shadow-xl active:scale-95`}
         style={{ background: style?.paper, boxShadow: '0 2px 0 rgba(27,42,74,0.06)' }}
@@ -96,7 +171,7 @@ const CategoryCard = ({ name, style }) => {
 };
 
 export default function HomePage() {
-  const [listings, setListings] = useState([]);
+  const [feedItems, setFeedItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userDept, setUserDept] = useState('CS');
   const [searchQuery, setSearchQuery] = useState('');
@@ -104,7 +179,7 @@ export default function HomePage() {
   const { toast, showToast, hideToast } = useToast();
 
   useEffect(() => {
-    fetchListings();
+    fetchFeed();
     const user = localStorage.getItem('user');
     if (user) {
       const userData = JSON.parse(user);
@@ -113,25 +188,48 @@ export default function HomePage() {
     }
   }, []);
 
-  const fetchListings = async () => {
+  const fetchFeed = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('listings').select('*').eq('status', 'Active')
-        .order('created_at', { ascending: false }).limit(20);
-      if (error) throw error;
-      setListings(data || []);
+
+      const [listingsRes, requestsRes] = await Promise.all([
+        supabase
+          .from('listings')
+          .select('*')
+          .eq('status', 'Active')
+          .order('created_at', { ascending: false })
+          .limit(20),
+        supabase
+          .from('requests')
+          .select('*')
+          .eq('status', 'open')
+          .order('created_at', { ascending: false })
+          .limit(20),
+      ]);
+
+      const taggedListings = (listingsRes.data || []).map((item) => ({
+        ...item,
+        _type: 'listing',
+      }));
+
+      const taggedRequests = (requestsRes.data || []).map((item) => ({
+        ...item,
+        _type: 'request',
+      }));
+
+      const merged = [...taggedListings, ...taggedRequests]
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 20);
+
+      setFeedItems(merged);
     } catch (error) {
-      console.error('Error fetching listings:', error);
-      setListings([]);
+      console.error('Error fetching feed:', error);
+      setFeedItems([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // #9: Pull to refresh
-
-  // #6: Search navigates to search page with query
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -145,8 +243,8 @@ export default function HomePage() {
     window.location.href = isLoggedIn ? '/create-listing' : '/login';
   };
 
-  const personalizedListings = listings.filter(l => l.department === userDept).slice(0, 4);
-  const recentListings = listings.slice(0, 4);
+  const personalizedItems = feedItems.filter((l) => l.department === userDept).slice(0, 4);
+  const recentItems = feedItems.slice(0, 8);
 
   return (
     <div className="bg-[#FBF8F1] min-h-screen">
@@ -236,17 +334,20 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CATEGORIES */}
+      {/* CATEGORIES & QUICK ACTIONS */}
       <section className="px-4 pt-5 pb-8 md:pt-8 md:pb-12 max-w-7xl mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
           {CATEGORIES.map((cat) => (
             <CategoryCard key={cat} name={cat} style={CATEGORY_STYLE[cat]} />
+          ))}
+          {ACTION_TILES.map((tile) => (
+            <CategoryCard key={tile.name} name={tile.name} style={tile} href={tile.href} />
           ))}
         </div>
       </section>
 
-      {/* PERSONALIZED LISTINGS */}
-      {personalizedListings.length > 0 && (
+      {/* PERSONALIZED FEED */}
+      {personalizedItems.length > 0 && (
         <section className="px-4 py-8 md:py-12 max-w-7xl mx-auto">
           <div className="flex items-baseline justify-between gap-2.5 mb-4">
             <h2 className="font-display text-xl md:text-2xl font-semibold" style={{ color: '#1B2A4A' }}>For {userDept}</h2>
@@ -257,15 +358,21 @@ export default function HomePage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
             {isLoading
               ? [1,2,3,4].map(i => <LoadingSkeleton key={i} />)
-              : personalizedListings.map(listing => <ListingCard key={listing.id} listing={listing} />)}
+              : personalizedItems.map(item =>
+                  item._type === 'request' ? (
+                    <RequestFeedCard key={item.id} request={item} />
+                  ) : (
+                    <ListingCard key={item.id} listing={item} />
+                  )
+                )}
           </div>
         </section>
       )}
 
-      {/* RECENT LISTINGS */}
+      {/* RECENT FEED */}
       <section className="px-4 py-8 md:py-12 max-w-7xl mx-auto">
         <div className="flex items-baseline justify-between gap-2.5 mb-4">
-          <h2 className="font-display text-xl md:text-2xl font-semibold" style={{ color: '#1B2A4A' }}>Latest Listings</h2>
+          <h2 className="font-display text-xl md:text-2xl font-semibold" style={{ color: '#1B2A4A' }}>Latest Listings & Requests</h2>
           <Link href="/search" className="font-body text-xs font-semibold shrink-0" style={{ color: '#27AE60' }}>Explore all →</Link>
         </div>
 
@@ -273,13 +380,19 @@ export default function HomePage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
             {[1,2,3,4].map(i => <LoadingSkeleton key={i} />)}
           </div>
-        ) : recentListings.length > 0 ? (
+        ) : recentItems.length > 0 ? (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-            {recentListings.map(listing => <ListingCard key={listing.id} listing={listing} />)}
+            {recentItems.map(item =>
+              item._type === 'request' ? (
+                <RequestFeedCard key={item.id} request={item} />
+              ) : (
+                <ListingCard key={item.id} listing={item} />
+              )
+            )}
           </div>
         ) : (
           <div className="bg-white rounded-2xl p-10 text-center border-2 border-dashed border-[#E7E0D2]">
-            <p className="font-body text-[#5B5647] text-sm mb-4">No listings yet. Be the first to share.</p>
+            <p className="font-body text-[#5B5647] text-sm mb-4">No listings or requests yet. Be the first to share.</p>
             <button onClick={handleCreateListing}
               className="font-body px-6 py-2.5 rounded-full font-semibold text-white text-sm transition hover:shadow-md active:scale-95 inline-flex items-center gap-2"
               style={{ background: '#1B2A4A' }}>

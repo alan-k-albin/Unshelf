@@ -5,9 +5,12 @@ import { CheckCircle, AlertCircle, X } from 'lucide-react';
 
 export function Toast({ message, type = 'success', onClose }) {
   useEffect(() => {
+    if (!message) return;
     const timer = setTimeout(() => onClose(), 3000);
     return () => clearTimeout(timer);
-  }, [onClose]);
+  }, [message, onClose]);
+
+  if (!message) return null;
 
   return (
     <div

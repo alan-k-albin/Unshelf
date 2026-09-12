@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
-import { Search, Filter, X } from 'lucide-react';
+import { Search, Filter, X, Plus, HelpCircle, BookOpen, Wrench, Briefcase } from 'lucide-react';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
 import EmptyState from '@/components/EmptyState';
 import FilterPanel from '@/components/FilterPanel';
@@ -13,72 +14,157 @@ const defaultFilters = {
   maxPrice: 100000,
   minPriceText: '',
   maxPriceText: '',
-  conditions: [],   // array — multi-select
-  categories: [],   // array — multi-select
+  conditions: [], // array — multi-select
+  categories: [], // array — multi-select
   sortBy: 'newest',
 };
 
-function SearchPageContent() {
-  const searchParams = useSearchParams();
-  const query = searchParams.get('q') || '';
+const URGENCY_BADGES = {
+  High: { bg: '#FEF2F2', text: '#DC2626', border: '#FECACA', label: '🔴 Urgent' },
+  Medium: { bg: '#FFFBEB', text: '#D97706', border: '#FDE68A', label: '🟡 Medium' },
+  Low: { bg: '#F0FDF4', text: '#16A34A', border: '#BBF7D0', label: '🟢 Low' },
+};
 
-  const [listings, setListings] = useState([]);
+function SearchPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get('q') || '';
+  const initialType = searchParams.get('type') || 'listings';
+  const initialCategory = searchParams.get('category') || '';
+  const initialDepartment = searchParams.get('department') || '';
+  const initialServiceType = searchParams.get('service_type') || 'all';
+
+  const [activeType, setActiveType] = useState(initialType);
+  const [serviceTypeFilter, setServiceTypeFilter] = useState(initialServiceType);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searchInput, setSearchInput] = useState(query);
+  const [searchInput, setSearchInput] = useState(initialQuery);
   const [showFilters, setShowFilters] = useState(false);
 
-  const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
-  const [pendingFilters, setPendingFilters] = useState(defaultFilters);
+  const [appliedFilters, setAppliedFilters] = useState({
+    ...defaultFilters,
+    categories: initialCategory ? [initialCategory] : [],
+  });
+  const [pendingFilters, setPendingFilters] = useState({
+    ...defaultFilters,
+    categories: initialCategory ? [initialCategory] : [],
+  });
 
   useEffect(() => {
-    performSearch(query, appliedFilters);
-  }, [appliedFilters, query]);
+    const typeParam = searchParams.get('type') || 'listings';
+    setActiveType(typeParam);
+    const serviceTypeParam = searchParams.get('service_type') || 'all';
+    setServiceTypeFilter(serviceTypeParam);
+  }, [searchParams]);
 
-  const performSearch = async (searchQuery, filters) => {
+  useEffect(() => {
+    performSearch(searchInput, appliedFilters, activeType, serviceTypeFilter);
+  }, [appliedFilters, activeType, serviceTypeFilter]);
+
+  const performSearch = async (searchQuery, filters, type, serviceType) => {
     setLoading(true);
     try {
-      let queryBuilder = supabase
-        .from('listings')
-        .select('*')
-        .eq('status', 'Active');
+      if (type === 'requests') {
+        let queryBuilder = supabase
+          .from('requests')
+          .select('*')
+          .eq('status', 'open');
 
-      if (searchQuery) {
-        queryBuilder = queryBuilder.or(
-          `title.ilike.%${searchQuery}%,category.ilike.%${searchQuery}%,subject.ilike.%${searchQuery}%`
-        );
-      }
+        if (searchQuery) {
+          queryBuilder = queryBuilder.or(
+            `title.ilike.%${searchQuery}%,category.ilike.%${searchQuery}%,subject.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`
+          );
+        }
 
-      if (filters.minPrice > 0) {
-        queryBuilder = queryBuilder.gte('price', filters.minPrice);
-      }
-      if (filters.maxPrice < 100000) {
-        queryBuilder = queryBuilder.lte('price', filters.maxPrice);
-      }
+        if (initialDepartment) {
+          queryBuilder = queryBuilder.eq('department', initialDepartment);
+        }
 
-      // Multi-select conditions: use .in() if any selected
-      if (filters.conditions && filters.conditions.length > 0) {
-        queryBuilder = queryBuilder.in('condition', filters.conditions);
-      }
+        if (filters.categories && filters.categories.length > 0) {
+          queryBuilder = queryBuilder.in('category', filters.categories);
+        }
 
-      // Multi-select categories: use .in() if any selected
-      if (filters.categories && filters.categories.length > 0) {
-        queryBuilder = queryBuilder.in('category', filters.categories);
-      }
-
-      if (filters.sortBy === 'newest') {
         queryBuilder = queryBuilder.order('created_at', { ascending: false });
-      } else if (filters.sortBy === 'price-low') {
-        queryBuilder = queryBuilder.order('price', { ascending: true });
-      } else if (filters.sortBy === 'price-high') {
-        queryBuilder = queryBuilder.order('price', { ascending: false });
-      }
 
-      const { data, error } = await queryBuilder;
-      if (error) throw error;
-      setListings(data || []);
+        const { data, error } = await queryBuilder;
+        if (error) throw error;
+        setItems(data || []);
+      } else if (type === 'services') {
+        let queryBuilder = supabase
+          .from('services')
+          .select('*')
+          .eq('status', 'open');
+
+        if (serviceType && serviceType !== 'all') {
+          queryBuilder = queryBuilder.eq('service_type', serviceType);
+        }
+
+        if (searchQuery) {
+          queryBuilder = queryBuilder.or(
+            `title.ilike.%${searchQuery}%,category.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,rate.ilike.%${searchQuery}%`
+          );
+        }
+
+        if (initialDepartment) {
+          queryBuilder = queryBuilder.eq('department', initialDepartment);
+        }
+
+        if (filters.categories && filters.categories.length > 0) {
+          queryBuilder = queryBuilder.in('category', filters.categories);
+        }
+
+        queryBuilder = queryBuilder.order('created_at', { ascending: false });
+
+        const { data, error } = await queryBuilder;
+        if (error) throw error;
+        setItems(data || []);
+      } else {
+        // Default: listings
+        let queryBuilder = supabase
+          .from('listings')
+          .select('*')
+          .eq('status', 'Active');
+
+        if (searchQuery) {
+          queryBuilder = queryBuilder.or(
+            `title.ilike.%${searchQuery}%,category.ilike.%${searchQuery}%,subject.ilike.%${searchQuery}%`
+          );
+        }
+
+        if (initialDepartment) {
+          queryBuilder = queryBuilder.eq('department', initialDepartment);
+        }
+
+        if (filters.minPrice > 0) {
+          queryBuilder = queryBuilder.gte('price', filters.minPrice);
+        }
+        if (filters.maxPrice < 100000) {
+          queryBuilder = queryBuilder.lte('price', filters.maxPrice);
+        }
+
+        if (filters.conditions && filters.conditions.length > 0) {
+          queryBuilder = queryBuilder.in('condition', filters.conditions);
+        }
+
+        if (filters.categories && filters.categories.length > 0) {
+          queryBuilder = queryBuilder.in('category', filters.categories);
+        }
+
+        if (filters.sortBy === 'newest') {
+          queryBuilder = queryBuilder.order('created_at', { ascending: false });
+        } else if (filters.sortBy === 'price-low') {
+          queryBuilder = queryBuilder.order('price', { ascending: true });
+        } else if (filters.sortBy === 'price-high') {
+          queryBuilder = queryBuilder.order('price', { ascending: false });
+        }
+
+        const { data, error } = await queryBuilder;
+        if (error) throw error;
+        setItems(data || []);
+      }
     } catch (err) {
       console.error('Search error:', err);
-      setListings([]);
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -86,7 +172,34 @@ function SearchPageContent() {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    performSearch(searchInput, appliedFilters);
+    performSearch(searchInput, appliedFilters, activeType, serviceTypeFilter);
+  };
+
+  const handleTabSwitch = (newType) => {
+    setActiveType(newType);
+    const newParams = new URLSearchParams(searchParams.toString());
+    if (newType === 'listings') {
+      newParams.delete('type');
+      newParams.delete('service_type');
+    } else if (newType === 'requests') {
+      newParams.set('type', 'requests');
+      newParams.delete('service_type');
+    } else if (newType === 'services') {
+      newParams.set('type', 'services');
+    }
+    router.replace(`/search?${newParams.toString()}`);
+  };
+
+  const handleServiceTypeChange = (st) => {
+    setServiceTypeFilter(st);
+    const newParams = new URLSearchParams(searchParams.toString());
+    newParams.set('type', 'services');
+    if (st === 'all') {
+      newParams.delete('service_type');
+    } else {
+      newParams.set('service_type', st);
+    }
+    router.replace(`/search?${newParams.toString()}`);
   };
 
   const handleApplyFilters = () => {
@@ -100,17 +213,17 @@ function SearchPageContent() {
     setShowFilters(false);
   };
 
-  const removeCondition = (cond) => {
-    setAppliedFilters((f) => ({
-      ...f,
-      conditions: f.conditions.filter((c) => c !== cond),
-    }));
-  };
-
   const removeCategory = (cat) => {
     setAppliedFilters((f) => ({
       ...f,
       categories: f.categories.filter((c) => c !== cat),
+    }));
+  };
+
+  const removeCondition = (cond) => {
+    setAppliedFilters((f) => ({
+      ...f,
+      conditions: f.conditions.filter((c) => c !== cond),
     }));
   };
 
@@ -122,45 +235,133 @@ function SearchPageContent() {
     appliedFilters.maxPrice < 100000;
 
   return (
-    <div className="min-h-screen bg-white pb-20">
-      {/* Search Bar */}
-      <div className="sticky top-0 bg-white border-b border-gray-200 z-20 px-4 py-3">
-        <form onSubmit={handleSearch} className="flex gap-2 items-center">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search textbooks, notes..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setPendingFilters({ ...appliedFilters });
-              setShowFilters(!showFilters);
-            }}
-            className="p-2.5 rounded-lg hover:bg-gray-100 relative"
-          >
-            <Filter className="w-5 h-5" style={{ color: '#1877F2' }} />
-            {hasActiveFilters && (
-              <span
-                className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white"
-                style={{ background: '#27AE60' }}
+    <div className="min-h-screen bg-[#FDFBF7] pb-24">
+      {/* Sticky Top Section */}
+      <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-[#EDE6D6] z-20 shadow-xs">
+        {/* Search Bar */}
+        <div className="px-4 pt-3 pb-2 max-w-7xl mx-auto">
+          <form onSubmit={handleSearch} className="flex gap-2 items-center">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder={
+                  activeType === 'requests'
+                    ? 'Search material requests (e.g. Physics notes)...'
+                    : activeType === 'services'
+                    ? 'Search student services (e.g. Python tutoring, lab records)...'
+                    : 'Search textbooks, notes, lab manuals...'
+                }
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1B2A4A]/20 transition text-[#1B2A4A]"
               />
-            )}
-          </button>
-        </form>
+            </div>
 
-        {/* Active filter chips */}
-        {hasActiveFilters && (
-          <div className="flex gap-2 mt-2 flex-wrap">
+            {activeType === 'listings' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingFilters({ ...appliedFilters });
+                  setShowFilters(!showFilters);
+                }}
+                className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-100 relative"
+              >
+                <Filter className="w-5 h-5 text-[#1877F2]" />
+                {hasActiveFilters && (
+                  <span
+                    className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full border-2 border-white bg-[#27AE60]"
+                  />
+                )}
+              </button>
+            )}
+          </form>
+        </div>
+
+        {/* Type Navigation Tabs */}
+        <div className="flex px-4 border-t border-gray-100 overflow-x-auto gap-2 py-2 scrollbar-none max-w-7xl mx-auto">
+          <button
+            onClick={() => handleTabSwitch('listings')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+              activeType === 'listings'
+                ? 'bg-[#1B2A4A] text-white shadow-xs'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            Items for Sale / Free
+          </button>
+
+          <button
+            onClick={() => handleTabSwitch('requests')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+              activeType === 'requests'
+                ? 'bg-[#1877F2] text-white shadow-xs'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <HelpCircle className="w-3.5 h-3.5" />
+            Material Requests
+          </button>
+
+          <button
+            onClick={() => handleTabSwitch('services')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+              activeType === 'services'
+                ? 'bg-[#15803D] text-white shadow-xs'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <Briefcase className="w-3.5 h-3.5" />
+            Student Services
+          </button>
+        </div>
+
+        {/* Sub-tabs for Services (All / Offering / Seeking) */}
+        {activeType === 'services' && (
+          <div className="flex px-4 pb-2 pt-1 gap-2 border-t border-gray-100 max-w-7xl mx-auto">
+            <button
+              onClick={() => handleServiceTypeChange('all')}
+              className={`text-[11px] font-bold px-3 py-1 rounded-lg border transition ${
+                serviceTypeFilter === 'all'
+                  ? 'bg-[#1B2A4A] text-white border-[#1B2A4A]'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              All Services
+            </button>
+            <button
+              onClick={() => handleServiceTypeChange('offering')}
+              className={`text-[11px] font-bold px-3 py-1 rounded-lg border transition flex items-center gap-1 ${
+                serviceTypeFilter === 'offering'
+                  ? 'bg-[#15803D] text-white border-[#15803D]'
+                  : 'bg-[#F0FDF4] text-[#15803D] border-[#BBF7D0] hover:border-[#15803D]'
+              }`}
+            >
+              <Briefcase className="w-3 h-3" />
+              Offered by Peers
+            </button>
+            <button
+              onClick={() => handleServiceTypeChange('seeking')}
+              className={`text-[11px] font-bold px-3 py-1 rounded-lg border transition flex items-center gap-1 ${
+                serviceTypeFilter === 'seeking'
+                  ? 'bg-[#B45309] text-white border-[#B45309]'
+                  : 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A] hover:border-[#B45309]'
+              }`}
+            >
+              <Wrench className="w-3 h-3" />
+              Needed / Requests
+            </button>
+          </div>
+        )}
+
+        {/* Active filter chips for listings */}
+        {hasActiveFilters && activeType === 'listings' && (
+          <div className="flex gap-2 px-4 pb-2 flex-wrap max-w-7xl mx-auto">
             {appliedFilters.conditions.map((cond) => (
               <span
                 key={cond}
-                className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1"
+                className="text-xs px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1"
               >
                 {cond}
                 <button onClick={() => removeCondition(cond)}>
@@ -171,7 +372,7 @@ function SearchPageContent() {
             {appliedFilters.categories.map((cat) => (
               <span
                 key={cat}
-                className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700 flex items-center gap-1"
+                className="text-xs px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 flex items-center gap-1"
               >
                 {cat}
                 <button onClick={() => removeCategory(cat)}>
@@ -179,78 +380,81 @@ function SearchPageContent() {
                 </button>
               </span>
             ))}
-            {appliedFilters.sortBy !== 'newest' && (
-              <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1">
-                {appliedFilters.sortBy === 'price-low' ? 'Price ↑' : 'Price ↓'}
-                <button
-                  onClick={() => setAppliedFilters((f) => ({ ...f, sortBy: 'newest' }))}
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            )}
-            {(appliedFilters.minPrice > 0 || appliedFilters.maxPrice < 100000) && (
-              <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 flex items-center gap-1">
-                ₹{appliedFilters.minPrice} – {appliedFilters.maxPrice >= 100000 ? 'Any' : `₹${appliedFilters.maxPrice}`}
-                <button
-                  onClick={() =>
-                    setAppliedFilters((f) => ({
-                      ...f,
-                      minPrice: 0,
-                      maxPrice: 100000,
-                      minPriceText: '',
-                      maxPriceText: '',
-                    }))
-                  }
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            )}
-            <button
-              onClick={handleClearFilters}
-              className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500"
-            >
-              Clear all
-            </button>
           </div>
         )}
       </div>
 
-      {/* Filter Panel — Mobile Drawer */}
-      {showFilters && (
-        <div className="fixed inset-0 bg-black/50 z-30 flex items-end md:hidden">
-          <div className="w-full">
+      {/* Main Container */}
+      <div className="max-w-7xl mx-auto px-4 py-4 flex gap-6">
+        {/* Desktop Filter Sidebar for Listings */}
+        {activeType === 'listings' && (
+          <div className="hidden lg:block w-72 flex-shrink-0">
             <FilterPanel
+              isOpen={true}
+              isDesktop={true}
               filters={pendingFilters}
               setFilters={setPendingFilters}
-              onClose={() => setShowFilters(false)}
+              onClose={() => {}}
               onApply={handleApplyFilters}
               onClear={handleClearFilters}
             />
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Main Content */}
-      <div className="flex gap-4 px-4 py-6">
-        {/* Filter Panel — Desktop Sidebar */}
-        <div className="hidden md:block w-64 flex-shrink-0">
+        {/* Mobile Filter Modal */}
+        {showFilters && activeType === 'listings' && (
           <FilterPanel
+            isOpen={showFilters}
+            isDesktop={false}
             filters={pendingFilters}
             setFilters={setPendingFilters}
-            onClose={() => {}}
+            onClose={() => setShowFilters(false)}
             onApply={handleApplyFilters}
             onClear={handleClearFilters}
           />
-        </div>
+        )}
 
-        {/* Listings */}
-        <div className="flex-1">
-          <div className="mb-4">
-            <p className="text-sm text-gray-600">
-              {loading ? 'Searching...' : `${listings.length} results found`}
+        {/* Results Area */}
+        <div className="flex-1 min-w-0">
+          {/* Section Header & Create Action */}
+          <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
+            <p className="text-sm font-medium text-gray-600">
+              {loading
+                ? 'Searching...'
+                : `${items.length} ${
+                    activeType === 'requests'
+                      ? 'material requests'
+                      : activeType === 'services'
+                      ? 'services'
+                      : 'listings'
+                  } found`}
             </p>
+
+            {activeType === 'requests' ? (
+              <Link
+                href="/create-request"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition"
+              >
+                <Plus className="w-4 h-4" />
+                Request Material
+              </Link>
+            ) : activeType === 'services' ? (
+              <Link
+                href="/create-service"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#15803D] hover:bg-[#166534] text-white text-xs font-semibold shadow-xs transition"
+              >
+                <Plus className="w-4 h-4" />
+                + Post Service
+              </Link>
+            ) : (
+              <Link
+                href="/create-listing"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#1B2A4A] hover:bg-[#2A3F6D] text-white text-xs font-semibold shadow-xs transition"
+              >
+                <Plus className="w-4 h-4" />
+                + Sell Item
+              </Link>
+            )}
           </div>
 
           {loading && (
@@ -261,41 +465,171 @@ function SearchPageContent() {
             </div>
           )}
 
-          {!loading && listings.length === 0 && (
-            <EmptyState message="No listings found. Try different filters!" />
+          {!loading && items.length === 0 && (
+            <EmptyState
+              message={
+                activeType === 'requests'
+                  ? 'No material requests found. Be the first to ask your campus peers!'
+                  : activeType === 'services'
+                  ? 'No student services listed matching your criteria.'
+                  : 'No listings found. Try adjusting your filters or search terms!'
+              }
+            />
           )}
 
-          {!loading && listings.length > 0 && (
+          {/* SERVICE RESULTS */}
+          {!loading && items.length > 0 && activeType === 'services' && (
             <div className="space-y-3">
-              {listings.map((listing) => (
+              {items.map((srv) => {
+                const isOff = srv.service_type === 'offering';
+                return (
+                  <div
+                    key={srv.id}
+                    onClick={() => router.push(`/service/${srv.id}`)}
+                    className="p-4 border-2 border-[#EDE6D6] rounded-2xl cursor-pointer hover:shadow-md hover:border-[#15803D]/50 transition bg-white"
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className={`text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 ${
+                            isOff
+                              ? 'bg-[#F0FDF4] text-[#15803D] border border-[#BBF7D0]'
+                              : 'bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]'
+                          }`}
+                        >
+                          {isOff ? <Briefcase className="w-3 h-3" /> : <Wrench className="w-3 h-3" />}
+                          {isOff ? 'Offering' : 'Seeking'}
+                        </span>
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700 font-semibold">
+                          {srv.category}
+                        </span>
+                      </div>
+                      <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200 whitespace-nowrap">
+                        💰 {srv.rate || 'Negotiable'}
+                      </span>
+                    </div>
+
+                    <h3 className="font-display font-bold text-base mb-1.5 text-[#1B2A4A]">
+                      {srv.title}
+                    </h3>
+
+                    {srv.description && (
+                      <p className="text-xs text-[#5B5647] line-clamp-2 mb-2.5">
+                        {srv.description}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2.5 border-t border-gray-100 text-xs">
+                      <div className="flex gap-2 text-gray-500 flex-wrap">
+                        {srv.department && <span>🏛️ {srv.department}</span>}
+                        {srv.semester && <span>🎓 {srv.semester}</span>}
+                        <span>• {new Date(srv.created_at).toLocaleDateString()}</span>
+                      </div>
+
+                      <span className="font-bold text-[#15803D] hover:underline">
+                        View Service →
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* REQUEST RESULTS */}
+          {!loading && items.length > 0 && activeType === 'requests' && (
+            <div className="space-y-3">
+              {items.map((req) => {
+                const urg = URGENCY_BADGES[req.urgency] || URGENCY_BADGES.Medium;
+                return (
+                  <div
+                    key={req.id}
+                    onClick={() => router.push(`/request/${req.id}`)}
+                    className="p-4 border-2 border-[#E0E7FF] rounded-2xl cursor-pointer hover:shadow-md hover:border-blue-400 transition bg-white"
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">
+                          📢 Request
+                        </span>
+                        <span
+                          className="text-xs px-2.5 py-0.5 rounded-full border font-semibold"
+                          style={{ background: urg.bg, color: urg.text, borderColor: urg.border }}
+                        >
+                          {urg.label}
+                        </span>
+                        <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700 font-medium">
+                          {req.category}
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-400 whitespace-nowrap">
+                        {new Date(req.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    <h3 className="font-semibold text-base mb-1.5 text-[#1B2A4A]">
+                      {req.title}
+                    </h3>
+
+                    {req.description && (
+                      <p className="text-xs text-gray-600 line-clamp-2 mb-2.5">
+                        {req.description}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-xs">
+                      <div className="flex gap-2 text-gray-500">
+                        {req.department && <span>🏛️ {req.department}</span>}
+                        {req.semester && <span>🎓 {req.semester}</span>}
+                        {req.subject && <span>📖 {req.subject}</span>}
+                      </div>
+
+                      <span className="font-semibold text-blue-600 hover:underline">
+                        I Have This →
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* LISTINGS RESULTS */}
+          {!loading && items.length > 0 && activeType === 'listings' && (
+            <div className="space-y-3">
+              {items.map((listing) => (
                 <div
                   key={listing.id}
-                  onClick={() => (window.location.href = `/listing/${listing.id}`)}
-                  className="p-4 border border-gray-200 rounded-xl cursor-pointer hover:shadow-md transition"
+                  onClick={() => router.push(`/listing/${listing.id}`)}
+                  className="p-4 border border-gray-200 rounded-2xl cursor-pointer hover:shadow-md transition bg-white"
                 >
                   <div className="flex gap-4">
-                    {listing.image_url && (
-                      <div className="w-20 h-20 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                    {(listing.image_urls?.[0] || listing.image_url) && (
+                      <div className="relative w-20 h-20 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 border border-gray-200">
                         <img
-                          src={listing.image_url}
+                          src={listing.image_urls?.[0] || listing.image_url}
                           alt={listing.title}
                           className="w-full h-full object-cover"
                         />
+                        {listing.image_urls?.length > 1 && (
+                          <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1 py-0.5 rounded font-medium">
+                            +{listing.image_urls.length - 1}
+                          </div>
+                        )}
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
                       <h3
-                        className="font-semibold text-sm mb-1 line-clamp-2"
-                        style={{ color: '#1B2A4A' }}
+                        className="font-semibold text-sm mb-1 line-clamp-2 text-[#1B2A4A]"
                       >
                         {listing.title}
                       </h3>
                       <div className="flex flex-wrap gap-2 mb-2">
-                        <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">
+                        <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">
                           {listing.category}
                         </span>
                         <span
-                          className="text-xs px-2 py-1 rounded"
+                          className="text-xs px-2 py-0.5 rounded font-medium"
                           style={{
                             background:
                               listing.condition === 'Like New' ? '#E0F2FE'
@@ -315,18 +649,18 @@ function SearchPageContent() {
                       <div className="flex items-center justify-between">
                         <div>
                           {listing.is_free ? (
-                            <span className="text-lg font-bold text-green-600">Free</span>
+                            <span className="text-base font-bold text-green-600">Free</span>
                           ) : (
-                            <span className="text-lg font-bold" style={{ color: '#1B2A4A' }}>
+                            <span className="text-base font-bold text-[#1B2A4A]">
                               ₹{listing.price?.toLocaleString()}
                             </span>
                           )}
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-[11px] text-gray-400 mt-0.5">
                             {new Date(listing.created_at).toLocaleDateString()}
                           </p>
                         </div>
                         {listing.semester && (
-                          <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-medium">
                             {listing.semester}
                           </span>
                         )}
@@ -355,4 +689,4 @@ export default function SearchPage() {
       <SearchPageContent />
     </Suspense>
   );
-              }
+}

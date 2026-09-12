@@ -14,7 +14,7 @@ const REPORT_REASONS = [
   { value: 'other', label: '❓ Other' },
 ];
 
-export default function ReportModal({ listingId, onClose }) {
+export default function ReportModal({ listingId, requestId, serviceId, onClose }) {
   const [reason, setReason] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -52,7 +52,9 @@ export default function ReportModal({ listingId, onClose }) {
 
       const { error: insertError } = await supabase.from('reports').insert([
         {
-          listing_id: listingId,
+          listing_id: listingId || null,
+          request_id: requestId || null,
+          service_id: serviceId || null,
           reporter_id: authData.user.id,
           reason,
           description: sanitizedDescription,
@@ -69,7 +71,9 @@ export default function ReportModal({ listingId, onClose }) {
       // ⭐ RECORD ACTION
       await recordAction(authData.user.id, 'CREATE_REPORT', {
         reason,
-        listing_id: listingId,
+        listing_id: listingId || null,
+        request_id: requestId || null,
+        service_id: serviceId || null,
       });
 
       setSuccess(true);
@@ -83,13 +87,19 @@ export default function ReportModal({ listingId, onClose }) {
     }
   };
 
+  const modalTitle = requestId
+    ? 'Report Material Request'
+    : serviceId
+    ? 'Report Service'
+    : 'Report Listing';
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
       <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: '#1B2A4A' }}>
             <AlertCircle className="w-5 h-5 text-red-600" />
-            Report Listing
+            {modalTitle}
           </h3>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg">
             <X className="w-5 h-5" />

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { ArrowLeft, MessageCircle, Share2, Loader, Eye, Trash2, CheckSquare, Edit, RefreshCw, X } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Share2, Loader, Eye, Trash2, CheckSquare, Edit, RefreshCw, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
 import RatingModal from '@/components/RatingModal';
 import ReviewCard from '@/components/ReviewCard';
@@ -35,6 +35,7 @@ export default function ListingDetailPage() {
   const [revealLoading, setRevealLoading] = useState(false);
   const [revealCount, setRevealCount] = useState(0);
   const [showImageZoom, setShowImageZoom] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
 
   const { toast, showToast, hideToast } = useToast();
@@ -134,9 +135,14 @@ export default function ListingDetailPage() {
   const handleDeleteListing = async () => {
     setDeleteLoading(true);
     try {
-      if (listing.image_url) {
-        const path = listing.image_url.split('/listings/')[1];
-        if (path) await supabase.storage.from('listings').remove([path]);
+      const imagesToDelete = (listing.image_urls && Array.isArray(listing.image_urls) && listing.image_urls.length > 0)
+        ? listing.image_urls
+        : (listing.image_url ? [listing.image_url] : []);
+      const paths = imagesToDelete
+        .map((url) => (url ? url.split('/listings/')[1] : null))
+        .filter(Boolean);
+      if (paths.length > 0) {
+        await supabase.storage.from('listings').remove(paths);
       }
       const { error: deleteError } = await supabase.from('listings').delete().eq('id', listing.id);
       if (deleteError) throw deleteError;
@@ -176,6 +182,9 @@ export default function ListingDetailPage() {
 
   const isOwner = authUserId && listing && listing.user_id === authUserId;
   const isSold = listing?.status === 'Sold';
+  const images = (listing?.image_urls && Array.isArray(listing.image_urls) && listing.image_urls.length > 0)
+    ? listing.image_urls
+    : (listing?.image_url ? [listing.image_url] : []);
 
   if (loading) {
     return (
@@ -211,13 +220,50 @@ export default function ListingDetailPage() {
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
       {/* Image Zoom Modal */}
-      {showImageZoom && listing.image_url && (
-        <div className="fixed inset-0 bg-black z-50 flex items-center justify-center"
+      {showImageZoom && images.length > 0 && (
+        <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 select-none"
           onClick={() => setShowImageZoom(false)}>
-          <button className="absolute top-4 right-4 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+          <button
+            onClick={() => setShowImageZoom(false)}
+            className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition z-10"
+          >
             <X className="w-6 h-6 text-white" />
           </button>
-          <img src={listing.image_url} alt={listing.title} className="max-w-full max-h-full object-contain" />
+
+          {images.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+                }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition text-white z-10"
+              >
+                <ChevronLeft className="w-7 h-7" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition text-white z-10"
+              >
+                <ChevronRight className="w-7 h-7" />
+              </button>
+              <div className="absolute top-4 left-4 bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                {activeImageIndex + 1} / {images.length}
+              </div>
+            </>
+          )}
+
+          <img
+            src={images[activeImageIndex] || images[0]}
+            alt={listing.title}
+            className="max-w-full max-h-[85vh] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
 
@@ -238,17 +284,78 @@ export default function ListingDetailPage() {
       </div>
 
       <div className="px-4 py-6 space-y-6">
-        {/* Image */}
-        {listing.image_url && (
-          <div className="w-full h-64 bg-gray-200 rounded-xl overflow-hidden cursor-zoom-in relative"
-            onClick={() => setShowImageZoom(true)}>
-            <img src={listing.image_url} alt={listing.title} className="w-full h-full object-cover" />
-            <div className="absolute bottom-2 right-2 bg-black/40 text-white text-xs px-2 py-1 rounded-full">
-              Tap to zoom
+        {/* Images Gallery */}
+        {images.length > 0 && (
+          <div className="space-y-2">
+            <div
+              className="w-full h-72 sm:h-80 bg-gray-100 rounded-2xl overflow-hidden cursor-zoom-in relative border border-gray-200"
+              onClick={() => setShowImageZoom(true)}
+            >
+              <img
+                src={images[activeImageIndex] || images[0]}
+                alt={listing.title}
+                className="w-full h-full object-cover transition-all duration-300"
+              />
+
+              {/* Navigation arrows on hero image */}
+              {images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+                    }}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                  <div className="absolute bottom-2.5 left-2.5 bg-black/60 text-white text-xs px-2.5 py-1 rounded-full font-medium">
+                    {activeImageIndex + 1} / {images.length}
+                  </div>
+                </>
+              )}
+
+              <div className="absolute bottom-2.5 right-2.5 bg-black/60 text-white text-xs px-2.5 py-1 rounded-full">
+                Tap to zoom
+              </div>
+
+              {isSold && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <span className="text-white text-2xl font-bold bg-red-600 px-6 py-2 rounded-xl rotate-[-15deg] shadow-lg">
+                    SOLD
+                  </span>
+                </div>
+              )}
             </div>
-            {isSold && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <span className="text-white text-2xl font-bold bg-red-600 px-6 py-2 rounded-xl rotate-[-15deg]">SOLD</span>
+
+            {/* Thumbnail Row */}
+            {images.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {images.map((imgUrl, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setActiveImageIndex(idx)}
+                    className={`relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border-2 transition ${
+                      activeImageIndex === idx
+                        ? 'border-blue-600 ring-2 ring-blue-100'
+                        : 'border-gray-200 opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
               </div>
             )}
           </div>

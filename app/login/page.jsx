@@ -13,6 +13,8 @@ const INSTITUTION_TYPES = [
   { value: 'other', label: '✨ Other' },
 ];
 
+const COLLEGE_TYPES = ['engineering_college', 'arts_college'];
+
 const DEPT_MAP = {
   cs: 'CS', ecs: 'ECS', eee: 'EEE', me: 'ME',
   civil: 'Civil', mca: 'MCA', mba: 'MBA', ad: 'AD',
@@ -21,14 +23,12 @@ const DEPT_MAP = {
 export default function Login() {
   const router = useRouter();
 
-  // Step 0 = institution type, Step 0.5 = pick institution, Step 1 = email,
-  // Step 2 = OTP, Step 3 = complete profile
   const [step, setStep] = useState(0);
 
   const [institutionType, setInstitutionType] = useState('');
   const [institutions, setInstitutions] = useState([]);
   const [institutionSearch, setInstitutionSearch] = useState('');
-  const [selectedInstitution, setSelectedInstitution] = useState(null); // null = "not listed" / unverified path
+  const [selectedInstitution, setSelectedInstitution] = useState(null);
   const [notListed, setNotListed] = useState(false);
 
   const [email, setEmail] = useState('');
@@ -72,7 +72,6 @@ export default function Login() {
     }
   }, []);
 
-  // Fetch institutions of the selected type once chosen
   useEffect(() => {
     if (!institutionType) return;
     (async () => {
@@ -93,8 +92,18 @@ export default function Login() {
     );
   }, [institutions, institutionSearch]);
 
-  // Is this a verified (real-domain) institution, or the Gmail/unverified tier?
   const isVerifiedTier = !!(selectedInstitution && selectedInstitution.email_regex);
+  const isCollegeType = COLLEGE_TYPES.includes(institutionType);
+
+  // Wording differs: for colleges, Gmail is a temporary stand-in until their
+  // domain is added. For schools/coaching centers, Gmail is the permanent,
+  // by-design path since they don't issue institutional emails.
+  const unverifiedExplanation = isCollegeType
+    ? "College email verification isn't enabled yet for this institution, so you'll sign in with Gmail for now."
+    : "This institution type doesn't use institutional emails, so you'll sign in with Gmail.";
+
+  const unverifiedConsequence =
+    'Your account will show as unverified — WhatsApp contact reveal and posting paid services will be unavailable until verified.';
 
   const validateEmail = (emailInput) => {
     if (!emailInput) return 'Email is required';
@@ -210,7 +219,6 @@ export default function Login() {
         return;
       }
 
-      // Check if user already has a profile in the users table
       const { data: existingUser } = await supabase
         .from('users')
         .select('id, full_name, department, semester, whatsapp_number, is_verified, institution_type')
@@ -234,7 +242,6 @@ export default function Login() {
         return;
       }
 
-      // New user — go to profile completion step
       setSuccess('OTP verified! Complete your profile.');
       setTimeout(() => {
         setStep(3);
@@ -268,10 +275,6 @@ export default function Login() {
     }
 
     try {
-      // SJCET-style dept-from-email extraction only applies to the verified
-      // institution that actually uses that email pattern (email_regex present
-      // AND email contains a dept subdomain). For everyone else, use the
-      // manually selected department as-is.
       let emailDept = department;
       if (isVerifiedTier) {
         const deptMatch = email.match(/@([a-z]{2,3})\./i);
@@ -336,7 +339,6 @@ export default function Login() {
     return '👤 Complete your profile';
   };
 
-  // Progress across 4 conceptual stages (0/0.5 count as one stage)
   const progressStage = step === 0 || step === 0.5 ? 1 : step === 1 ? 2 : step === 2 ? 3 : 4;
 
   return (
@@ -381,7 +383,6 @@ export default function Login() {
             </div>
           )}
 
-          {/* Step 0: Institution Type */}
           {step === 0 && (
             <div className="space-y-3">
               {INSTITUTION_TYPES.map((t) => (
@@ -398,7 +399,6 @@ export default function Login() {
             </div>
           )}
 
-          {/* Step 0.5: Pick institution */}
           {step === 0.5 && (
             <div className="space-y-4">
               <div className="relative">
@@ -422,7 +422,11 @@ export default function Login() {
                     style={{ color: '#1B2A4A' }}
                   >
                     <span>{inst.name}</span>
-                    <ShieldCheck className="w-4 h-4 text-green-600 flex-shrink-0" />
+                    {inst.email_regex ? (
+                      <ShieldCheck className="w-4 h-4 text-green-600 flex-shrink-0" />
+                    ) : (
+                      <ShieldAlert className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                    )}
                   </button>
                 ))}
 
@@ -448,17 +452,13 @@ export default function Login() {
             </div>
           )}
 
-          {/* Step 1: Email */}
           {step === 1 && (
             <div className="space-y-4">
               {!isVerifiedTier && (
                 <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex gap-2">
                   <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                   <p className="text-xs text-amber-800">
-                    Your institution doesn't have a verified email system yet, so you'll sign
-                    in with Gmail. Your account will show as <strong>unverified</strong> — WhatsApp
-                    contact reveal and posting paid services will be unavailable until your
-                    institution is verified.
+                    {unverifiedExplanation} {unverifiedConsequence}
                   </p>
                 </div>
               )}
@@ -501,7 +501,6 @@ export default function Login() {
             </div>
           )}
 
-          {/* Step 2: OTP */}
           {step === 2 && (
             <div className="space-y-4">
               <div>
@@ -559,16 +558,14 @@ export default function Login() {
             </div>
           )}
 
-          {/* Step 3: Profile */}
           {step === 3 && (
             <div className="space-y-4">
               {!isVerifiedTier && (
                 <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex gap-2">
                   <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                   <p className="text-xs text-amber-800">
-                    Your account will be marked <strong>Unverified</strong>. You can browse and post
-                    listings/requests, but WhatsApp contact reveal and posting paid services are
-                    disabled until your institution is verified.
+                    {unverifiedExplanation} Your account will be marked <strong>Unverified</strong> —
+                    WhatsApp contact reveal and posting paid services are disabled until verified.
                   </p>
                 </div>
               )}

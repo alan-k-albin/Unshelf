@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { ArrowLeft, Loader, AlertCircle, CheckCircle, Briefcase, Wrench, Sparkles } from 'lucide-react';
+import { ArrowLeft, Loader, AlertCircle, CheckCircle, Briefcase, Wrench, Sparkles, ShieldAlert } from 'lucide-react';
 import { checkRateLimit, recordAction } from '@/lib/rateLimiter';
 
 const DEPARTMENTS = ['CS', 'CS AI', 'CS CY', 'ECS', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA', 'AD', 'IT', 'Any / General'];
@@ -37,6 +37,7 @@ export default function CreateServicePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isVerified, setIsVerified] = useState(true); // assume verified until we know otherwise
 
   const [formData, setFormData] = useState({
     service_type: initialType,
@@ -54,6 +55,12 @@ export default function CreateServicePage() {
       setFormData((prev) => ({ ...prev, service_type: typeParam }));
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    setIsVerified(!!user?.is_verified);
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -81,6 +88,14 @@ export default function CreateServicePage() {
         return;
       }
 
+      // Only offering a paid service requires a verified account.
+      // Requesting a service is open to everyone, verified or not.
+      if (formData.service_type === 'offering' && !isVerified) {
+        setError('Posting a paid service offer requires a verified institution account. You can still post a service request instead.');
+        setLoading(false);
+        return;
+      }
+
       const { data: authData } = await supabase.auth.getUser();
       const authUserId = authData?.user?.id || null;
 
@@ -90,7 +105,6 @@ export default function CreateServicePage() {
         return;
       }
 
-      // Check rate limit (shared with listings/requests)
       const rateLimit = await checkRateLimit(authUserId, 'CREATE_LISTING');
       if (!rateLimit.allowed) {
         setError(rateLimit.message);
@@ -120,7 +134,11 @@ export default function CreateServicePage() {
         .single();
 
       if (insertError) {
-        setError(`Failed to post service: ${insertError.message}`);
+        setError(
+          insertError.message.includes('row-level security') || insertError.message.includes('policy')
+            ? 'Posting a paid service offer requires a verified institution account.'
+            : `Failed to post service: ${insertError.message}`
+        );
         setLoading(false);
         return;
       }
@@ -150,7 +168,6 @@ export default function CreateServicePage() {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7]">
-      {/* Top Bar */}
       <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-[#EDE6D6] z-10">
         <div className="flex items-center gap-3 px-4 py-4 max-w-2xl mx-auto">
           <button
@@ -174,6 +191,16 @@ export default function CreateServicePage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 pb-28">
+        {isOffering && !isVerified && (
+          <div className="mb-5 p-4 rounded-xl flex gap-3 border bg-amber-50 border-amber-200">
+            <ShieldAlert className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-600" />
+            <p className="text-xs text-amber-800">
+              Your account isn't verified yet, so you can't post a paid service offer. You can still
+              switch to "Request a Service" below, or get your institution verified to unlock offering.
+            </p>
+          </div>
+        )}
+
         {error && (
           <div className="mb-5 p-4 rounded-xl flex gap-3 border bg-[#FEF2F2] border-[#FECACA]">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#DC2626]" />
@@ -189,7 +216,6 @@ export default function CreateServicePage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Service Type Toggle */}
           <div className="bg-white p-5 rounded-2xl border-2 border-[#EDE6D6] shadow-xs">
             <label className="block text-xs font-bold uppercase tracking-wider text-[#1B2A4A] mb-3">
               I want to: <span className="text-red-500">*</span>
@@ -227,7 +253,6 @@ export default function CreateServicePage() {
             </p>
           </div>
 
-          {/* Service Title */}
           <div className="bg-white p-5 rounded-2xl border-2 border-[#EDE6D6] shadow-xs">
             <label className="block text-xs font-bold uppercase tracking-wider text-[#1B2A4A] mb-2">
               Service Title <span className="text-red-500">*</span>
@@ -248,7 +273,6 @@ export default function CreateServicePage() {
             <p className="text-xs text-gray-400 mt-1.5">{formData.title.length}/120 characters</p>
           </div>
 
-          {/* Category */}
           <div className="bg-white p-5 rounded-2xl border-2 border-[#EDE6D6] shadow-xs">
             <label className="block text-xs font-bold uppercase tracking-wider text-[#1B2A4A] mb-2">
               Category <span className="text-red-500">*</span>
@@ -268,7 +292,6 @@ export default function CreateServicePage() {
             </select>
           </div>
 
-          {/* Pricing / Rate */}
           <div className="bg-white p-5 rounded-2xl border-2 border-[#EDE6D6] shadow-xs">
             <label className="block text-xs font-bold uppercase tracking-wider text-[#1B2A4A] mb-1">
               Rate / Pricing Model
@@ -302,7 +325,6 @@ export default function CreateServicePage() {
             </div>
           </div>
 
-          {/* Academic Context (Department & Semester) */}
           <div className="bg-white p-5 rounded-2xl border-2 border-[#EDE6D6] shadow-xs">
             <label className="block text-xs font-bold uppercase tracking-wider text-[#1B2A4A] mb-3">
               Relevant Branch & Semester <span className="text-xs font-normal text-[#8A8272]">(Optional)</span>
@@ -343,7 +365,6 @@ export default function CreateServicePage() {
             </div>
           </div>
 
-          {/* Description */}
           <div className="bg-white p-5 rounded-2xl border-2 border-[#EDE6D6] shadow-xs">
             <label className="block text-xs font-bold uppercase tracking-wider text-[#1B2A4A] mb-2">
               Details & Description <span className="text-xs font-normal text-[#8A8272]">(Optional)</span>
@@ -364,7 +385,6 @@ export default function CreateServicePage() {
             <p className="text-xs text-gray-400 mt-1">{formData.description.length}/1000 characters</p>
           </div>
 
-          {/* Notice */}
           <div className="p-4 rounded-xl bg-[#EFF6FF] border border-[#BFDBFE] flex gap-3">
             <Sparkles className="w-5 h-5 text-[#1D4ED8] shrink-0 mt-0.5" />
             <div className="text-xs text-[#1E40AF] leading-relaxed">
@@ -372,10 +392,9 @@ export default function CreateServicePage() {
             </div>
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || (isOffering && !isVerified)}
             className="w-full py-3.5 px-4 rounded-xl font-bold text-white text-sm transition hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 shadow-md cursor-pointer"
             style={{
               background: isOffering

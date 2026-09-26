@@ -1,15 +1,36 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Smartphone, AlertCircle, CheckCircle, Loader, ArrowRight } from 'lucide-react';
+import { Mail, Smartphone, AlertCircle, CheckCircle, Loader, ArrowRight, Search, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 
-const COLLEGE_EMAIL_REGEX = /^[a-zA-Z0-9._]{1,27}@[a-z]{2,3}\.sjcetpalai\.ac\.in$/i;
+const INSTITUTION_TYPES = [
+  { value: 'engineering_college', label: '🏛️ Engineering College' },
+  { value: 'arts_college', label: '🎓 Arts College' },
+  { value: 'school', label: '🏫 School' },
+  { value: 'coaching_center', label: '📘 Coaching Center' },
+  { value: 'other', label: '✨ Other' },
+];
+
+const COLLEGE_TYPES = ['engineering_college', 'arts_college'];
+
+const DEPT_MAP = {
+  cs: 'CS', ecs: 'ECS', eee: 'EEE', me: 'ME',
+  civil: 'Civil', mca: 'MCA', mba: 'MBA', ad: 'AD',
+};
 
 export default function Login() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+
+  const [step, setStep] = useState(0);
+
+  const [institutionType, setInstitutionType] = useState('');
+  const [institutions, setInstitutions] = useState([]);
+  const [institutionSearch, setInstitutionSearch] = useState('');
+  const [selectedInstitution, setSelectedInstitution] = useState(null);
+  const [notListed, setNotListed] = useState(false);
+
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [fullName, setFullName] = useState('');
@@ -51,11 +72,72 @@ export default function Login() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!institutionType) return;
+    (async () => {
+      const { data, error: fetchErr } = await supabase
+        .from('institutions')
+        .select('id, name, type, email_regex')
+        .eq('type', institutionType)
+        .eq('is_active', true)
+        .order('name');
+      if (!fetchErr) setInstitutions(data || []);
+    })();
+  }, [institutionType]);
+
+  const filteredInstitutions = useMemo(() => {
+    if (!institutionSearch) return institutions;
+    return institutions.filter((i) =>
+      i.name.toLowerCase().includes(institutionSearch.toLowerCase())
+    );
+  }, [institutions, institutionSearch]);
+
+  const isVerifiedTier = !!(selectedInstitution && selectedInstitution.email_regex);
+  const isCollegeType = COLLEGE_TYPES.includes(institutionType);
+
+  // Wording differs: for colleges, Gmail is a temporary stand-in until their
+  // domain is added. For schools/coaching centers, Gmail is the permanent,
+  // by-design path since they don't issue institutional emails.
+  const unverifiedExplanation = isCollegeType
+    ? "College email verification isn't enabled yet for this institution, so you'll sign in with Gmail for now."
+    : "This institution type doesn't use institutional emails, so you'll sign in with Gmail.";
+
+  const unverifiedConsequence =
+    'Your account will show as unverified — WhatsApp contact reveal and posting paid services will be unavailable until verified.';
+
   const validateEmail = (emailInput) => {
     if (!emailInput) return 'Email is required';
-    if (!COLLEGE_EMAIL_REGEX.test(emailInput))
-      return 'Use your college email: name@dept.sjcetpalai.ac.in';
+    if (isVerifiedTier) {
+      const regex = new RegExp(selectedInstitution.email_regex, 'i');
+      if (!regex.test(emailInput)) {
+        return `Use your ${selectedInstitution.name} email address`;
+      }
+    } else {
+      if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(emailInput)) {
+        return 'Please use a Gmail address (@gmail.com)';
+      }
+    }
     return null;
+  };
+
+  const handleSelectInstitutionType = (type) => {
+    setInstitutionType(type);
+    setInstitutionSearch('');
+    setSelectedInstitution(null);
+    setNotListed(false);
+    setStep(0.5);
+  };
+
+  const handlePickInstitution = (inst) => {
+    setSelectedInstitution(inst);
+    setNotListed(false);
+    setStep(1);
+  };
+
+  const handleNotListed = () => {
+    setSelectedInstitution(null);
+    setNotListed(true);
+    setStep(1);
   };
 
   const handleSendOTP = async () => {
@@ -137,15 +219,13 @@ export default function Login() {
         return;
       }
 
-      // Check if user already has a profile in the users table
       const { data: existingUser } = await supabase
         .from('users')
-        .select('id, full_name, department, semester, whatsapp_number')
+        .select('id, full_name, department, semester, whatsapp_number, is_verified, institution_type')
         .eq('id', data.user.id)
         .single();
 
       if (existingUser) {
-        // User already has a profile — save to localStorage and go home directly
         localStorage.setItem('user', JSON.stringify({
           email,
           fullName: existingUser.full_name,
@@ -153,6 +233,8 @@ export default function Login() {
           department: existingUser.department,
           semester: existingUser.semester,
           whatsapp: existingUser.whatsapp_number,
+          is_verified: existingUser.is_verified,
+          institution_type: existingUser.institution_type,
         }));
         localStorage.setItem('lastActivity', Date.now().toString());
         setSuccess('Welcome back! Redirecting...');
@@ -160,7 +242,6 @@ export default function Login() {
         return;
       }
 
-      // New user — go to profile completion step
       setSuccess('OTP verified! Complete your profile.');
       setTimeout(() => {
         setStep(3);
@@ -194,12 +275,13 @@ export default function Login() {
     }
 
     try {
-      const deptMatch = email.match(/@([a-z]{2,3})\./i);
-      const deptMap = {
-        cs: 'CS', ecs: 'ECS', eee: 'EEE', me: 'ME',
-        civil: 'Civil', mca: 'MCA', mba: 'MBA', ad: 'AD',
-      };
-      const emailDept = deptMatch ? deptMap[deptMatch[1].toLowerCase()] : department;
+      let emailDept = department;
+      if (isVerifiedTier) {
+        const deptMatch = email.match(/@([a-z]{2,3})\./i);
+        if (deptMatch && DEPT_MAP[deptMatch[1].toLowerCase()]) {
+          emailDept = DEPT_MAP[deptMatch[1].toLowerCase()];
+        }
+      }
 
       const { data: authData } = await supabase.auth.getUser();
       const authUserId = authData?.user?.id;
@@ -210,7 +292,6 @@ export default function Login() {
         return;
       }
 
-      // FIXED: upsert instead of insert — handles both new users and re-registrations
       const { error: upsertError } = await supabase.from('users').upsert(
         [
           {
@@ -220,7 +301,9 @@ export default function Login() {
             department: emailDept || department,
             semester,
             whatsapp_number: whatsapp,
-            is_verified: true,
+            is_verified: isVerifiedTier,
+            institution_id: selectedInstitution?.id || null,
+            institution_type: institutionType || null,
           },
         ],
         { onConflict: 'id' }
@@ -235,6 +318,8 @@ export default function Login() {
         department: emailDept || department,
         semester,
         whatsapp,
+        is_verified: isVerifiedTier,
+        institution_type: institutionType,
       }));
       localStorage.setItem('lastActivity', Date.now().toString());
 
@@ -246,9 +331,18 @@ export default function Login() {
     }
   };
 
+  const stepLabel = () => {
+    if (step === 0) return '🏫 Where do you study?';
+    if (step === 0.5) return '🔎 Find your institution';
+    if (step === 1) return '📚 Welcome to your marketplace';
+    if (step === 2) return '✉️ Verify your email';
+    return '👤 Complete your profile';
+  };
+
+  const progressStage = step === 0 || step === 0.5 ? 1 : step === 1 ? 2 : step === 2 ? 3 : 4;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center px-4 py-8 overflow-y-auto relative">
-      {/* Decorative Blobs */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" />
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-green-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '2s' }} />
       <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-purple-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '1s' }} />
@@ -256,28 +350,18 @@ export default function Login() {
       <div className="w-full max-w-md relative z-10">
         <div className="bg-white rounded-2xl shadow-2xl p-8 backdrop-blur-sm border border-white/80">
 
-          {/* HEADER WITH LOGO */}
           <div className="text-center mb-8">
-            <img
-              src="/logo.png"
-              alt="Unshelf"
-              className="h-20 w-auto mx-auto mb-3 object-contain"
-            />
-            <p className="text-gray-500 text-sm mt-1">
-              {step === 1 && '📚 Welcome to your college marketplace'}
-              {step === 2 && '✉️ Verify your email'}
-              {step === 3 && '👤 Complete your profile'}
-            </p>
+            <img src="/logo.png" alt="Unshelf" className="h-20 w-auto mx-auto mb-3 object-contain" />
+            <p className="text-gray-500 text-sm mt-1">{stepLabel()}</p>
           </div>
 
-          {/* Progress Bar */}
           <div className="flex gap-2 mb-8">
-            {[1, 2, 3].map((s) => (
+            {[1, 2, 3, 4].map((s) => (
               <div
                 key={s}
                 className="h-1.5 flex-1 rounded-full transition-all duration-500"
                 style={{
-                  background: s <= step
+                  background: s <= progressStage
                     ? 'linear-gradient(90deg, #1877F2, #27AE60)'
                     : '#E5E7EB',
                 }}
@@ -285,7 +369,6 @@ export default function Login() {
             ))}
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="mb-6 p-4 rounded-xl flex gap-3 border border-red-200 bg-red-50/50">
               <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-600" />
@@ -293,7 +376,6 @@ export default function Login() {
             </div>
           )}
 
-          {/* Success Message */}
           {success && (
             <div className="mb-6 p-4 rounded-xl flex gap-3 border border-green-200 bg-green-50/50">
               <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-green-600" />
@@ -301,25 +383,101 @@ export default function Login() {
             </div>
           )}
 
-          {/* Step 1: Email */}
+          {step === 0 && (
+            <div className="space-y-3">
+              {INSTITUTION_TYPES.map((t) => (
+                <button
+                  key={t.value}
+                  onClick={() => handleSelectInstitutionType(t.value)}
+                  className="w-full py-3.5 px-4 rounded-xl border-2 border-gray-200 text-sm font-medium text-left hover:border-blue-400 hover:bg-blue-50/50 transition flex items-center justify-between"
+                  style={{ color: '#1B2A4A' }}
+                >
+                  {t.label}
+                  <ArrowRight className="w-4 h-4 text-gray-400" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {step === 0.5 && (
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-4 top-3.5 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Type to search..."
+                  value={institutionSearch}
+                  onChange={(e) => setInstitutionSearch(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                  style={{ color: '#1B2A4A' }}
+                />
+              </div>
+
+              <div className="max-h-64 overflow-y-auto space-y-2">
+                {filteredInstitutions.map((inst) => (
+                  <button
+                    key={inst.id}
+                    onClick={() => handlePickInstitution(inst)}
+                    className="w-full py-3 px-4 rounded-xl border-2 border-gray-200 text-sm text-left hover:border-blue-400 hover:bg-blue-50/50 transition flex items-center justify-between"
+                    style={{ color: '#1B2A4A' }}
+                  >
+                    <span>{inst.name}</span>
+                    {inst.email_regex ? (
+                      <ShieldCheck className="w-4 h-4 text-green-600 flex-shrink-0" />
+                    ) : (
+                      <ShieldAlert className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                    )}
+                  </button>
+                ))}
+
+                {filteredInstitutions.length === 0 && institutionSearch && (
+                  <p className="text-xs text-gray-500 text-center py-2">No matches found.</p>
+                )}
+              </div>
+
+              <button
+                onClick={handleNotListed}
+                className="w-full py-3 rounded-xl border-2 border-dashed border-gray-300 text-sm font-medium text-gray-600 hover:border-gray-400 transition flex items-center justify-center gap-2"
+              >
+                <ShieldAlert className="w-4 h-4" />
+                My institution isn't listed
+              </button>
+
+              <button
+                onClick={() => setStep(0)}
+                className="w-full py-2.5 rounded-xl text-sm font-medium text-blue-600 hover:bg-blue-50 transition"
+              >
+                ← Change institution type
+              </button>
+            </div>
+          )}
+
           {step === 1 && (
             <div className="space-y-4">
+              {!isVerifiedTier && (
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex gap-2">
+                  <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-800">
+                    {unverifiedExplanation} {unverifiedConsequence}
+                  </p>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
-                  College Email Address
+                  {isVerifiedTier ? `${selectedInstitution.name} Email` : 'Gmail Address'}
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
                   <input
                     type="email"
-                    placeholder="student@cs.sjcetpalai.ac.in"
+                    placeholder={isVerifiedTier ? 'student@dept.college.ac.in' : 'yourname@gmail.com'}
                     value={email}
                     onChange={(e) => setEmail(e.target.value.toLowerCase())}
                     className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                     style={{ color: '#1B2A4A' }}
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-2">📧 All SJCET departments supported</p>
               </div>
 
               <button
@@ -333,10 +491,16 @@ export default function Login() {
                   <>Send OTP <ArrowRight className="w-4 h-4" /></>
                 )}
               </button>
+
+              <button
+                onClick={() => setStep(0.5)}
+                className="w-full py-2.5 rounded-xl text-sm font-medium text-blue-600 hover:bg-blue-50 transition"
+              >
+                ← Go Back
+              </button>
             </div>
           )}
 
-          {/* Step 2: OTP */}
           {step === 2 && (
             <div className="space-y-4">
               <div>
@@ -394,9 +558,18 @@ export default function Login() {
             </div>
           )}
 
-          {/* Step 3: Profile */}
           {step === 3 && (
             <div className="space-y-4">
+              {!isVerifiedTier && (
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex gap-2">
+                  <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-800">
+                    {unverifiedExplanation} Your account will be marked <strong>Unverified</strong> —
+                    WhatsApp contact reveal and posting paid services are disabled until verified.
+                  </p>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>Full Name</label>
                 <input
@@ -418,14 +591,14 @@ export default function Login() {
                   style={{ color: '#1B2A4A' }}
                 >
                   <option value="">Select Department</option>
-                  {['CS', 'CS AI', 'CS CY', 'ECS', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA', 'AD', 'IT'].map((d) => (
+                  {['CS', 'CS AI', 'CS CY', 'ECS', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA', 'AD', 'IT', 'Other'].map((d) => (
                     <option key={d} value={d}>{d}</option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>Semester</label>
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>Semester / Year</label>
                 <select
                   value={semester}
                   onChange={(e) => setSemester(e.target.value)}
@@ -476,4 +649,4 @@ export default function Login() {
       </div>
     </div>
   );
-        }
+}

@@ -121,13 +121,18 @@ export default function RequestDetailPage() {
         return;
       }
 
-      const { data: userData } = await supabase
-        .from('users')
-        .select('whatsapp_number')
-        .eq('id', request.user_id)
-        .single();
+      const { data: whatsapp, error: revealError } = await supabase
+        .rpc('reveal_whatsapp', { target_user_id: request.user_id });
 
-      const whatsapp = userData?.whatsapp_number;
+      if (revealError) {
+        showToast(
+          revealError.message.includes('verified')
+            ? 'Contact reveal is available for verified accounts only.'
+            : 'Could not retrieve contact info.',
+          'error'
+        );
+        return;
+      }
       if (!whatsapp) {
         showToast('Could not retrieve contact info.', 'error');
         return;
@@ -136,7 +141,6 @@ export default function RequestDetailPage() {
       setWhatsappNumber(whatsapp);
       setWhatsappRevealed(true);
 
-      // Save to contacts as requester
       await supabase.from('contacts').upsert(
         [
           {
@@ -264,7 +268,6 @@ export default function RequestDetailPage() {
     <div className="min-h-screen bg-white pb-36">
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
-      {/* Header */}
       <div className="sticky top-0 bg-white border-b border-gray-200 z-10 flex items-center gap-3 px-4 py-4">
         <button onClick={() => router.back()} className="p-1 hover:bg-gray-100 rounded-lg">
           <ArrowLeft className="w-5 h-5" />
@@ -284,7 +287,6 @@ export default function RequestDetailPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        {/* Request Hero Banner */}
         <div
           className="rounded-2xl p-5 border relative overflow-hidden"
           style={{
@@ -344,7 +346,6 @@ export default function RequestDetailPage() {
           </div>
         </div>
 
-        {/* Description / Details */}
         {request.description && (
           <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200">
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
@@ -356,7 +357,6 @@ export default function RequestDetailPage() {
           </div>
         )}
 
-        {/* Requester Profile & Contact Card */}
         <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200">
           <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
             Requested by
@@ -397,7 +397,6 @@ export default function RequestDetailPage() {
             )}
           </div>
 
-          {/* Contact Buttons */}
           <div className="space-y-3 pt-4">
             {isFulfilled ? (
               <div className="w-full py-3 px-4 rounded-xl bg-gray-100 border border-gray-200 text-center">
@@ -466,7 +465,6 @@ export default function RequestDetailPage() {
           </div>
         </div>
 
-        {/* Request Details Summary */}
         <div className="bg-gray-50 rounded-2xl p-5 space-y-3 border border-gray-200 text-sm">
           <div className="flex justify-between">
             <span className="text-gray-600">Category</span>
@@ -499,7 +497,6 @@ export default function RequestDetailPage() {
         </div>
       </div>
 
-      {/* Owner Floating Bar */}
       {isOwner && !isFulfilled && (
         <div className="fixed bottom-20 left-0 right-0 z-20 px-4 pb-2">
           <div className="max-w-md mx-auto bg-white rounded-2xl shadow-xl border border-gray-200 p-3 flex gap-3">
@@ -522,7 +519,6 @@ export default function RequestDetailPage() {
         </div>
       )}
 
-      {/* Fulfilled Confirm Modal */}
       {showFulfilledConfirm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center px-4 pb-6">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
@@ -558,7 +554,6 @@ export default function RequestDetailPage() {
         </div>
       )}
 
-      {/* Delete Confirm Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center px-4 pb-6">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm">

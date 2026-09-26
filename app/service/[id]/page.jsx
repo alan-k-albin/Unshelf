@@ -118,13 +118,18 @@ export default function ServiceDetailPage() {
         return;
       }
 
-      const { data: userData } = await supabase
-        .from('users')
-        .select('whatsapp_number')
-        .eq('id', service.user_id)
-        .single();
+      const { data: whatsapp, error: revealError } = await supabase
+        .rpc('reveal_whatsapp', { target_user_id: service.user_id });
 
-      const whatsapp = userData?.whatsapp_number;
+      if (revealError) {
+        showToast(
+          revealError.message.includes('verified')
+            ? 'Contact reveal is available for verified accounts only.'
+            : 'Could not retrieve contact info.',
+          'error'
+        );
+        return;
+      }
       if (!whatsapp) {
         showToast('Could not retrieve contact info.', 'error');
         return;
@@ -133,7 +138,6 @@ export default function ServiceDetailPage() {
       setWhatsappNumber(whatsapp);
       setWhatsappRevealed(true);
 
-      // Save to contacts as service provider/seeker
       await supabase.from('contacts').upsert(
         [
           {
@@ -257,7 +261,6 @@ export default function ServiceDetailPage() {
     <div className="min-h-screen bg-[#FDFBF7] pb-32">
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
-      {/* TOP NAVIGATION BAR */}
       <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-[#EDE6D6] z-20">
         <div className="flex items-center justify-between px-4 py-3 max-w-3xl mx-auto">
           <button
@@ -296,7 +299,6 @@ export default function ServiceDetailPage() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 pt-6 space-y-6">
-        {/* HERO BANNER */}
         <div
           className="rounded-3xl p-6 md:p-8 text-white relative overflow-hidden shadow-lg"
           style={{
@@ -344,7 +346,6 @@ export default function ServiceDetailPage() {
             )}
           </div>
 
-          {/* Rate Box in Hero */}
           <div className="mt-5 pt-4 border-t border-white/15 flex items-center justify-between relative z-10">
             <div>
               <p className="text-[11px] uppercase tracking-wider text-white/70 font-semibold">Pricing / Rate</p>
@@ -357,11 +358,9 @@ export default function ServiceDetailPage() {
             )}
           </div>
 
-          {/* Background decorative blob */}
           <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
         </div>
 
-        {/* STATUS ALERT IF CLOSED */}
         {!isOpen && (
           <div className="p-4 rounded-2xl bg-gray-100 border border-gray-300 flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-gray-600 shrink-0" />
@@ -371,7 +370,6 @@ export default function ServiceDetailPage() {
           </div>
         )}
 
-        {/* SERVICE DESCRIPTION & DETAILS */}
         <div className="bg-white rounded-3xl p-6 border-2 border-[#EDE6D6] shadow-xs space-y-4">
           <h2 className="text-base font-display font-bold text-[#1B2A4A] flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-[#27AE60]" />
@@ -400,7 +398,6 @@ export default function ServiceDetailPage() {
           </div>
         </div>
 
-        {/* POSTER PROFILE CARD */}
         <div className="bg-white rounded-3xl p-6 border-2 border-[#EDE6D6] shadow-xs">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-display font-bold text-[#1B2A4A] flex items-center gap-2">
@@ -428,7 +425,6 @@ export default function ServiceDetailPage() {
           </div>
         </div>
 
-        {/* OWNER CONTROLS (IF CURRENT USER IS OWNER) */}
         {isOwner && (
           <div className="bg-[#FFFDF9] rounded-3xl p-6 border-2 border-[#E5DCC6] shadow-xs space-y-4">
             <h3 className="text-sm font-display font-bold text-[#1B2A4A]">Manage Your Service</h3>
@@ -457,7 +453,6 @@ export default function ServiceDetailPage() {
         )}
       </div>
 
-      {/* BOTTOM CONTACT BAR FOR VIEWERS */}
       {!isOwner && isOpen && (
         <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-[#EDE6D6] p-4 z-30 shadow-xl">
           <div className="max-w-md mx-auto flex items-center gap-3">
@@ -494,7 +489,6 @@ export default function ServiceDetailPage() {
         </div>
       )}
 
-      {/* REPORT MODAL */}
       {showReportModal && (
         <ReportModal
           serviceId={service.id}
@@ -503,7 +497,6 @@ export default function ServiceDetailPage() {
         />
       )}
 
-      {/* STATUS TOGGLE CONFIRM MODAL */}
       {showStatusConfirm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full border border-gray-200 shadow-2xl space-y-4">
@@ -535,7 +528,6 @@ export default function ServiceDetailPage() {
         </div>
       )}
 
-      {/* DELETE CONFIRM MODAL */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full border border-gray-200 shadow-2xl space-y-4">

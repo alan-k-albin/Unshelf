@@ -97,10 +97,18 @@ export default function ListingDetailPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) { router.push('/login'); return; }
 
-      const { data: whatsappData } = await supabase
-        .from('users').select('whatsapp_number').eq('id', listing.user_id).single();
+      const { data: whatsapp, error: revealError } = await supabase
+        .rpc('reveal_whatsapp', { target_user_id: listing.user_id });
 
-      const whatsapp = whatsappData?.whatsapp_number;
+      if (revealError) {
+        showToast(
+          revealError.message.includes('verified')
+            ? 'Contact reveal is available for verified accounts only.'
+            : 'Could not retrieve contact info.',
+          'error'
+        );
+        return;
+      }
       if (!whatsapp) { showToast('Could not retrieve contact info.', 'error'); return; }
 
       setWhatsappNumber(whatsapp);
@@ -271,7 +279,6 @@ export default function ListingDetailPage() {
       <div className="sticky top-0 bg-white border-b border-gray-200 z-10 flex items-center gap-3 px-4 py-4">
         <button onClick={() => router.back()} className="p-1"><ArrowLeft className="w-5 h-5" /></button>
         <h1 className="text-lg font-bold flex-1" style={{ color: '#1B2A4A' }}>Item Details</h1>
-        {/* Refresh — properly visible with label */}
         <button
           onClick={handleRefresh}
           disabled={refreshing}
@@ -284,7 +291,6 @@ export default function ListingDetailPage() {
       </div>
 
       <div className="px-4 py-6 space-y-6">
-        {/* Images Gallery */}
         {images.length > 0 && (
           <div className="space-y-2">
             <div
@@ -297,7 +303,6 @@ export default function ListingDetailPage() {
                 className="w-full h-full object-cover transition-all duration-300"
               />
 
-              {/* Navigation arrows on hero image */}
               {images.length > 1 && (
                 <>
                   <button
@@ -339,7 +344,6 @@ export default function ListingDetailPage() {
               )}
             </div>
 
-            {/* Thumbnail Row */}
             {images.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {images.map((imgUrl, idx) => (
@@ -361,7 +365,6 @@ export default function ListingDetailPage() {
           </div>
         )}
 
-        {/* Title & Price */}
         <div>
           <div className="flex items-center gap-2 mb-2">
             <h2 className="text-2xl font-bold flex-1" style={{ color: '#1B2A4A' }}>{listing.title}</h2>
@@ -382,7 +385,6 @@ export default function ListingDetailPage() {
             : <p className="text-3xl font-bold" style={{ color: '#1B2A4A' }}>₹{listing.price?.toLocaleString()}</p>}
         </div>
 
-        {/* Subject */}
         {listing.subject && (
           <div>
             <h3 className="font-semibold mb-2" style={{ color: '#1B2A4A' }}>Subject/Topic</h3>
@@ -390,7 +392,6 @@ export default function ListingDetailPage() {
           </div>
         )}
 
-        {/* Seller Card */}
         <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Listed by</h3>
           <div className="flex items-start justify-between mb-3">
@@ -431,7 +432,6 @@ export default function ListingDetailPage() {
             )}
           </div>
 
-          {/* Contact Buttons */}
           <div className="space-y-2">
             {isSold ? (
               <div className="w-full py-3 px-4 rounded-lg bg-red-50 border border-red-200 text-center">
@@ -469,7 +469,6 @@ export default function ListingDetailPage() {
           </div>
         </div>
 
-        {/* Reviews */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold" style={{ color: '#1B2A4A' }}>Reviews</h3>
@@ -497,7 +496,6 @@ export default function ListingDetailPage() {
           )}
         </div>
 
-        {/* More Info */}
         <div className="bg-gray-50 rounded-xl p-4 space-y-3">
           <div className="flex justify-between"><span className="text-gray-600">Category</span><span className="font-semibold">{listing.category}</span></div>
           <div className="flex justify-between"><span className="text-gray-600">Condition</span><span className="font-semibold">{listing.condition}</span></div>
@@ -511,11 +509,9 @@ export default function ListingDetailPage() {
         </div>
       </div>
 
-      {/* ── OWNER ACTION BUTTONS — floating above nav bar ── */}
       {isOwner && !isSold && (
         <div className="fixed bottom-20 left-0 right-0 z-20 px-4 pb-2">
           <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-3 flex gap-3">
-            {/* Edit button */}
             <button
               onClick={() => router.push(`/edit-listing/${listing.id}`)}
               className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 border-2 transition active:scale-95"
@@ -524,7 +520,6 @@ export default function ListingDetailPage() {
               <Edit className="w-4 h-4" />
               Edit Listing
             </button>
-            {/* Mark as Sold button */}
             <button
               onClick={() => setShowSoldConfirm(true)}
               className="flex-1 py-3 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 transition active:scale-95"
@@ -533,7 +528,6 @@ export default function ListingDetailPage() {
               <CheckSquare className="w-4 h-4" />
               Mark as Sold
             </button>
-            {/* Delete button */}
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="py-3 px-4 rounded-xl font-semibold text-sm flex items-center justify-center transition active:scale-95"
@@ -545,7 +539,6 @@ export default function ListingDetailPage() {
         </div>
       )}
 
-      {/* Mark as Sold Confirm */}
       {showSoldConfirm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center px-4 pb-6">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
@@ -570,7 +563,6 @@ export default function ListingDetailPage() {
         </div>
       )}
 
-      {/* Delete Confirm */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center px-4 pb-6">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
@@ -604,4 +596,4 @@ export default function ListingDetailPage() {
       )}
     </div>
   );
-    }
+}

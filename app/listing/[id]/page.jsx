@@ -9,6 +9,7 @@ import RatingModal from '@/components/RatingModal';
 import ReviewCard from '@/components/ReviewCard';
 import SellerRating from '@/components/SellerRating';
 import ReportModal from '@/components/ReportModal';
+import ChatButton from '@/components/ChatButton';
 import { Toast, useToast } from '@/components/Toast';
 
 export default function ListingDetailPage() {
@@ -29,11 +30,6 @@ export default function ListingDetailPage() {
   const [soldLoading, setSoldLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [authUserId, setAuthUserId] = useState(null);
-  const [contactLoading, setContactLoading] = useState(false);
-  const [whatsappRevealed, setWhatsappRevealed] = useState(false);
-  const [whatsappNumber, setWhatsappNumber] = useState(null);
-  const [revealLoading, setRevealLoading] = useState(false);
-  const [revealCount, setRevealCount] = useState(0);
   const [showImageZoom, setShowImageZoom] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -89,56 +85,6 @@ export default function ListingDetailPage() {
     showToast('Refreshed!');
   };
 
-  const handleRevealWhatsapp = async () => {
-    if (!currentUser) { router.push('/login'); return; }
-    if (revealCount >= 5) { showToast('Too many requests. Try again later.', 'error'); return; }
-    setRevealLoading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) { router.push('/login'); return; }
-
-      const { data: whatsapp, error: revealError } = await supabase
-        .rpc('reveal_whatsapp', { target_user_id: listing.user_id });
-
-      if (revealError) {
-        showToast(
-          revealError.message.includes('verified')
-            ? 'Contact reveal is available for verified accounts only.'
-            : 'Could not retrieve contact info.',
-          'error'
-        );
-        return;
-      }
-      if (!whatsapp) { showToast('Could not retrieve contact info.', 'error'); return; }
-
-      setWhatsappNumber(whatsapp);
-      setWhatsappRevealed(true);
-      setRevealCount((prev) => prev + 1);
-
-      await supabase.from('contacts').upsert(
-        [{ user_id: session.user.id, contact_user_id: listing.user_id,
-           contact_name: seller?.full_name || 'Seller', contact_whatsapp: whatsapp, contact_type: 'seller' }],
-        { onConflict: 'user_id,contact_user_id' }
-      );
-    } catch (err) {
-      showToast('Error retrieving contact.', 'error');
-    } finally {
-      setRevealLoading(false);
-    }
-  };
-
-  const handleContact = async () => {
-    if (!whatsappNumber) return;
-    setContactLoading(true);
-    try {
-      window.open(`https://wa.me/91${whatsappNumber}`, '_blank');
-      router.push('/chats');
-    } catch (err) {
-      console.error('Contact error:', err);
-    } finally {
-      setContactLoading(false);
-    }
-  };
 
   const handleDeleteListing = async () => {
     setDeleteLoading(true);
@@ -437,28 +383,17 @@ export default function ListingDetailPage() {
               <div className="w-full py-3 px-4 rounded-lg bg-red-50 border border-red-200 text-center">
                 <p className="text-sm text-red-600 font-semibold">This item has been sold</p>
               </div>
-            ) : isOwner ? (
-              <div className="w-full py-3 px-4 rounded-lg bg-gray-100 text-center">
-                <p className="text-sm text-gray-500 font-medium">This is your listing</p>
-              </div>
-            ) : !whatsappRevealed ? (
-              <button onClick={handleRevealWhatsapp} disabled={revealLoading}
-                className="w-full py-3 rounded-lg font-semibold text-white text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #1877F2, #166FE5)' }}>
-                {revealLoading ? <><Loader className="w-4 h-4 animate-spin" /> Loading...</> : <><Eye className="w-4 h-4" /> Contact via WhatsApp</>}
-              </button>
             ) : (
-              <div className="space-y-2">
-                <div className="w-full py-2.5 px-4 rounded-lg border border-green-300 bg-green-50 text-center">
-                  <p className="text-xs text-gray-500 mb-0.5">WhatsApp Number</p>
-                  <p className="font-bold text-green-700">+91 {whatsappNumber}</p>
-                </div>
-                <button onClick={handleContact} disabled={contactLoading}
-                  className="w-full py-3 rounded-lg font-semibold text-white text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg, #16A34A, #22C55E)' }}>
-                  {contactLoading ? <><Loader className="w-4 h-4 animate-spin" /> Connecting...</> : <><MessageCircle className="w-4 h-4" /> Open WhatsApp</>}
-                </button>
-              </div>
+              <ChatButton
+                listingId={listing.id}
+                posterId={listing.user_id}
+                poster={seller}
+                isOwner={isOwner}
+                currentUser={currentUser}
+                viewerLoading={loading}
+                showToast={showToast}
+                buttonText="Chat with Seller"
+              />
             )}
 
             <button onClick={handleShare}

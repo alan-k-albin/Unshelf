@@ -14,7 +14,7 @@ const REPORT_REASONS = [
   { value: 'other', label: '❓ Other' },
 ];
 
-export default function ReportModal({ listingId, requestId, serviceId, onClose }) {
+export default function ReportModal({ listingId, requestId, serviceId, conversationId, onClose }) {
   const [reason, setReason] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -55,6 +55,7 @@ export default function ReportModal({ listingId, requestId, serviceId, onClose }
           listing_id: listingId || null,
           request_id: requestId || null,
           service_id: serviceId || null,
+          conversation_id: conversationId || null,
           reporter_id: authData.user.id,
           reason,
           description: sanitizedDescription,
@@ -74,6 +75,7 @@ export default function ReportModal({ listingId, requestId, serviceId, onClose }
         listing_id: listingId || null,
         request_id: requestId || null,
         service_id: serviceId || null,
+        conversation_id: conversationId || null,
       });
 
       setSuccess(true);
@@ -87,7 +89,9 @@ export default function ReportModal({ listingId, requestId, serviceId, onClose }
     }
   };
 
-  const modalTitle = requestId
+  const modalTitle = conversationId
+    ? 'Report Conversation'
+    : requestId
     ? 'Report Material Request'
     : serviceId
     ? 'Report Service'

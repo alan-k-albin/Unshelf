@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
 import ReportModal from '@/components/ReportModal';
+import ChatButton from '@/components/ChatButton';
 import { Toast, useToast } from '@/components/Toast';
 
 const URGENCY_STYLES = {
@@ -43,10 +44,6 @@ export default function RequestDetailPage() {
   const [fulfilledLoading, setFulfilledLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [authUserId, setAuthUserId] = useState(null);
-  const [contactLoading, setContactLoading] = useState(false);
-  const [whatsappRevealed, setWhatsappRevealed] = useState(false);
-  const [whatsappNumber, setWhatsappNumber] = useState(null);
-  const [revealLoading, setRevealLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const { toast, showToast, hideToast } = useToast();
@@ -108,71 +105,6 @@ export default function RequestDetailPage() {
     showToast('Refreshed!');
   };
 
-  const handleRevealWhatsapp = async () => {
-    if (!currentUser) {
-      router.push('/login');
-      return;
-    }
-    setRevealLoading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        router.push('/login');
-        return;
-      }
-
-      const { data: whatsapp, error: revealError } = await supabase
-        .rpc('reveal_whatsapp', { target_user_id: request.user_id });
-
-      if (revealError) {
-        showToast(
-          revealError.message.includes('verified')
-            ? 'Contact reveal is available for verified accounts only.'
-            : 'Could not retrieve contact info.',
-          'error'
-        );
-        return;
-      }
-      if (!whatsapp) {
-        showToast('Could not retrieve contact info.', 'error');
-        return;
-      }
-
-      setWhatsappNumber(whatsapp);
-      setWhatsappRevealed(true);
-
-      await supabase.from('contacts').upsert(
-        [
-          {
-            user_id: session.user.id,
-            contact_user_id: request.user_id,
-            contact_name: requester?.full_name || 'Requester',
-            contact_whatsapp: whatsapp,
-            contact_type: 'requester',
-          },
-        ],
-        { onConflict: 'user_id,contact_user_id' }
-      );
-    } catch (err) {
-      showToast('Error retrieving contact.', 'error');
-    } finally {
-      setRevealLoading(false);
-    }
-  };
-
-  const handleContact = () => {
-    if (!whatsappNumber) return;
-    setContactLoading(true);
-    try {
-      const messageText = `Hi, I saw your material request for "${request.title}" on Unshelf!`;
-      window.open(`https://wa.me/91${whatsappNumber}?text=${encodeURIComponent(messageText)}`, '_blank');
-      router.push('/chats');
-    } catch (err) {
-      console.error('Contact error:', err);
-    } finally {
-      setContactLoading(false);
-    }
-  };
 
   const handleDeleteRequest = async () => {
     setDeleteLoading(true);
@@ -409,50 +341,18 @@ export default function RequestDetailPage() {
                 <p className="text-sm text-blue-700 font-semibold">
                   This is your material request
                 </p>
-                <p className="text-xs text-blue-500 mt-0.5">
-                  Peers who have this material will contact you via WhatsApp.
-                </p>
               </div>
-            ) : !whatsappRevealed ? (
-              <button
-                onClick={handleRevealWhatsapp}
-                disabled={revealLoading}
-                className="w-full py-3.5 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition disabled:opacity-50 active:scale-[0.99]"
-                style={{ background: 'linear-gradient(135deg, #1877F2, #166FE5)' }}
-              >
-                {revealLoading ? (
-                  <>
-                    <Loader className="w-4 h-4 animate-spin" /> Loading...
-                  </>
-                ) : (
-                  <>
-                    <Eye className="w-4 h-4" /> I Have This Material — Contact Requester
-                  </>
-                )}
-              </button>
             ) : (
-              <div className="space-y-2.5">
-                <div className="w-full py-3 px-4 rounded-xl border border-green-300 bg-green-50 text-center">
-                  <p className="text-xs text-gray-500 mb-0.5">Requester WhatsApp</p>
-                  <p className="font-bold text-green-700 text-base">+91 {whatsappNumber}</p>
-                </div>
-                <button
-                  onClick={handleContact}
-                  disabled={contactLoading}
-                  className="w-full py-3.5 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg, #16A34A, #22C55E)' }}
-                >
-                  {contactLoading ? (
-                    <>
-                      <Loader className="w-4 h-4 animate-spin" /> Connecting...
-                    </>
-                  ) : (
-                    <>
-                      <MessageCircle className="w-4 h-4" /> Message on WhatsApp
-                    </>
-                  )}
-                </button>
-              </div>
+              <ChatButton
+                requestId={request.id}
+                posterId={request.user_id}
+                poster={requester}
+                isOwner={isOwner}
+                currentUser={currentUser}
+                viewerLoading={loading}
+                showToast={showToast}
+                buttonText="Chat with Requester"
+              />
             )}
 
             <button

@@ -12,6 +12,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { logoutUser } from '@/lib/auth';
+import { supabase } from '@/lib/supabaseClient';
 import SessionInitializer from '@/components/SessionInitializer';
 import './globals.css';
 
@@ -25,7 +26,25 @@ export default function RootLayout({ children }) {
   const [firstLoad, setFirstLoad] = useState(true);
   const [error, setError] = useState(null);
 
+  const [unreadCount, setUnreadCount] = useState(0);
+
   const hideBottomNav = pathname === '/login' || pathname === '/profile';
+
+  const fetchUnreadCount = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        setUnreadCount(0);
+        return;
+      }
+      const { data, error } = await supabase.rpc('get_unread_count');
+      if (!error && typeof data === 'number') {
+        setUnreadCount(data);
+      }
+    } catch (e) {
+      console.error('Error fetching unread count:', e);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -44,7 +63,33 @@ export default function RootLayout({ children }) {
       setLoading(false);
       setFirstLoad(false);
     }
+    fetchUnreadCount();
   }, [pathname]);
+
+  // Subscribe to realtime messages for unread badge updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('navbar-unread-count')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        () => {
+          fetchUnreadCount();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages' },
+        () => {
+          fetchUnreadCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -123,8 +168,17 @@ export default function RootLayout({ children }) {
                     Sell
                   </Link>
 
-                  <Link href="/chats" className="text-gray-600 hover:text-gray-900 transition">
+                  <Link
+                    href="/chats"
+                    className="relative text-gray-600 hover:text-gray-900 transition p-1"
+                    aria-label="Chats"
+                  >
                     <MessageCircle className="w-5 h-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1.5 min-w-[18px] h-[18px] px-1 bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-xs">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
                   </Link>
 
                   <div className="relative">
@@ -200,9 +254,16 @@ export default function RootLayout({ children }) {
 
               <Link
                 href="/chats"
-                className={`flex-1 flex flex-col items-center justify-center py-3 transition ${pathname === '/chats' ? 'text-accent' : 'text-gray-600'} hover:text-accent`}
+                className={`flex-1 flex flex-col items-center justify-center py-3 transition relative ${pathname === '/chats' ? 'text-accent' : 'text-gray-600'} hover:text-accent`}
               >
-                <MessageCircle className="w-6 h-6" />
+                <div className="relative">
+                  <MessageCircle className="w-6 h-6" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-2 min-w-[16px] h-[16px] px-0.5 bg-red-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow-xs">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </div>
                 <span className="text-xs mt-1 font-medium">Chats</span>
               </Link>
 

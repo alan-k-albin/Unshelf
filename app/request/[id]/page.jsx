@@ -346,8 +346,10 @@ export default function RequestDetailPage() {
               <ChatButton
                 requestId={request.id}
                 posterId={request.user_id}
+                poster={requester}
                 isOwner={isOwner}
                 currentUser={currentUser}
+                viewerLoading={loading}
                 showToast={showToast}
                 buttonText="Chat with Requester"
               />

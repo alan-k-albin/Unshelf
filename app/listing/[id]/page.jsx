@@ -387,8 +387,10 @@ export default function ListingDetailPage() {
               <ChatButton
                 listingId={listing.id}
                 posterId={listing.user_id}
+                poster={seller}
                 isOwner={isOwner}
                 currentUser={currentUser}
+                viewerLoading={loading}
                 showToast={showToast}
                 buttonText="Chat with Seller"
               />

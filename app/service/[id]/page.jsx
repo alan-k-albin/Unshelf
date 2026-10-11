@@ -387,8 +387,10 @@ export default function ServiceDetailPage() {
             <ChatButton
               serviceId={service.id}
               posterId={service.user_id}
+              poster={provider}
               isOwner={isOwner}
               currentUser={currentUser}
+              viewerLoading={loading}
               showToast={showToast}
               buttonText={service.service_type === 'offering' ? 'Chat with Provider' : 'Chat with Requester'}
               style={{ background: 'linear-gradient(135deg, #27AE60, #1F9550)' }}

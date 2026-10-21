@@ -167,13 +167,13 @@ export default function CreateServicePage() {
   const isOffering = formData.service_type === 'offering';
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7]">
-      <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-[#EDE6D6] z-10">
-        <div className="flex items-center gap-3 px-4 py-4 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-[#FBF8F1] font-body">
+      <div className="sticky top-0 bg-[#FBF8F1]/90 backdrop-blur-md border-b border-[#EDE6D6] z-10">
+        <div className="flex items-center gap-3 px-4 py-3.5 max-w-2xl mx-auto">
           <button
             onClick={() => router.back()}
             aria-label="Go back"
-            className="p-2 hover:bg-gray-100 rounded-full transition text-[#1B2A4A]"
+            className="p-2 hover:bg-[#F3EEDC] text-[#1B2A4A] rounded-xl transition"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -181,7 +181,7 @@ export default function CreateServicePage() {
             <h1 className="text-lg font-display font-bold text-[#1B2A4A]">
               {isOffering ? 'Offer a Student Service' : 'Request a Student Service'}
             </h1>
-            <p className="text-xs text-[#5B5647]">
+            <p className="text-xs text-[#8A8272]">
               {isOffering
                 ? 'Share your skills, tutoring, or practical assistance with peers'
                 : 'Ask campus peers for tutoring, coding, or academic assistance'}
@@ -202,21 +202,21 @@ export default function CreateServicePage() {
         )}
 
         {error && (
-          <div className="mb-5 p-4 rounded-xl flex gap-3 border bg-[#FEF2F2] border-[#FECACA]">
-            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#DC2626]" />
-            <p className="text-sm font-medium text-[#DC2626]">{error}</p>
+          <div className="mb-5 p-4 rounded-xl flex gap-3 border bg-red-50 border-red-200">
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-600" />
+            <p className="text-sm font-medium text-red-700">{error}</p>
           </div>
         )}
 
         {success && (
           <div className="mb-5 p-4 rounded-xl flex gap-3 border bg-[#F0FDF4] border-[#BBF7D0]">
-            <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#16A34A]" />
-            <p className="text-sm font-medium text-[#16A34A]">{success}</p>
+            <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#27AE60]" />
+            <p className="text-sm font-medium text-[#27AE60]">{success}</p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-white p-5 rounded-2xl border-2 border-[#EDE6D6] shadow-xs">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="bg-white p-5 rounded-2xl border border-[#EDE6D6] shadow-xs">
             <label className="block text-xs font-bold uppercase tracking-wider text-[#1B2A4A] mb-3">
               I want to: <span className="text-red-500">*</span>
             </label>
@@ -226,8 +226,8 @@ export default function CreateServicePage() {
                 onClick={() => setFormData((prev) => ({ ...prev, service_type: 'offering' }))}
                 className={`p-3.5 rounded-xl border-2 font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
                   isOffering
-                    ? 'border-[#15803D] bg-[#F0FDF4] text-[#15803D] shadow-sm'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                    ? 'border-[#27AE60] bg-[#F0FDF4] text-[#1E7E45] shadow-xs'
+                    : 'border-[#EDE6D6] bg-white text-[#5B5647] hover:border-[#1B2A4A]/40'
                 }`}
               >
                 <Briefcase className="w-4 h-4" />
@@ -238,8 +238,8 @@ export default function CreateServicePage() {
                 onClick={() => setFormData((prev) => ({ ...prev, service_type: 'seeking' }))}
                 className={`p-3.5 rounded-xl border-2 font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
                   !isOffering
-                    ? 'border-[#B45309] bg-[#FFFBEB] text-[#B45309] shadow-sm'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                    ? 'border-[#B45309] bg-[#FFFBEB] text-[#B45309] shadow-xs'
+                    : 'border-[#EDE6D6] bg-white text-[#5B5647] hover:border-[#1B2A4A]/40'
                 }`}
               >
                 <Wrench className="w-4 h-4" />
@@ -253,7 +253,7 @@ export default function CreateServicePage() {
             </p>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border-2 border-[#EDE6D6] shadow-xs">
+          <div className="bg-white p-5 rounded-2xl border border-[#EDE6D6] shadow-xs">
             <label className="block text-xs font-bold uppercase tracking-wider text-[#1B2A4A] mb-2">
               Service Title <span className="text-red-500">*</span>
             </label>
@@ -268,12 +268,12 @@ export default function CreateServicePage() {
                   : 'e.g. Need help with Digital Electronics Circuit simulation & records'
               }
               maxLength={120}
-              className="w-full px-3.5 py-2.5 border-2 border-[#1B2A4A]/15 rounded-xl text-sm focus:outline-none focus:border-[#1B2A4A] transition text-[#1B2A4A]"
+              className="w-full px-4 py-3 border border-[#EDE6D6] rounded-xl text-sm bg-white text-[#1B2A4A] placeholder-[#8A8272] focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A] transition"
             />
-            <p className="text-xs text-gray-400 mt-1.5">{formData.title.length}/120 characters</p>
+            <p className="text-xs text-[#8A8272] mt-1.5">{formData.title.length}/120 characters</p>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border-2 border-[#EDE6D6] shadow-xs">
+          <div className="bg-white p-5 rounded-2xl border border-[#EDE6D6] shadow-xs">
             <label className="block text-xs font-bold uppercase tracking-wider text-[#1B2A4A] mb-2">
               Category <span className="text-red-500">*</span>
             </label>
@@ -281,7 +281,7 @@ export default function CreateServicePage() {
               name="category"
               value={formData.category}
               onChange={handleInputChange}
-              className="w-full px-3.5 py-2.5 border-2 border-[#1B2A4A]/15 rounded-xl text-sm focus:outline-none focus:border-[#1B2A4A] bg-white transition text-[#1B2A4A]"
+              className="w-full px-4 py-3 border border-[#EDE6D6] rounded-xl text-sm bg-white text-[#1B2A4A] focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A] transition"
             >
               <option value="">Select a category</option>
               {SERVICE_CATEGORIES.map((cat) => (
@@ -292,7 +292,7 @@ export default function CreateServicePage() {
             </select>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border-2 border-[#EDE6D6] shadow-xs">
+          <div className="bg-white p-5 rounded-2xl border border-[#EDE6D6] shadow-xs">
             <label className="block text-xs font-bold uppercase tracking-wider text-[#1B2A4A] mb-1">
               Rate / Pricing Model
             </label>
@@ -305,7 +305,7 @@ export default function CreateServicePage() {
               value={formData.rate}
               onChange={handleInputChange}
               placeholder="e.g. ₹150/hr, Free, ₹300 flat, or Negotiable"
-              className="w-full px-3.5 py-2.5 border-2 border-[#1B2A4A]/15 rounded-xl text-sm focus:outline-none focus:border-[#1B2A4A] transition text-[#1B2A4A] mb-3"
+              className="w-full px-4 py-3 border border-[#EDE6D6] rounded-xl text-sm bg-white text-[#1B2A4A] placeholder-[#8A8272] focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A] transition mb-3"
             />
             <div className="flex flex-wrap gap-2">
               {RATE_PRESETS.map((preset) => (
@@ -313,10 +313,10 @@ export default function CreateServicePage() {
                   key={preset}
                   type="button"
                   onClick={() => setFormData((prev) => ({ ...prev, rate: preset }))}
-                  className={`text-xs px-3 py-1 rounded-full border transition font-medium ${
+                  className={`text-xs px-3 py-1.5 rounded-full border transition font-medium ${
                     formData.rate === preset
                       ? 'bg-[#1B2A4A] text-white border-[#1B2A4A]'
-                      : 'bg-[#F9F7F1] text-[#5B5647] border-[#EDE6D6] hover:border-[#1B2A4A]/40'
+                      : 'bg-[#FAF6EE] text-[#5B5647] border-[#EDE6D6] hover:border-[#1B2A4A]/40'
                   }`}
                 >
                   {preset}
@@ -325,18 +325,18 @@ export default function CreateServicePage() {
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border-2 border-[#EDE6D6] shadow-xs">
+          <div className="bg-white p-5 rounded-2xl border border-[#EDE6D6] shadow-xs">
             <label className="block text-xs font-bold uppercase tracking-wider text-[#1B2A4A] mb-3">
               Relevant Branch & Semester <span className="text-xs font-normal text-[#8A8272]">(Optional)</span>
             </label>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Department</label>
+                <label className="block text-xs text-[#5B5647] mb-1 font-semibold">Department</label>
                 <select
                   name="department"
                   value={formData.department}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs focus:outline-none focus:border-[#1B2A4A] bg-white text-[#1B2A4A]"
+                  className="w-full px-3 py-2.5 border border-[#EDE6D6] rounded-xl text-xs bg-white text-[#1B2A4A] focus:outline-none focus:border-[#1B2A4A]"
                 >
                   <option value="">Any / General</option>
                   {DEPARTMENTS.map((dept) => (
@@ -347,12 +347,12 @@ export default function CreateServicePage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Semester</label>
+                <label className="block text-xs text-[#5B5647] mb-1 font-semibold">Semester</label>
                 <select
                   name="semester"
                   value={formData.semester}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs focus:outline-none focus:border-[#1B2A4A] bg-white text-[#1B2A4A]"
+                  className="w-full px-3 py-2.5 border border-[#EDE6D6] rounded-xl text-xs bg-white text-[#1B2A4A] focus:outline-none focus:border-[#1B2A4A]"
                 >
                   <option value="">Any / General</option>
                   {SEMESTERS.map((sem) => (
@@ -365,7 +365,7 @@ export default function CreateServicePage() {
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border-2 border-[#EDE6D6] shadow-xs">
+          <div className="bg-white p-5 rounded-2xl border border-[#EDE6D6] shadow-xs">
             <label className="block text-xs font-bold uppercase tracking-wider text-[#1B2A4A] mb-2">
               Details & Description <span className="text-xs font-normal text-[#8A8272]">(Optional)</span>
             </label>
@@ -380,27 +380,22 @@ export default function CreateServicePage() {
               }
               rows={4}
               maxLength={1000}
-              className="w-full px-3.5 py-2.5 border-2 border-[#1B2A4A]/15 rounded-xl text-sm focus:outline-none focus:border-[#1B2A4A] transition text-[#1B2A4A]"
+              className="w-full px-4 py-3 border border-[#EDE6D6] rounded-xl text-sm bg-white text-[#1B2A4A] placeholder-[#8A8272] resize-none focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A] transition"
             />
-            <p className="text-xs text-gray-400 mt-1">{formData.description.length}/1000 characters</p>
+            <p className="text-xs text-[#8A8272] mt-1">{formData.description.length}/1000 characters</p>
           </div>
 
-          <div className="p-4 rounded-xl bg-[#EFF6FF] border border-[#BFDBFE] flex gap-3">
-            <Sparkles className="w-5 h-5 text-[#1D4ED8] shrink-0 mt-0.5" />
-            <div className="text-xs text-[#1E40AF] leading-relaxed">
-              <strong>Campus Community Guidelines:</strong> Services on Unshelf are provided by and for students. Please keep interactions respectful, coordinate directly via WhatsApp, and agree on deliverables upfront.
+          <div className="p-4 rounded-xl bg-[#FAF6EE] border border-[#EDE6D6] flex gap-3">
+            <Sparkles className="w-5 h-5 text-[#27AE60] shrink-0 mt-0.5" />
+            <div className="text-xs text-[#5B5647] leading-relaxed">
+              <strong className="text-[#1B2A4A]">Campus Community Guidelines:</strong> Services on Unshelf are provided by and for students. Please keep interactions respectful, coordinate directly via WhatsApp, and agree on deliverables upfront.
             </div>
           </div>
 
           <button
             type="submit"
             disabled={loading || (isOffering && !isVerified)}
-            className="w-full py-3.5 px-4 rounded-xl font-bold text-white text-sm transition hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 shadow-md cursor-pointer"
-            style={{
-              background: isOffering
-                ? 'linear-gradient(135deg, #15803D, #166534)'
-                : 'linear-gradient(135deg, #B45309, #92400E)',
-            }}
+            className="w-full min-h-[48px] py-3.5 px-4 rounded-xl font-semibold text-white text-base disabled:opacity-50 flex items-center justify-center gap-2 btn-action-green transition active:scale-[0.98] shadow-xs cursor-pointer"
           >
             {loading ? (
               <>

@@ -77,14 +77,14 @@ export default function FilterPanel({ filters, setFilters, onClose, onApply, onC
   const selectedCategories = filters.categories || [];
 
   return (
-    <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-lg flex flex-col" style={{ maxHeight: '80vh' }}>
+    <div className="bg-white rounded-t-2xl md:rounded-2xl border-2 border-[#EDE6D6] shadow-xl flex flex-col font-body" style={{ maxHeight: '80vh' }}>
 
       {/* Header — fixed, never scrolls */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
-        <h3 className="font-bold text-lg" style={{ color: '#1B2A4A' }}>
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[#EDE6D6] flex-shrink-0">
+        <h3 className="font-display font-semibold text-lg text-[#1B2A4A]">
           Filters
         </h3>
-        <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg">
+        <button onClick={onClose} aria-label="Close filters" className="p-1 hover:bg-[#F3EFE4] rounded-lg transition text-[#1B2A4A]">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -93,13 +93,12 @@ export default function FilterPanel({ filters, setFilters, onClose, onApply, onC
       <div className="overflow-y-auto flex-1 px-5 py-4 space-y-1">
 
         {/* ── Price Range ── */}
-        <div className="border-b pb-4">
+        <div className="border-b border-[#EDE6D6] pb-4">
           <button
             onClick={() => toggleSection('price')}
-            className="w-full flex items-center justify-between py-2 font-semibold"
-            style={{ color: '#1B2A4A' }}
+            className="w-full flex items-center justify-between py-2 font-semibold text-[#1B2A4A]"
           >
-            💰 Price Range
+            Price Range
             <ChevronDown
               className="w-4 h-4 transition-transform duration-200"
               style={{ transform: expandedSections.price ? 'rotate(180deg)' : 'rotate(0deg)' }}
@@ -109,26 +108,25 @@ export default function FilterPanel({ filters, setFilters, onClose, onApply, onC
             <div className="space-y-3 pt-3">
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <label className="text-xs text-gray-500 mb-1 block">Min (₹)</label>
+                  <label className="text-xs text-[#5B5647] mb-1 block font-medium">Min (₹)</label>
                   <input
                     type="number"
                     min="0"
                     placeholder="0"
-                    // FIX: use text representation so user can clear "0" freely
                     value={filters.minPriceText !== undefined ? filters.minPriceText : filters.minPrice === 0 ? '' : filters.minPrice}
                     onChange={(e) => handleMinPriceChange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    className="w-full px-3 py-2 border-2 border-[#EDE6D6] rounded-xl text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 text-[#1B2A4A] min-h-[44px]"
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="text-xs text-gray-500 mb-1 block">Max (₹)</label>
+                  <label className="text-xs text-[#5B5647] mb-1 block font-medium">Max (₹)</label>
                   <input
                     type="number"
                     min="0"
                     placeholder="Any"
                     value={filters.maxPriceText !== undefined ? filters.maxPriceText : filters.maxPrice >= 100000 ? '' : filters.maxPrice}
                     onChange={(e) => handleMaxPriceChange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    className="w-full px-3 py-2 border-2 border-[#EDE6D6] rounded-xl text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 text-[#1B2A4A] min-h-[44px]"
                   />
                 </div>
               </div>
@@ -137,18 +135,16 @@ export default function FilterPanel({ filters, setFilters, onClose, onApply, onC
         </div>
 
         {/* ── Condition (multi-select) ── */}
-        <div className="border-b pb-4">
+        <div className="border-b border-[#EDE6D6] pb-4">
           <button
             onClick={() => toggleSection('condition')}
-            className="w-full flex items-center justify-between py-2 font-semibold"
-            style={{ color: '#1B2A4A' }}
+            className="w-full flex items-center justify-between py-2 font-semibold text-[#1B2A4A]"
           >
             <span>
-              👕 Condition
+              Condition
               {selectedConditions.length > 0 && (
                 <span
-                  className="ml-2 text-xs font-bold px-1.5 py-0.5 rounded-full text-white"
-                  style={{ background: '#1877F2' }}
+                  className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full text-white bg-[#27AE60]"
                 >
                   {selectedConditions.length}
                 </span>
@@ -168,11 +164,11 @@ export default function FilterPanel({ filters, setFilters, onClose, onApply, onC
                     key={cond}
                     type="button"
                     onClick={() => handleConditionToggle(cond)}
-                    className="px-3 py-1.5 rounded-full text-sm font-medium border transition-all"
+                    className="px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all"
                     style={{
-                      background: active ? '#1877F2' : '#F9FAFB',
-                      borderColor: active ? '#1877F2' : '#D1D5DB',
-                      color: active ? '#fff' : '#374151',
+                      background: active ? '#1B2A4A' : '#FBF8F1',
+                      borderColor: active ? '#1B2A4A' : '#EDE6D6',
+                      color: active ? '#FFFFFF' : '#1B2A4A',
                     }}
                   >
                     {cond}
@@ -184,18 +180,16 @@ export default function FilterPanel({ filters, setFilters, onClose, onApply, onC
         </div>
 
         {/* ── Category (multi-select) ── */}
-        <div className="border-b pb-4">
+        <div className="border-b border-[#EDE6D6] pb-4">
           <button
             onClick={() => toggleSection('category')}
-            className="w-full flex items-center justify-between py-2 font-semibold"
-            style={{ color: '#1B2A4A' }}
+            className="w-full flex items-center justify-between py-2 font-semibold text-[#1B2A4A]"
           >
             <span>
-              📚 Category
+              Category
               {selectedCategories.length > 0 && (
                 <span
-                  className="ml-2 text-xs font-bold px-1.5 py-0.5 rounded-full text-white"
-                  style={{ background: '#1877F2' }}
+                  className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full text-white bg-[#27AE60]"
                 >
                   {selectedCategories.length}
                 </span>
@@ -215,11 +209,11 @@ export default function FilterPanel({ filters, setFilters, onClose, onApply, onC
                     key={cat}
                     type="button"
                     onClick={() => handleCategoryToggle(cat)}
-                    className="px-3 py-1.5 rounded-full text-sm font-medium border transition-all"
+                    className="px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all"
                     style={{
-                      background: active ? '#1877F2' : '#F9FAFB',
-                      borderColor: active ? '#1877F2' : '#D1D5DB',
-                      color: active ? '#fff' : '#374151',
+                      background: active ? '#1B2A4A' : '#FBF8F1',
+                      borderColor: active ? '#1B2A4A' : '#EDE6D6',
+                      color: active ? '#FFFFFF' : '#1B2A4A',
                     }}
                   >
                     {cat}
@@ -234,10 +228,9 @@ export default function FilterPanel({ filters, setFilters, onClose, onApply, onC
         <div className="pb-2">
           <button
             onClick={() => toggleSection('sort')}
-            className="w-full flex items-center justify-between py-2 font-semibold"
-            style={{ color: '#1B2A4A' }}
+            className="w-full flex items-center justify-between py-2 font-semibold text-[#1B2A4A]"
           >
-            📊 Sort By
+            Sort By
             <ChevronDown
               className="w-4 h-4 transition-transform duration-200"
               style={{ transform: expandedSections.sort ? 'rotate(180deg)' : 'rotate(0deg)' }}
@@ -246,9 +239,9 @@ export default function FilterPanel({ filters, setFilters, onClose, onApply, onC
           {expandedSections.sort && (
             <div className="flex flex-col gap-2 pt-3">
               {[
-                { value: 'newest', label: '🕐 Newest First' },
-                { value: 'price-low', label: '💰 Price: Low to High' },
-                { value: 'price-high', label: '💰 Price: High to Low' },
+                { value: 'newest', label: 'Newest First' },
+                { value: 'price-low', label: 'Price: Low to High' },
+                { value: 'price-high', label: 'Price: High to Low' },
               ].map((opt) => {
                 const active = filters.sortBy === opt.value;
                 return (
@@ -256,21 +249,21 @@ export default function FilterPanel({ filters, setFilters, onClose, onApply, onC
                     key={opt.value}
                     type="button"
                     onClick={() => handleSortChange(opt.value)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all text-left"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all text-left"
                     style={{
-                      background: active ? '#EFF6FF' : '#F9FAFB',
-                      borderColor: active ? '#1877F2' : '#D1D5DB',
-                      color: active ? '#1877F2' : '#374151',
+                      background: active ? '#F3EFE4' : '#FBF8F1',
+                      borderColor: active ? '#1B2A4A' : '#EDE6D6',
+                      color: '#1B2A4A',
                     }}
                   >
                     <span
                       className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0"
-                      style={{ borderColor: active ? '#1877F2' : '#9CA3AF' }}
+                      style={{ borderColor: active ? '#1B2A4A' : '#C9BFA8' }}
                     >
                       {active && (
                         <span
                           className="w-2 h-2 rounded-full"
-                          style={{ background: '#1877F2' }}
+                          style={{ background: '#1B2A4A' }}
                         />
                       )}
                     </span>
@@ -285,22 +278,21 @@ export default function FilterPanel({ filters, setFilters, onClose, onApply, onC
 
       {/* Footer — always visible above nav bar */}
       <div
-        className="flex-shrink-0 px-5 py-4 border-t border-gray-100 flex gap-3 bg-white"
+        className="flex-shrink-0 px-5 py-4 border-t border-[#EDE6D6] flex gap-3 bg-white"
         style={{ paddingBottom: 'calc(1rem + 64px)' }}
       >
         <button
           type="button"
           onClick={onClear}
-          className="flex-1 py-3 rounded-xl font-semibold text-sm border-2 border-gray-200 transition-colors hover:bg-gray-50"
-          style={{ color: '#6B7280' }}
+          className="flex-1 py-3 min-h-[44px] rounded-xl font-semibold text-sm border-2 border-[#EDE6D6] transition-colors hover:bg-[#F3EFE4] text-[#5B5647]"
         >
           Clear All
         </button>
         <button
           type="button"
           onClick={onApply}
-          className="flex-2 px-8 py-3 rounded-xl font-semibold text-sm text-white transition-opacity hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg, #1877F2, #166FE5)', flex: 2 }}
+          className="flex-2 px-8 py-3 min-h-[44px] rounded-xl font-semibold text-base text-white transition-opacity hover:opacity-95 shadow-md"
+          style={{ background: 'linear-gradient(135deg, #27AE60, #1F9550)', flex: 2 }}
         >
           Apply Filters
         </button>

@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Loader, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, Loader, Star } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { checkRateLimit, recordAction } from '@/lib/rateLimiter';
 import DOMPurify from 'dompurify';
 
 export default function RatingModal({ sellerId, listingId, onClose, onSuccess }) {
   const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -90,52 +91,66 @@ export default function RatingModal({ sellerId, listingId, onClose, onSuccess })
     }
   };
 
+  const activeRating = hoverRating || rating;
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-      <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 px-4 font-body">
+      <div className="bg-[#FBF8F1] rounded-2xl border border-[#EDE6D6] shadow-xl p-6 w-full max-w-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold" style={{ color: '#1B2A4A' }}>
+          <h3 className="text-lg font-display font-bold text-[#1B2A4A]">
             Rate this Seller
           </h3>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg">
+          <button
+            onClick={onClose}
+            className="p-1.5 hover:bg-[#F3EEDC] text-[#5B5647] rounded-xl transition"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
-            <p className="text-xs text-red-700">{error}</p>
+          <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200">
+            <p className="text-xs text-red-700 font-medium">{error}</p>
           </div>
         )}
 
         <div className="mb-6">
-          <label className="block text-sm font-semibold mb-3" style={{ color: '#1B2A4A' }}>
+          <label className="block text-sm font-semibold text-[#1B2A4A] mb-3">
             How would you rate?
           </label>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map((star) => (
               <button
                 key={star}
+                type="button"
                 onClick={() => setRating(star)}
-                className="text-3xl transition-transform hover:scale-110"
+                onMouseEnter={() => setHoverRating(star)}
+                onMouseLeave={() => setHoverRating(0)}
+                className="p-1 transition-transform hover:scale-110 focus:outline-none"
               >
-                {star <= rating ? '⭐' : '☆'}
+                <Star
+                  className={`w-7 h-7 transition-colors ${
+                    star <= activeRating
+                      ? 'fill-amber-400 text-amber-500'
+                      : 'text-gray-300'
+                  }`}
+                />
               </button>
             ))}
           </div>
-          {rating > 0 && (
-            <p className="text-xs text-gray-500 mt-2">
-              {rating === 1 && 'Poor'}
-              {rating === 2 && 'Fair'}
-              {rating === 3 && 'Good'}
-              {rating === 4 && 'Very Good'}
-              {rating === 5 && 'Excellent'}
+          {activeRating > 0 && (
+            <p className="text-xs text-[#8A8272] font-medium mt-2">
+              {activeRating === 1 && 'Poor'}
+              {activeRating === 2 && 'Fair'}
+              {activeRating === 3 && 'Good'}
+              {activeRating === 4 && 'Very Good'}
+              {activeRating === 5 && 'Excellent'}
             </p>
           )}
         </div>
 
         <div className="mb-6">
-          <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
+          <label className="block text-sm font-semibold text-[#1B2A4A] mb-2">
             Add a comment (Optional)
           </label>
           <textarea
@@ -143,24 +158,25 @@ export default function RatingModal({ sellerId, listingId, onClose, onSuccess })
             value={comment}
             onChange={(e) => setComment(e.target.value.slice(0, 200))}
             maxLength={200}
-            className="w-full px-3 py-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-3 border border-[#EDE6D6] rounded-xl text-sm bg-white text-[#1B2A4A] placeholder-[#8A8272] resize-none focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A] transition"
             rows="3"
           />
-          <p className="text-xs text-gray-500 mt-1">{comment.length}/200</p>
+          <p className="text-xs text-[#8A8272] mt-1 text-right">{comment.length}/200</p>
         </div>
 
         <div className="flex gap-2">
           <button
+            type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-lg border border-gray-300 font-semibold text-sm"
+            className="flex-1 min-h-[44px] py-2.5 rounded-xl border border-[#EDE6D6] hover:bg-[#F3EEDC] text-[#5B5647] font-semibold text-sm transition"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={loading || rating === 0}
-            className="flex-1 py-2.5 rounded-lg font-semibold text-white text-sm disabled:opacity-50 flex items-center justify-center gap-2"
-            style={{ background: 'linear-gradient(135deg, #1877F2, #166FE5)' }}
+            className="flex-1 min-h-[44px] py-2.5 rounded-xl font-semibold text-white text-base disabled:opacity-50 flex items-center justify-center gap-2 btn-action-green transition active:scale-[0.98]"
           >
             {loading ? (
               <>
@@ -174,4 +190,4 @@ export default function RatingModal({ sellerId, listingId, onClose, onSuccess })
       </div>
     </div>
   );
-      }
+}

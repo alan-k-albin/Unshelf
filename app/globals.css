@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -44,4 +46,33 @@ body {
 
 .btn-secondary {
   @apply bg-gray-100 text-primary px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors;
-  }
+}
+
+.font-display {
+  font-family: 'Fraunces', Georgia, serif;
+}
+
+.font-body {
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+.bg-cream {
+  background-color: #FBF8F1;
+}
+
+.border-warm {
+  border-color: #EDE6D6;
+}
+
+.text-navy {
+  color: #1B2A4A;
+}
+
+.text-brick {
+  color: #B23A2E;
+}
+
+.btn-action-green {
+  background: linear-gradient(135deg, #27AE60, #1F9550);
+  color: #ffffff;
+}

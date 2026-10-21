@@ -1,22 +1,28 @@
+import { Star } from 'lucide-react';
+
 export default function ReviewCard({ review, reviewer }) {
   return (
-    <div className="bg-white rounded-lg p-4 border border-gray-200">
+    <div className="bg-white rounded-2xl p-4 border border-[#EDE6D6] shadow-xs">
       {/* Header */}
       <div className="flex items-start justify-between mb-2">
         <div>
-          <p className="font-semibold text-sm" style={{ color: '#1B2A4A' }}>
+          <p className="font-display font-semibold text-sm text-[#1B2A4A]">
             {reviewer?.full_name || 'Anonymous'}
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-[#8A8272]">
             {new Date(review.created_at).toLocaleDateString()}
           </p>
         </div>
-        <div className="text-lg">{'⭐'.repeat(review.rating)}</div>
+        <div className="flex items-center gap-0.5 text-amber-500">
+          {[...Array(review.rating || 0)].map((_, i) => (
+            <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+          ))}
+        </div>
       </div>
 
       {/* Comment */}
       {review.comment && (
-        <p className="text-sm text-gray-700 line-clamp-3">{review.comment}</p>
+        <p className="text-sm text-[#3E3A30] line-clamp-3 leading-relaxed">{review.comment}</p>
       )}
     </div>
   );

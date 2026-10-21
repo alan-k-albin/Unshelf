@@ -16,6 +16,7 @@ import {
   BookOpen,
   AlertCircle,
   Flag,
+  Check,
 } from 'lucide-react';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
 import ReportModal from '@/components/ReportModal';
@@ -23,9 +24,9 @@ import ChatButton from '@/components/ChatButton';
 import { Toast, useToast } from '@/components/Toast';
 
 const URGENCY_STYLES = {
-  High: { bg: '#FEF2F2', text: '#DC2626', border: '#FECACA', icon: '🔴', label: 'Urgent' },
-  Medium: { bg: '#FFFBEB', text: '#D97706', border: '#FDE68A', icon: '🟡', label: 'Medium Urgency' },
-  Low: { bg: '#F0FDF4', text: '#16A34A', border: '#BBF7D0', icon: '🟢', label: 'Low Urgency' },
+  High: { bg: '#FEF2F2', text: '#DC2626', border: '#FECACA', label: 'Urgent' },
+  Medium: { bg: '#FFFBEB', text: '#D97706', border: '#FDE68A', label: 'Medium Urgency' },
+  Low: { bg: '#F0FDF4', text: '#16A34A', border: '#BBF7D0', label: 'Low Urgency' },
 };
 
 export default function RequestDetailPage() {
@@ -105,7 +106,6 @@ export default function RequestDetailPage() {
     showToast('Refreshed!');
   };
 
-
   const handleDeleteRequest = async () => {
     setDeleteLoading(true);
     try {
@@ -156,8 +156,8 @@ export default function RequestDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white pb-20">
-        <div className="px-4 py-6">
+      <div className="min-h-screen bg-[#FBF8F1] pb-20 font-body">
+        <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
           <LoadingSkeleton />
           <LoadingSkeleton />
         </div>
@@ -167,27 +167,28 @@ export default function RequestDetailPage() {
 
   if (notFound || !request) {
     return (
-      <div className="min-h-screen bg-white">
-        <div className="sticky top-0 bg-white border-b border-gray-200 z-10 flex items-center gap-3 px-4 py-4">
-          <button onClick={() => router.back()} className="p-1">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-lg font-bold flex-1" style={{ color: '#1B2A4A' }}>
-            Request Details
-          </h1>
+      <div className="min-h-screen bg-[#FBF8F1] font-body">
+        <div className="sticky top-0 bg-[#FBF8F1]/90 backdrop-blur-md border-b border-[#EDE6D6] z-10">
+          <div className="max-w-2xl mx-auto flex items-center gap-3 px-4 py-4">
+            <button onClick={() => router.back()} className="p-2 hover:bg-[#F3EEDC] text-[#1B2A4A] rounded-xl transition">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-lg font-display font-bold flex-1 text-[#1B2A4A]">
+              Request Details
+            </h1>
+          </div>
         </div>
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
-          <p className="text-5xl mb-4">🔍</p>
-          <p className="text-lg font-semibold mb-2" style={{ color: '#1B2A4A' }}>
+          <div className="w-16 h-16 rounded-2xl bg-[#EDE6D6]/60 flex items-center justify-center text-3xl mb-4 text-[#8A8272]">🔍</div>
+          <h2 className="text-xl font-display font-bold mb-2 text-[#1B2A4A]">
             Request not found
-          </p>
-          <p className="text-sm text-gray-500 mb-6">
+          </h2>
+          <p className="text-sm text-[#8A8272] mb-6 max-w-xs">
             This material request may have been removed or fulfilled.
           </p>
           <button
             onClick={() => router.push('/search?type=requests')}
-            className="px-6 py-3 rounded-xl font-semibold text-white text-sm"
-            style={{ background: 'linear-gradient(135deg, #1877F2, #166FE5)' }}
+            className="px-6 py-3 rounded-xl font-semibold text-white text-base btn-action-green transition active:scale-[0.98]"
           >
             Browse Requests
           </button>
@@ -197,132 +198,124 @@ export default function RequestDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-36">
+    <div className="min-h-screen bg-[#FBF8F1] font-body pb-36">
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
-      <div className="sticky top-0 bg-white border-b border-gray-200 z-10 flex items-center gap-3 px-4 py-4">
-        <button onClick={() => router.back()} className="p-1 hover:bg-gray-100 rounded-lg">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-lg font-bold flex-1" style={{ color: '#1B2A4A' }}>
-          Material Request
-        </h1>
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold border border-gray-200 hover:bg-gray-50 transition"
-          style={{ color: '#1877F2' }}
-        >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          <span className="text-xs">Refresh</span>
-        </button>
+      <div className="sticky top-0 bg-[#FBF8F1]/90 backdrop-blur-md border-b border-[#EDE6D6] z-10">
+        <div className="max-w-2xl mx-auto flex items-center gap-3 px-4 py-3.5">
+          <button onClick={() => router.back()} className="p-2 hover:bg-[#F3EEDC] text-[#1B2A4A] rounded-xl transition">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-lg font-display font-bold flex-1 text-[#1B2A4A]">
+            Material Request
+          </h1>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-[#EDE6D6] hover:bg-white text-[#1B2A4A] transition shadow-xs"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        <div
-          className="rounded-2xl p-5 border relative overflow-hidden"
-          style={{
-            background: isFulfilled
-              ? '#F3F4F6'
-              : 'linear-gradient(135deg, #EFF6FF 0%, #EEF2FF 100%)',
-            borderColor: isFulfilled ? '#E5E7EB' : '#BFDBFE',
-          }}
-        >
-          <div className="flex items-center gap-2 mb-3">
+        <div className="bg-white rounded-2xl p-6 border border-[#EDE6D6] shadow-xs space-y-4">
+          <div className="flex items-center gap-2 flex-wrap">
             <span
-              className="text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider"
-              style={{
-                background: isFulfilled ? '#E5E7EB' : '#1877F2',
-                color: isFulfilled ? '#6B7280' : '#FFFFFF',
-              }}
+              className={`text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                isFulfilled
+                  ? 'bg-gray-100 text-gray-600'
+                  : 'bg-[#1B2A4A] text-white'
+              }`}
             >
-              {isFulfilled ? '✓ Fulfilled' : '📢 Looking For'}
+              {isFulfilled ? '✓ Fulfilled' : 'Looking For'}
             </span>
 
             <span
-              className="text-xs font-semibold px-2.5 py-1 rounded-full border flex items-center gap-1"
+              className="text-xs font-semibold px-2.5 py-1 rounded-full border flex items-center gap-1.5"
               style={{
                 background: urgencyConfig.bg,
                 color: urgencyConfig.text,
                 borderColor: urgencyConfig.border,
               }}
             >
-              <span>{urgencyConfig.icon}</span>
+              <Clock className="w-3.5 h-3.5" />
               {urgencyConfig.label}
             </span>
           </div>
 
-          <h2 className="text-2xl font-bold mb-3" style={{ color: '#1B2A4A' }}>
+          <h2 className="text-2xl sm:text-3xl font-display font-bold text-[#1B2A4A] leading-tight">
             {request.title}
           </h2>
 
           <div className="flex flex-wrap gap-2 text-xs">
-            <span className="px-2.5 py-1 rounded-md bg-white border border-gray-200 font-medium text-gray-700">
-              📚 {request.category}
+            <span className="px-2.5 py-1 rounded-lg bg-[#EAE5D9] text-[#1B2A4A] font-medium">
+              {request.category}
             </span>
             {request.department && (
-              <span className="px-2.5 py-1 rounded-md bg-white border border-gray-200 font-medium text-purple-700">
-                🏛️ {request.department}
+              <span className="px-2.5 py-1 rounded-lg bg-[#EAE5D9] text-[#1B2A4A] font-medium">
+                {request.department}
               </span>
             )}
             {request.semester && (
-              <span className="px-2.5 py-1 rounded-md bg-white border border-gray-200 font-medium text-blue-700">
-                🎓 {request.semester}
+              <span className="px-2.5 py-1 rounded-lg bg-[#EAE5D9] text-[#1B2A4A] font-medium">
+                {request.semester}
               </span>
             )}
             {request.subject && (
-              <span className="px-2.5 py-1 rounded-md bg-white border border-gray-200 font-medium text-amber-700">
-                📖 {request.subject}
+              <span className="px-2.5 py-1 rounded-lg bg-[#EAE5D9] text-[#1B2A4A] font-medium">
+                {request.subject}
               </span>
             )}
           </div>
         </div>
 
         {request.description && (
-          <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+          <div className="bg-white rounded-2xl p-5 border border-[#EDE6D6] shadow-xs">
+            <h3 className="text-xs font-bold text-[#8A8272] uppercase tracking-wider mb-2">
               Requester Notes & Details
             </h3>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+            <p className="text-sm text-[#3E3A30] whitespace-pre-wrap leading-relaxed">
               {request.description}
             </p>
           </div>
         )}
 
-        <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200">
-          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+        <div className="bg-white rounded-2xl p-5 border border-[#EDE6D6] shadow-xs">
+          <h3 className="text-xs font-bold text-[#8A8272] uppercase tracking-wider mb-3">
             Requested by
           </h3>
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm"
-                style={{ background: 'linear-gradient(135deg, #1877F2, #4F46E5)' }}
+                className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-display font-bold text-lg flex-shrink-0 bg-[#1B2A4A] shadow-xs"
               >
                 {requester?.full_name?.charAt(0).toUpperCase() || 'S'}
               </div>
               <div>
-                <h3 className="font-semibold text-base" style={{ color: '#1B2A4A' }}>
+                <h3 className="font-display font-semibold text-[#1B2A4A]">
                   {requester?.full_name || 'Campus Student'}
                 </h3>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-[#8A8272]">
                   {[requester?.department, requester?.semester].filter(Boolean).join(' • ') || 'SJCET Student'}
                 </p>
               </div>
             </div>
             {requester?.is_verified && (
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700 flex items-center gap-1">
-                ✓ Verified
+              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E8F5E9] text-[#2E7D32] border border-[#C8E6C9]">
+                <Check className="w-3 h-3" /> Verified
               </span>
             )}
           </div>
 
-          <div className="flex items-center justify-between pt-2 pb-4 border-b border-gray-200 text-xs text-gray-500">
+          <div className="flex items-center justify-between pt-2 pb-3 border-b border-[#EDE6D6]/60 text-xs text-[#8A8272]">
             <span>Posted: {new Date(request.created_at).toLocaleDateString()}</span>
             {!isOwner && (
               <button
                 onClick={() => setShowReportModal(true)}
-                className="flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition"
+                className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold text-red-600 hover:bg-red-50 transition"
               >
                 <Flag className="w-3.5 h-3.5" /> Report
               </button>
@@ -331,14 +324,14 @@ export default function RequestDetailPage() {
 
           <div className="space-y-3 pt-4">
             {isFulfilled ? (
-              <div className="w-full py-3 px-4 rounded-xl bg-gray-100 border border-gray-200 text-center">
-                <p className="text-sm text-gray-500 font-semibold">
+              <div className="w-full py-3 px-4 rounded-xl bg-[#FAF6EE] border border-[#EDE6D6] text-center">
+                <p className="text-sm text-[#8A8272] font-semibold">
                   This request has been fulfilled
                 </p>
               </div>
             ) : isOwner ? (
-              <div className="w-full py-3 px-4 rounded-xl bg-blue-50 border border-blue-200 text-center">
-                <p className="text-sm text-blue-700 font-semibold">
+              <div className="w-full py-3 px-4 rounded-xl bg-[#FAF6EE] border border-[#EDE6D6] text-center">
+                <p className="text-sm text-[#1B2A4A] font-semibold">
                   This is your material request
                 </p>
               </div>
@@ -357,40 +350,39 @@ export default function RequestDetailPage() {
 
             <button
               onClick={handleShare}
-              className="w-full py-2.5 rounded-xl border border-gray-300 font-semibold text-sm hover:bg-gray-50 transition"
-              style={{ color: '#1877F2' }}
+              className="w-full py-2.5 rounded-xl border border-[#EDE6D6] hover:bg-[#FAF6EE] font-semibold text-sm text-[#1B2A4A] transition"
             >
-              <Share2 className="w-4 h-4 inline mr-2" /> Share Request
+              <Share2 className="w-4 h-4 inline mr-2 text-[#8A8272]" /> Share Request
             </button>
           </div>
         </div>
 
-        <div className="bg-gray-50 rounded-2xl p-5 space-y-3 border border-gray-200 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Category</span>
-            <span className="font-semibold text-gray-900">{request.category}</span>
+        <div className="bg-white rounded-2xl p-5 space-y-3 border border-[#EDE6D6] text-sm">
+          <div className="flex justify-between py-1 border-b border-[#EDE6D6]/40">
+            <span className="text-[#8A8272]">Category</span>
+            <span className="font-semibold text-[#1B2A4A]">{request.category}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Urgency</span>
+          <div className="flex justify-between py-1 border-b border-[#EDE6D6]/40">
+            <span className="text-[#8A8272]">Urgency</span>
             <span className="font-semibold" style={{ color: urgencyConfig.text }}>
               {urgencyConfig.label}
             </span>
           </div>
           {request.department && (
-            <div className="flex justify-between">
-              <span className="text-gray-600">Department</span>
-              <span className="font-semibold text-gray-900">{request.department}</span>
+            <div className="flex justify-between py-1 border-b border-[#EDE6D6]/40">
+              <span className="text-[#8A8272]">Department</span>
+              <span className="font-semibold text-[#1B2A4A]">{request.department}</span>
             </div>
           )}
           {request.semester && (
-            <div className="flex justify-between">
-              <span className="text-gray-600">Semester</span>
-              <span className="font-semibold text-gray-900">{request.semester}</span>
+            <div className="flex justify-between py-1 border-b border-[#EDE6D6]/40">
+              <span className="text-[#8A8272]">Semester</span>
+              <span className="font-semibold text-[#1B2A4A]">{request.semester}</span>
             </div>
           )}
-          <div className="flex justify-between">
-            <span className="text-gray-600">Status</span>
-            <span className={`font-semibold ${isFulfilled ? 'text-gray-500' : 'text-green-600'}`}>
+          <div className="flex justify-between py-1">
+            <span className="text-[#8A8272]">Status</span>
+            <span className={`font-semibold ${isFulfilled ? 'text-[#8A8272]' : 'text-[#27AE60]'}`}>
               {isFulfilled ? 'Fulfilled' : 'Active / Open'}
             </span>
           </div>
@@ -399,19 +391,17 @@ export default function RequestDetailPage() {
 
       {isOwner && !isFulfilled && (
         <div className="fixed bottom-20 left-0 right-0 z-20 px-4 pb-2">
-          <div className="max-w-md mx-auto bg-white rounded-2xl shadow-xl border border-gray-200 p-3 flex gap-3">
+          <div className="max-w-md mx-auto bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-[#EDE6D6] p-3 flex gap-3">
             <button
               onClick={() => setShowFulfilledConfirm(true)}
-              className="flex-1 py-3 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 transition active:scale-95 shadow-sm"
-              style={{ background: 'linear-gradient(135deg, #16A34A, #22C55E)' }}
+              className="flex-1 min-h-[44px] py-2.5 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 btn-action-green transition active:scale-[0.98]"
             >
               <CheckCircle className="w-4 h-4" />
               Mark Fulfilled
             </button>
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="py-3 px-4 rounded-xl font-semibold text-sm flex items-center justify-center transition active:scale-95"
-              style={{ background: '#FEE2E2', color: '#DC2626' }}
+              className="min-h-[44px] py-2.5 px-4 rounded-xl font-semibold text-sm flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-100 transition active:scale-[0.98]"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -420,16 +410,16 @@ export default function RequestDetailPage() {
       )}
 
       {showFulfilledConfirm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center px-4 pb-6">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-end md:items-center justify-center px-4 pb-6">
+          <div className="bg-[#FBF8F1] rounded-2xl border border-[#EDE6D6] p-6 w-full max-w-sm shadow-xl">
             <div className="text-center mb-5">
-              <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <CheckCircle className="w-7 h-7 text-green-600" />
+              <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <CheckCircle className="w-7 h-7 text-[#27AE60]" />
               </div>
-              <h3 className="text-lg font-bold mb-1" style={{ color: '#1B2A4A' }}>
+              <h3 className="text-lg font-display font-bold mb-1 text-[#1B2A4A]">
                 Mark as Fulfilled?
               </h3>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-[#8A8272]">
                 This indicates you have received the requested study material.
               </p>
             </div>
@@ -437,15 +427,14 @@ export default function RequestDetailPage() {
               <button
                 onClick={() => setShowFulfilledConfirm(false)}
                 disabled={fulfilledLoading}
-                className="flex-1 py-3 rounded-xl font-semibold text-sm border-2 border-gray-200 text-gray-600"
+                className="flex-1 min-h-[44px] py-2.5 rounded-xl font-semibold text-sm border border-[#EDE6D6] hover:bg-[#F3EEDC] text-[#5B5647]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleMarkAsFulfilled}
                 disabled={fulfilledLoading}
-                className="flex-1 py-3 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #16A34A, #22C55E)' }}
+                className="flex-1 min-h-[44px] py-2.5 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 disabled:opacity-50 btn-action-green"
               >
                 {fulfilledLoading ? <Loader className="w-4 h-4 animate-spin" /> : 'Yes, Fulfilled'}
               </button>
@@ -455,16 +444,16 @@ export default function RequestDetailPage() {
       )}
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center px-4 pb-6">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-end md:items-center justify-center px-4 pb-6">
+          <div className="bg-[#FBF8F1] rounded-2xl border border-[#EDE6D6] p-6 w-full max-w-sm shadow-xl">
             <div className="text-center mb-5">
               <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Trash2 className="w-7 h-7 text-red-500" />
               </div>
-              <h3 className="text-lg font-bold mb-1" style={{ color: '#1B2A4A' }}>
+              <h3 className="text-lg font-display font-bold mb-1 text-[#1B2A4A]">
                 Delete Request?
               </h3>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-[#8A8272]">
                 This will permanently delete this material request.
               </p>
             </div>
@@ -472,15 +461,14 @@ export default function RequestDetailPage() {
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deleteLoading}
-                className="flex-1 py-3 rounded-xl font-semibold text-sm border-2 border-gray-200 text-gray-600"
+                className="flex-1 min-h-[44px] py-2.5 rounded-xl font-semibold text-sm border border-[#EDE6D6] hover:bg-[#F3EEDC] text-[#5B5647]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteRequest}
                 disabled={deleteLoading}
-                className="flex-1 py-3 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #DC2626, #B91C1C)' }}
+                className="flex-1 min-h-[44px] py-2.5 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 disabled:opacity-50 bg-[#DC2626] hover:bg-[#B91C1C]"
               >
                 {deleteLoading ? <Loader className="w-4 h-4 animate-spin" /> : 'Delete'}
               </button>

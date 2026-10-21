@@ -122,51 +122,48 @@ export default function CreateRequestPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#FBF8F1] font-body">
       {/* Top Bar */}
-      <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
-        <div className="flex items-center gap-3 px-4 py-4">
-          <button onClick={() => router.back()} className="p-1 hover:bg-gray-100 rounded-lg">
+      <div className="sticky top-0 bg-[#FBF8F1]/90 backdrop-blur-md border-b border-[#EDE6D6] z-10">
+        <div className="max-w-2xl mx-auto flex items-center gap-3 px-4 py-3.5">
+          <button
+            onClick={() => router.back()}
+            className="p-2 hover:bg-[#F3EEDC] text-[#1B2A4A] rounded-xl transition"
+          >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-lg font-bold" style={{ color: '#1B2A4A' }}>
+            <h1 className="text-lg font-display font-bold text-[#1B2A4A]">
               Request Study Material
             </h1>
-            <p className="text-xs text-gray-500">Ask campus peers for books, notes, or tools</p>
+            <p className="text-xs text-[#8A8272]">Ask campus peers for books, notes, or tools</p>
           </div>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 pb-28">
         {error && (
-          <div
-            className="mb-5 p-4 rounded-xl flex gap-3 border"
-            style={{ background: '#FEF2F2', borderColor: '#FECACA' }}
-          >
-            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#DC2626' }} />
-            <p className="text-sm font-medium" style={{ color: '#DC2626' }}>
+          <div className="mb-5 p-4 rounded-xl flex gap-3 border bg-red-50 border-red-200">
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-600" />
+            <p className="text-sm font-medium text-red-700">
               {error}
             </p>
           </div>
         )}
 
         {success && (
-          <div
-            className="mb-5 p-4 rounded-xl flex gap-3 border"
-            style={{ background: '#F0FDF4', borderColor: '#BBF7D0' }}
-          >
-            <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#16A34A' }} />
-            <p className="text-sm font-medium" style={{ color: '#16A34A' }}>
+          <div className="mb-5 p-4 rounded-xl flex gap-3 border bg-[#F0FDF4] border-[#BBF7D0]">
+            <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#27AE60]" />
+            <p className="text-sm font-medium text-[#27AE60]">
               {success}
             </p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 border border-[#EDE6D6] shadow-xs space-y-5">
           {/* Title */}
           <div>
-            <label className="block text-sm font-semibold mb-1.5" style={{ color: '#1B2A4A' }}>
+            <label className="block text-sm font-semibold text-[#1B2A4A] mb-1.5">
               What material do you need? *
             </label>
             <input
@@ -175,20 +172,20 @@ export default function CreateRequestPage() {
               placeholder="e.g., Engineering Mathematics 1 (Erwin Kreyszig)"
               value={formData.title}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-[#EDE6D6] rounded-xl text-sm bg-white text-[#1B2A4A] placeholder-[#8A8272] focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A] transition"
             />
           </div>
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-semibold mb-1.5" style={{ color: '#1B2A4A' }}>
+            <label className="block text-sm font-semibold text-[#1B2A4A] mb-1.5">
               Category *
             </label>
             <select
               name="category"
               value={formData.category}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full px-4 py-3 border border-[#EDE6D6] rounded-xl text-sm bg-white text-[#1B2A4A] focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A] transition"
             >
               <option value="">Select Category</option>
               {CATEGORIES.map((cat) => (
@@ -201,8 +198,8 @@ export default function CreateRequestPage() {
 
           {/* Subject */}
           <div>
-            <label className="block text-sm font-semibold mb-1.5" style={{ color: '#1B2A4A' }}>
-              Subject / Topic <span className="font-normal text-gray-400">(Optional)</span>
+            <label className="block text-sm font-semibold text-[#1B2A4A] mb-1.5">
+              Subject / Topic <span className="font-normal text-[#8A8272]">(Optional)</span>
             </label>
             <input
               type="text"
@@ -210,27 +207,27 @@ export default function CreateRequestPage() {
               placeholder="e.g., Data Structures, Thermodynamics"
               value={formData.subject}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-[#EDE6D6] rounded-xl text-sm bg-white text-[#1B2A4A] placeholder-[#8A8272] focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A] transition"
             />
           </div>
 
           {/* Target Department & Semester */}
-          <div className="p-4 rounded-xl border border-gray-200 bg-gray-50/80 space-y-3">
-            <p className="text-sm font-semibold" style={{ color: '#1B2A4A' }}>
-              Department & Semester <span className="font-normal text-gray-400">(Optional)</span>
+          <div className="p-4 rounded-xl border border-[#EDE6D6] bg-[#FAF6EE] space-y-3">
+            <p className="text-sm font-semibold text-[#1B2A4A]">
+              Department & Semester <span className="font-normal text-[#8A8272]">(Optional)</span>
             </p>
-            <p className="text-xs text-gray-500 -mt-1">
+            <p className="text-xs text-[#8A8272] -mt-1">
               Specifying your department or semester helps seniors and classmates spot your request faster.
             </p>
 
             <div className="grid grid-cols-2 gap-3 pt-1">
               <div>
-                <label className="block text-xs font-semibold mb-1.5 text-gray-600">Department</label>
+                <label className="block text-xs font-semibold mb-1 text-[#5B5647]">Department</label>
                 <select
                   name="targetDepartment"
                   value={formData.targetDepartment}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full px-3 py-2.5 border border-[#EDE6D6] rounded-xl text-sm bg-white text-[#1B2A4A] focus:outline-none focus:border-[#1B2A4A]"
                 >
                   <option value="">Any Department</option>
                   {DEPARTMENTS.map((d) => (
@@ -242,12 +239,12 @@ export default function CreateRequestPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold mb-1.5 text-gray-600">Semester</label>
+                <label className="block text-xs font-semibold mb-1 text-[#5B5647]">Semester</label>
                 <select
                   name="targetSemester"
                   value={formData.targetSemester}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full px-3 py-2.5 border border-[#EDE6D6] rounded-xl text-sm bg-white text-[#1B2A4A] focus:outline-none focus:border-[#1B2A4A]"
                 >
                   <option value="">Any Semester</option>
                   {SEMESTERS.map((s) => (
@@ -262,7 +259,7 @@ export default function CreateRequestPage() {
 
           {/* Urgency */}
           <div>
-            <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
+            <label className="block text-sm font-semibold text-[#1B2A4A] mb-2">
               How urgently is it needed? *
             </label>
             <div className="space-y-2">
@@ -271,8 +268,10 @@ export default function CreateRequestPage() {
                 return (
                   <label
                     key={urg.value}
-                    className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition ${
-                      isSelected ? 'border-blue-600 bg-blue-50/50 ring-1 ring-blue-500' : 'border-gray-200 hover:bg-gray-50'
+                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition ${
+                      isSelected
+                        ? 'border-[#1B2A4A] bg-[#FAF6EE] shadow-xs'
+                        : 'border-[#EDE6D6] bg-white hover:bg-[#FAF6EE]'
                     }`}
                   >
                     <input
@@ -281,9 +280,9 @@ export default function CreateRequestPage() {
                       value={urg.value}
                       checked={isSelected}
                       onChange={handleInputChange}
-                      className="w-4 h-4 text-blue-600"
+                      className="w-4 h-4 accent-[#1B2A4A]"
                     />
-                    <span className="text-sm font-medium" style={{ color: '#1B2A4A' }}>
+                    <span className="text-sm font-medium text-[#1B2A4A]">
                       {urg.label}
                     </span>
                   </label>
@@ -294,8 +293,8 @@ export default function CreateRequestPage() {
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-semibold mb-1.5" style={{ color: '#1B2A4A' }}>
-              Additional Details <span className="font-normal text-gray-400">(Optional)</span>
+            <label className="block text-sm font-semibold text-[#1B2A4A] mb-1.5">
+              Additional Details <span className="font-normal text-[#8A8272]">(Optional)</span>
             </label>
             <textarea
               name="description"
@@ -304,9 +303,9 @@ export default function CreateRequestPage() {
               onChange={handleInputChange}
               rows="4"
               maxLength={500}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-[#EDE6D6] rounded-xl text-sm bg-white text-[#1B2A4A] placeholder-[#8A8272] resize-none focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A] transition"
             />
-            <p className="text-xs text-gray-400 text-right mt-1">
+            <p className="text-xs text-[#8A8272] text-right mt-1">
               {formData.description.length} / 500 characters
             </p>
           </div>
@@ -315,8 +314,7 @@ export default function CreateRequestPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 rounded-xl font-semibold text-white text-sm disabled:opacity-50 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition active:scale-[0.99]"
-            style={{ background: 'linear-gradient(135deg, #1877F2, #166FE5)' }}
+            className="w-full min-h-[48px] py-3.5 rounded-xl font-semibold text-white text-base disabled:opacity-50 flex items-center justify-center gap-2 btn-action-green transition active:scale-[0.98] shadow-xs"
           >
             {loading ? (
               <>

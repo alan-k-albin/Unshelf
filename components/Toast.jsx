@@ -14,12 +14,12 @@ export function Toast({ message, type = 'success', onClose }) {
 
   return (
     <div
-      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl text-white text-sm font-medium max-w-xs w-auto animate-fade-in"
+      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl text-white text-sm font-body font-semibold max-w-sm w-auto animate-fade-in border border-white/20"
       style={{
         background: type === 'success'
-          ? 'linear-gradient(135deg, #16A34A, #22C55E)'
-          : 'linear-gradient(135deg, #DC2626, #EF4444)',
-        minWidth: '200px',
+          ? 'linear-gradient(135deg, #27AE60, #1F9550)'
+          : 'linear-gradient(135deg, #DC2626, #B91C1C)',
+        minWidth: '220px',
       }}
     >
       {type === 'success'

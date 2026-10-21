@@ -351,13 +351,13 @@ export default function ChatThreadPage() {
   const isNearLimit = newMessage.length > 850;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-65px)] md:h-[calc(100vh-70px)] max-w-3xl mx-auto bg-gray-50 border-x border-gray-200">
+    <div className="flex flex-col h-[calc(100vh-65px)] md:h-[calc(100vh-70px)] max-w-3xl mx-auto bg-[#FBF8F1] font-body border-x border-[#EDE6D6]">
       {/* Thread Header */}
-      <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-xs">
+      <header className="sticky top-0 z-30 bg-[#FBF8F1]/95 backdrop-blur-md border-b border-[#EDE6D6] px-4 py-3 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/chats"
-            className="p-1.5 -ml-1.5 rounded-xl hover:bg-gray-100 text-gray-600 transition"
+            className="p-1.5 -ml-1.5 rounded-xl hover:bg-[#F3EEDC] text-[#1B2A4A] transition"
             aria-label="Back to chats"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -366,16 +366,13 @@ export default function ChatThreadPage() {
           {/* Other User Avatar */}
           <div className="relative flex-shrink-0">
             <div
-              className="w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-sm shadow-xs"
-              style={{
-                background: 'linear-gradient(135deg, #1B2A4A, #2C3E6B)',
-              }}
+              className="w-10 h-10 rounded-xl text-white flex items-center justify-center font-display font-bold text-sm bg-[#1B2A4A] shadow-xs"
             >
               {otherUser?.full_name?.charAt(0).toUpperCase() || 'U'}
             </div>
             {otherUser?.is_verified && (
               <div
-                className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-500 text-white flex items-center justify-center text-[9px] font-bold border-2 border-white"
+                className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#27AE60] text-white flex items-center justify-center text-[9px] font-bold border-2 border-white"
                 title="Verified student"
               >
                 ✓
@@ -385,7 +382,7 @@ export default function ChatThreadPage() {
 
           {/* User & Related Item info */}
           <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-bold text-gray-900 truncate">
+            <h2 className="text-sm font-display font-bold text-[#1B2A4A] truncate">
               {otherUser?.full_name || 'Campus Student'}
             </h2>
 
@@ -393,19 +390,19 @@ export default function ChatThreadPage() {
             {item?.url ? (
               <Link
                 href={item.url}
-                className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium truncate max-w-full hover:underline"
+                className="inline-flex items-center gap-1 text-xs text-[#5B5647] hover:text-[#1B2A4A] font-medium truncate max-w-full hover:underline"
               >
                 {item.type === 'listing' ? (
-                  <Package className="w-3 h-3 flex-shrink-0" />
+                  <Package className="w-3 h-3 flex-shrink-0 text-[#1B2A4A]" />
                 ) : item.type === 'request' ? (
-                  <FileQuestion className="w-3 h-3 flex-shrink-0" />
+                  <FileQuestion className="w-3 h-3 flex-shrink-0 text-[#1B2A4A]" />
                 ) : (
-                  <Wrench className="w-3 h-3 flex-shrink-0" />
+                  <Wrench className="w-3 h-3 flex-shrink-0 text-[#1B2A4A]" />
                 )}
                 <span className="truncate">{item.title}</span>
               </Link>
             ) : (
-              <span className="inline-flex items-center gap-1 text-xs text-gray-400 italic truncate">
+              <span className="inline-flex items-center gap-1 text-xs text-[#8A8272] italic truncate">
                 <AlertCircle className="w-3 h-3 flex-shrink-0" />
                 <span>{item?.title || 'Item no longer available'}</span>
               </span>
@@ -417,14 +414,14 @@ export default function ChatThreadPage() {
         <div className="relative flex-shrink-0" ref={menuRef}>
           <button
             onClick={() => setShowMenu((prev) => !prev)}
-            className="p-2 rounded-xl text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition cursor-pointer"
+            className="p-2 rounded-xl text-[#5B5647] hover:text-[#1B2A4A] hover:bg-[#F3EEDC] transition cursor-pointer"
             aria-label="Thread options"
           >
             <MoreVertical className="w-5 h-5" />
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 mt-1 w-48 bg-white rounded-2xl shadow-xl border border-gray-200 py-1.5 z-40 animate-fade-in text-sm">
+            <div className="absolute right-0 mt-1 w-48 bg-white rounded-2xl shadow-xl border border-[#EDE6D6] py-1.5 z-40 text-sm">
               <button
                 onClick={() => {
                   setShowMenu(false);
@@ -442,7 +439,7 @@ export default function ChatThreadPage() {
                   // TODO: Block user feature (v2)
                   showToast('User blocking will be available in an upcoming update.', 'error');
                 }}
-                className="w-full text-left px-4 py-2.5 text-gray-600 hover:bg-gray-50 font-medium flex items-center gap-2.5 transition"
+                className="w-full text-left px-4 py-2.5 text-[#5B5647] hover:bg-[#FAF6EE] font-medium flex items-center gap-2.5 transition"
               >
                 <UserX className="w-4 h-4" />
                 Block Student
@@ -454,14 +451,14 @@ export default function ChatThreadPage() {
 
       {/* Item Context Banner */}
       {item && item.url && (
-        <div className="bg-blue-50/80 border-b border-blue-100 px-4 py-2 flex items-center justify-between text-xs">
-          <span className="text-gray-600 truncate flex items-center gap-1.5">
-            <span className="font-semibold text-blue-900">Regarding:</span>
-            <span className="truncate text-gray-800">{item.title}</span>
+        <div className="bg-[#FAF6EE] border-b border-[#EDE6D6] px-4 py-2 flex items-center justify-between text-xs">
+          <span className="text-[#5B5647] truncate flex items-center gap-1.5">
+            <span className="font-semibold text-[#1B2A4A]">Regarding:</span>
+            <span className="truncate text-[#3E3A30]">{item.title}</span>
           </span>
           <Link
             href={item.url}
-            className="font-semibold text-blue-700 hover:text-blue-900 flex-shrink-0 ml-2"
+            className="font-semibold text-[#1B2A4A] hover:underline flex-shrink-0 ml-2"
           >
             View Post →
           </Link>
@@ -473,22 +470,21 @@ export default function ChatThreadPage() {
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <Loader className="w-6 h-6 animate-spin text-blue-600 mx-auto mb-2" />
-              <p className="text-xs text-gray-500 font-medium">Loading chat...</p>
+              <Loader className="w-6 h-6 animate-spin text-[#1B2A4A] mx-auto mb-2" />
+              <p className="text-xs text-[#8A8272] font-medium">Loading chat...</p>
             </div>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4 py-8">
             <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3"
-              style={{ background: 'linear-gradient(135deg, #EFF6FF, #DBEAFE)' }}
+              className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3 bg-[#FAF6EE] border border-[#EDE6D6]"
             >
-              <Send className="w-6 h-6 text-blue-600" />
+              <Send className="w-6 h-6 text-[#1B2A4A]" />
             </div>
-            <h4 className="text-sm font-bold mb-1" style={{ color: '#1B2A4A' }}>
+            <h4 className="text-sm font-display font-bold mb-1 text-[#1B2A4A]">
               Start the conversation
             </h4>
-            <p className="text-xs text-gray-500 max-w-xs">
+            <p className="text-xs text-[#8A8272] max-w-xs">
               Say hello, discuss material availability, handover spot on campus, or pricing!
             </p>
           </div>
@@ -503,19 +499,14 @@ export default function ChatThreadPage() {
                 <div
                   className={`max-w-[78%] sm:max-w-[70%] rounded-2xl px-4 py-2.5 text-sm break-words shadow-xs ${
                     isMe
-                      ? 'text-white rounded-br-xs'
-                      : 'bg-white text-gray-900 border border-gray-200 rounded-bl-xs'
+                      ? 'bg-[#1B2A4A] text-white rounded-br-xs'
+                      : 'bg-white text-[#1B2A4A] border border-[#EDE6D6] rounded-bl-xs'
                   }`}
-                  style={{
-                    background: isMe
-                      ? 'linear-gradient(135deg, #1877F2, #166FE5)'
-                      : undefined,
-                  }}
                 >
                   <p className="whitespace-pre-wrap leading-relaxed">{msg.body}</p>
                   <div
                     className={`flex items-center justify-end gap-1 mt-1 text-[10px] ${
-                      isMe ? 'text-blue-100' : 'text-gray-400'
+                      isMe ? 'text-white/70' : 'text-[#8A8272]'
                     }`}
                   >
                     <span>{formatMessageTime(msg.created_at)}</span>
@@ -524,9 +515,9 @@ export default function ChatThreadPage() {
                         {msg.isOptimistic ? (
                           <Loader className="w-2.5 h-2.5 animate-spin inline" />
                         ) : msg.read_at ? (
-                          <CheckCheck className="w-3 h-3 text-blue-200 inline" />
+                          <CheckCheck className="w-3 h-3 text-[#27AE60] inline" />
                         ) : (
-                          <Check className="w-3 h-3 text-blue-200 inline" />
+                          <Check className="w-3 h-3 text-white/60 inline" />
                         )}
                       </span>
                     )}
@@ -540,9 +531,9 @@ export default function ChatThreadPage() {
       </div>
 
       {/* Input Box Area */}
-      <footer className="sticky bottom-0 bg-white border-t border-gray-200 p-3 sm:p-4">
+      <footer className="sticky bottom-0 bg-[#FBF8F1]/95 backdrop-blur-md border-t border-[#EDE6D6] p-3 sm:p-4">
         <form onSubmit={handleSendMessage} className="space-y-1.5">
-          <div className="flex items-end gap-2 bg-gray-50 border border-gray-300 rounded-2xl px-3 py-2 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 transition">
+          <div className="flex items-end gap-2 bg-white border border-[#EDE6D6] rounded-2xl px-3 py-2 focus-within:border-[#1B2A4A] focus-within:ring-1 focus-within:ring-[#1B2A4A] transition">
             <textarea
               ref={textareaRef}
               rows={1}
@@ -552,14 +543,13 @@ export default function ChatThreadPage() {
               onKeyDown={handleKeyDown}
               placeholder="Type a message (Enter to send, Shift+Enter for newline)..."
               disabled={sending}
-              className="flex-1 bg-transparent text-sm resize-none focus:outline-none max-h-32 min-h-[24px] py-1 text-gray-900 placeholder:text-gray-400"
+              className="flex-1 bg-transparent text-sm resize-none focus:outline-none max-h-32 min-h-[24px] py-1 text-[#1B2A4A] placeholder:text-[#8A8272]"
               style={{ maxHeight: '120px' }}
             />
             <button
               type="submit"
               disabled={!newMessage.trim() || sending}
-              className="p-2 rounded-xl text-white font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex-shrink-0 shadow-sm active:scale-95"
-              style={{ background: 'linear-gradient(135deg, #1877F2, #166FE5)' }}
+              className="p-2.5 rounded-xl text-white font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex-shrink-0 shadow-xs active:scale-95 btn-action-green"
               aria-label="Send message"
             >
               {sending ? (
@@ -571,7 +561,7 @@ export default function ChatThreadPage() {
           </div>
 
           {/* Character counter (visible as you approach limit) */}
-          <div className="flex items-center justify-between px-1 text-[11px] text-gray-400">
+          <div className="flex items-center justify-between px-1 text-[11px] text-[#8A8272]">
             <span>Press Enter to send</span>
             <span
               className={`font-mono transition ${

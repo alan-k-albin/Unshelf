@@ -121,134 +121,134 @@ export default function EditProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader className="w-6 h-6 animate-spin" style={{ color: '#1877F2' }} />
+      <div className="min-h-screen bg-[#FBF8F1] flex items-center justify-center font-body">
+        <Loader className="w-6 h-6 animate-spin text-[#1B2A4A]" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-[#FBF8F1] font-body pb-24">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="flex items-center gap-3 px-4 py-4">
-          <button onClick={() => router.back()} className="p-1">
+      <div className="bg-[#FBF8F1]/90 backdrop-blur-md border-b border-[#EDE6D6] sticky top-0 z-10">
+        <div className="max-w-lg mx-auto flex items-center gap-3 px-4 py-3.5">
+          <button
+            onClick={() => router.back()}
+            className="p-2 hover:bg-[#F3EEDC] text-[#1B2A4A] rounded-xl transition"
+          >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-bold flex-1" style={{ color: '#1B2A4A' }}>
+          <h1 className="text-lg font-display font-bold flex-1 text-[#1B2A4A]">
             Edit Profile
           </h1>
         </div>
       </div>
 
-      <div className="px-4 py-6 max-w-lg mx-auto space-y-5">
+      <div className="px-4 py-6 max-w-lg mx-auto">
         {error && (
-          <div className="p-4 rounded-xl flex gap-3 border border-red-200 bg-red-50">
+          <div className="mb-5 p-4 rounded-xl flex gap-3 border bg-red-50 border-red-200">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-600" />
-            <p className="text-sm text-red-700">{error}</p>
+            <p className="text-sm font-medium text-red-700">{error}</p>
           </div>
         )}
 
         {success && (
-          <div className="p-4 rounded-xl flex gap-3 border border-green-200 bg-green-50">
-            <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-green-600" />
-            <p className="text-sm text-green-700">{success}</p>
+          <div className="mb-5 p-4 rounded-xl flex gap-3 border bg-[#F0FDF4] border-[#BBF7D0]">
+            <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#27AE60]" />
+            <p className="text-sm font-medium text-[#27AE60]">{success}</p>
           </div>
         )}
 
-        {/* Full Name */}
-        <div>
-          <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
-            Full Name *
-          </label>
-          <input
-            type="text"
-            name="full_name"
-            placeholder="Your full name"
-            value={formData.full_name}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-            style={{ color: '#1B2A4A' }}
-          />
-        </div>
-
-        {/* Department */}
-        <div>
-          <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
-            Department *
-          </label>
-          <select
-            name="department"
-            value={formData.department}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-            style={{ color: '#1B2A4A' }}
-          >
-            <option value="">Select Department</option>
-            {DEPARTMENTS.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Semester */}
-        <div>
-          <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
-            Semester *
-          </label>
-          <select
-            name="semester"
-            value={formData.semester}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-            style={{ color: '#1B2A4A' }}
-          >
-            <option value="">Select Semester</option>
-            {SEMESTERS.map((s) => (
-              <option key={s} value={`S${s}`}>Semester {s}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* WhatsApp */}
-        <div>
-          <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
-            WhatsApp Number *
-          </label>
-          <div className="relative">
-            <Smartphone className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" />
+        <div className="bg-white rounded-2xl p-6 border border-[#EDE6D6] shadow-xs space-y-5">
+          {/* Full Name */}
+          <div>
+            <label className="block text-sm font-semibold text-[#1B2A4A] mb-1.5">
+              Full Name *
+            </label>
             <input
-              type="tel"
-              name="whatsapp_number"
-              placeholder="9876543210"
-              value={formData.whatsapp_number}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  whatsapp_number: e.target.value.replace(/\D/g, ''),
-                }))
-              }
-              maxLength="10"
-              className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-              style={{ color: '#1B2A4A' }}
+              type="text"
+              name="full_name"
+              placeholder="Your full name"
+              value={formData.full_name}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 rounded-xl border border-[#EDE6D6] text-sm bg-white text-[#1B2A4A] placeholder-[#8A8272] focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A] transition"
             />
           </div>
-        </div>
 
-        {/* Save Button */}
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full py-3 rounded-xl font-semibold text-white text-sm disabled:opacity-50 flex items-center justify-center gap-2"
-          style={{ background: 'linear-gradient(135deg, #1877F2, #166FE5)' }}
-        >
-          {saving ? (
-            <><Loader className="w-4 h-4 animate-spin" /> Saving...</>
-          ) : (
-            'Save Changes'
-          )}
-        </button>
+          {/* Department */}
+          <div>
+            <label className="block text-sm font-semibold text-[#1B2A4A] mb-1.5">
+              Department *
+            </label>
+            <select
+              name="department"
+              value={formData.department}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 rounded-xl border border-[#EDE6D6] text-sm bg-white text-[#1B2A4A] focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A] transition"
+            >
+              <option value="">Select Department</option>
+              {DEPARTMENTS.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Semester */}
+          <div>
+            <label className="block text-sm font-semibold text-[#1B2A4A] mb-1.5">
+              Semester *
+            </label>
+            <select
+              name="semester"
+              value={formData.semester}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 rounded-xl border border-[#EDE6D6] text-sm bg-white text-[#1B2A4A] focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A] transition"
+            >
+              <option value="">Select Semester</option>
+              {SEMESTERS.map((s) => (
+                <option key={s} value={`S${s}`}>Semester {s}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* WhatsApp */}
+          <div>
+            <label className="block text-sm font-semibold text-[#1B2A4A] mb-1.5">
+              WhatsApp Number *
+            </label>
+            <div className="relative">
+              <Smartphone className="absolute left-4 top-3.5 w-5 h-5 text-[#8A8272]" />
+              <input
+                type="tel"
+                name="whatsapp_number"
+                placeholder="9876543210"
+                value={formData.whatsapp_number}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    whatsapp_number: e.target.value.replace(/\D/g, ''),
+                  }))
+                }
+                maxLength="10"
+                className="w-full pl-12 pr-4 py-3 rounded-xl border border-[#EDE6D6] text-sm bg-white text-[#1B2A4A] placeholder-[#8A8272] focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A] transition"
+              />
+            </div>
+          </div>
+
+          {/* Save Button */}
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full min-h-[48px] py-3 rounded-xl font-semibold text-white text-base disabled:opacity-50 flex items-center justify-center gap-2 btn-action-green transition active:scale-[0.98] shadow-xs"
+          >
+            {saving ? (
+              <><Loader className="w-4 h-4 animate-spin" /> Saving...</>
+            ) : (
+              'Save Changes'
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
-    }
+}

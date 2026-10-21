@@ -98,45 +98,52 @@ export default function ReportModal({ listingId, requestId, serviceId, conversat
     : 'Report Listing';
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-      <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 px-4 font-body">
+      <div className="bg-[#FBF8F1] rounded-2xl border border-[#EDE6D6] shadow-xl p-6 w-full max-w-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: '#1B2A4A' }}>
+          <h3 className="text-lg font-display font-bold flex items-center gap-2 text-[#1B2A4A]">
             <AlertCircle className="w-5 h-5 text-red-600" />
             {modalTitle}
           </h3>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg">
+          <button
+            onClick={onClose}
+            className="p-1.5 hover:bg-[#F3EEDC] text-[#5B5647] rounded-xl transition"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {success ? (
           <div className="text-center py-8">
-            <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
-            <p className="font-semibold mb-1" style={{ color: '#1B2A4A' }}>
+            <CheckCircle className="w-12 h-12 text-[#27AE60] mx-auto mb-3" />
+            <p className="font-display font-bold text-base mb-1 text-[#1B2A4A]">
               Report Submitted
             </p>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-[#8A8272]">
               Thank you. Our team will review this shortly.
             </p>
           </div>
         ) : (
           <>
             {error && (
-              <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
-                <p className="text-xs text-red-700">{error}</p>
+              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200">
+                <p className="text-xs text-red-700 font-medium">{error}</p>
               </div>
             )}
 
-            <div className="mb-6">
-              <label className="block text-sm font-semibold mb-3" style={{ color: '#1B2A4A' }}>
+            <div className="mb-5">
+              <label className="block text-sm font-semibold text-[#1B2A4A] mb-2.5">
                 What's the issue?
               </label>
               <div className="space-y-2">
                 {REPORT_REASONS.map((opt) => (
                   <label
                     key={opt.value}
-                    className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition"
+                    className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition ${
+                      reason === opt.value
+                        ? 'border-[#1B2A4A] bg-[#FAF6EE] shadow-xs'
+                        : 'border-[#EDE6D6] bg-white hover:bg-[#FAF6EE]'
+                    }`}
                   >
                     <input
                       type="radio"
@@ -144,16 +151,16 @@ export default function ReportModal({ listingId, requestId, serviceId, conversat
                       value={opt.value}
                       checked={reason === opt.value}
                       onChange={(e) => setReason(e.target.value)}
-                      className="w-4 h-4"
+                      className="w-4 h-4 accent-[#1B2A4A]"
                     />
-                    <span className="text-sm">{opt.label}</span>
+                    <span className="text-sm text-[#1B2A4A] font-medium">{opt.label}</span>
                   </label>
                 ))}
               </div>
             </div>
 
-            <div className="mb-6">
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
+            <div className="mb-5">
+              <label className="block text-sm font-semibold text-[#1B2A4A] mb-2">
                 More details (Optional)
               </label>
               <textarea
@@ -161,26 +168,25 @@ export default function ReportModal({ listingId, requestId, serviceId, conversat
                 value={description}
                 onChange={(e) => setDescription(e.target.value.slice(0, 300))}
                 maxLength={300}
-                className="w-full px-3 py-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full px-3 py-3 border border-[#EDE6D6] rounded-xl text-sm bg-white text-[#1B2A4A] placeholder-[#8A8272] resize-none focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition"
                 rows="3"
               />
-              <p className="text-xs text-gray-500 mt-1">{description.length}/300</p>
+              <p className="text-xs text-[#8A8272] mt-1 text-right">{description.length}/300</p>
             </div>
 
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={onClose}
-                className="flex-1 py-2.5 rounded-lg border border-gray-300 font-semibold text-sm"
+                className="flex-1 min-h-[44px] py-2.5 rounded-xl border border-[#EDE6D6] hover:bg-[#F3EEDC] text-[#5B5647] font-semibold text-sm transition"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleSubmit}
                 disabled={loading || !reason}
-                className="flex-1 py-2.5 rounded-lg font-semibold text-white text-sm disabled:opacity-50 flex items-center justify-center gap-2"
-                style={{
-                  background: loading ? '#94A3B8' : '#DC2626',
-                }}
+                className="flex-1 min-h-[44px] py-2.5 rounded-xl font-semibold text-white text-sm disabled:opacity-50 flex items-center justify-center gap-2 bg-[#DC2626] hover:bg-[#B91C1C] transition shadow-xs active:scale-[0.98]"
               >
                 {loading ? (
                   <>
@@ -196,4 +202,4 @@ export default function ReportModal({ listingId, requestId, serviceId, conversat
       </div>
     </div>
   );
-                                       }
+}

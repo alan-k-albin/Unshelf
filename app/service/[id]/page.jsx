@@ -19,6 +19,7 @@ import {
   Sparkles,
   User,
   ShieldCheck,
+  Check,
 } from 'lucide-react';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
 import ReportModal from '@/components/ReportModal';
@@ -157,7 +158,8 @@ export default function ServiceDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FDFBF7] p-4 max-w-2xl mx-auto">
+      <div className="min-h-screen bg-[#FBF8F1] p-4 max-w-2xl mx-auto font-body">
+        <LoadingSkeleton />
         <LoadingSkeleton />
       </div>
     );
@@ -165,14 +167,16 @@ export default function ServiceDetailPage() {
 
   if (notFound || !service) {
     return (
-      <div className="min-h-screen bg-[#FDFBF7] flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-[#FBF8F1] flex flex-col items-center justify-center p-4 font-body">
         <div className="text-center">
-          <Briefcase className="w-12 h-12 text-[#8A8272] mx-auto mb-3" />
+          <div className="w-16 h-16 rounded-2xl bg-[#EDE6D6]/60 flex items-center justify-center text-3xl mx-auto mb-4 text-[#8A8272]">
+            <Briefcase className="w-8 h-8 text-[#8A8272]" />
+          </div>
           <h2 className="text-xl font-display font-bold text-[#1B2A4A] mb-2">Service Not Found</h2>
-          <p className="text-sm text-[#5B5647] mb-6">This service might have been deleted or closed.</p>
+          <p className="text-sm text-[#8A8272] mb-6">This service might have been deleted or closed.</p>
           <button
             onClick={() => router.push('/search?type=services')}
-            className="px-6 py-2.5 rounded-full font-semibold text-white text-sm bg-[#1B2A4A] hover:shadow-lg transition"
+            className="px-6 py-3 rounded-xl font-semibold text-white text-base btn-action-green transition active:scale-[0.98]"
           >
             Browse Student Services
           </button>
@@ -186,15 +190,15 @@ export default function ServiceDetailPage() {
   const isOpen = service.status === 'open';
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] pb-32">
+    <div className="min-h-screen bg-[#FBF8F1] font-body pb-32">
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
-      <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-[#EDE6D6] z-20">
-        <div className="flex items-center justify-between px-4 py-3 max-w-3xl mx-auto">
+      <div className="sticky top-0 bg-[#FBF8F1]/90 backdrop-blur-md border-b border-[#EDE6D6] z-20">
+        <div className="flex items-center justify-between px-4 py-3.5 max-w-2xl mx-auto">
           <button
             onClick={() => router.back()}
             aria-label="Go back"
-            className="p-2 hover:bg-gray-100 rounded-full transition text-[#1B2A4A]"
+            className="p-2 hover:bg-[#F3EEDC] rounded-xl transition text-[#1B2A4A]"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -202,46 +206,46 @@ export default function ServiceDetailPage() {
             <button
               onClick={handleRefresh}
               aria-label="Refresh page"
-              className="p-2 hover:bg-gray-100 rounded-full transition text-[#1B2A4A]"
+              className="p-2 hover:bg-[#F3EEDC] rounded-xl transition text-[#1B2A4A]"
             >
-              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
             <button
               onClick={handleShare}
               aria-label="Share service"
-              className="p-2 hover:bg-gray-100 rounded-full transition text-[#1B2A4A]"
+              className="p-2 hover:bg-[#F3EEDC] rounded-xl transition text-[#1B2A4A]"
             >
-              <Share2 className="w-5 h-5" />
+              <Share2 className="w-4 h-4" />
             </button>
             {!isOwner && (
               <button
                 onClick={() => setShowReportModal(true)}
                 aria-label="Report service"
-                className="p-2 hover:bg-red-50 rounded-full transition text-red-500"
+                className="p-2 hover:bg-red-50 rounded-xl transition text-red-600"
               >
-                <Flag className="w-5 h-5" />
+                <Flag className="w-4 h-4" />
               </button>
             )}
           </div>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 pt-6 space-y-6">
+      <div className="max-w-2xl mx-auto px-4 pt-6 space-y-6">
         <div
-          className="rounded-3xl p-6 md:p-8 text-white relative overflow-hidden shadow-lg"
+          className="rounded-2xl p-6 md:p-8 text-white relative overflow-hidden shadow-xs border border-[#EDE6D6]/40"
           style={{
             background: isOffering
-              ? 'linear-gradient(135deg, #15803D, #166534)'
-              : 'linear-gradient(135deg, #B45309, #78350F)',
+              ? 'linear-gradient(135deg, #1B2A4A 0%, #243B6B 100%)'
+              : 'linear-gradient(135deg, #8C2D19 0%, #A93B24 100%)',
           }}
         >
           <div className="flex flex-wrap items-center justify-between gap-2 mb-4 relative z-10">
             <div className="flex items-center gap-2">
-              <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <span className="bg-white/15 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
                 {isOffering ? <Briefcase className="w-3.5 h-3.5" /> : <Wrench className="w-3.5 h-3.5" />}
                 {isOffering ? 'Service Offered' : 'Service Needed'}
               </span>
-              <span className="bg-white/15 px-3 py-1 rounded-full text-xs font-semibold">
+              <span className="bg-white/10 px-3 py-1 rounded-full text-xs font-semibold">
                 {service.category}
               </span>
             </div>
@@ -249,7 +253,7 @@ export default function ServiceDetailPage() {
             <div className="flex items-center gap-2">
               <span
                 className={`text-xs font-bold px-3 py-1 rounded-full ${
-                  isOpen ? 'bg-emerald-400/30 text-emerald-100 border border-emerald-300/40' : 'bg-gray-800/50 text-gray-200'
+                  isOpen ? 'bg-emerald-400/25 text-emerald-200 border border-emerald-300/30' : 'bg-gray-800/50 text-gray-300'
                 }`}
               >
                 {isOpen ? '● Active' : '● Closed'}
@@ -261,7 +265,7 @@ export default function ServiceDetailPage() {
             {service.title}
           </h1>
 
-          <div className="flex flex-wrap items-center gap-4 text-xs text-white/85 relative z-10">
+          <div className="flex flex-wrap items-center gap-4 text-xs text-white/80 relative z-10">
             <div className="flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 opacity-80" />
               <span>Posted {new Date(service.created_at).toLocaleDateString()}</span>
@@ -280,13 +284,11 @@ export default function ServiceDetailPage() {
               <p className="text-xl md:text-2xl font-bold font-display text-amber-200">{service.rate || 'Negotiable'}</p>
             </div>
             {isOpen && !isOwner && (
-              <span className="text-xs bg-white text-[#1B2A4A] font-bold px-3.5 py-1.5 rounded-full shadow-sm">
+              <span className="text-xs bg-white text-[#1B2A4A] font-bold px-3.5 py-1.5 rounded-full shadow-xs">
                 Available on Campus
               </span>
             )}
           </div>
-
-          <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
         </div>
 
         {!isOpen && (
@@ -298,7 +300,7 @@ export default function ServiceDetailPage() {
           </div>
         )}
 
-        <div className="bg-white rounded-3xl p-6 border-2 border-[#EDE6D6] shadow-xs space-y-4">
+        <div className="bg-white rounded-2xl p-6 border border-[#EDE6D6] shadow-xs space-y-4">
           <h2 className="text-base font-display font-bold text-[#1B2A4A] flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-[#27AE60]" />
             About This Service
@@ -308,17 +310,17 @@ export default function ServiceDetailPage() {
             {service.description || 'No additional description provided by the student.'}
           </div>
 
-          <div className="pt-4 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-            <div className="bg-[#F9F7F1] p-3 rounded-xl">
-              <span className="text-gray-400 block text-[10px] uppercase font-bold">Category</span>
+          <div className="pt-4 border-t border-[#EDE6D6]/60 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+            <div className="bg-[#FAF6EE] p-3 rounded-xl border border-[#EDE6D6]/60">
+              <span className="text-[#8A8272] block text-[10px] uppercase font-bold">Category</span>
               <span className="font-semibold text-[#1B2A4A]">{service.category}</span>
             </div>
-            <div className="bg-[#F9F7F1] p-3 rounded-xl">
-              <span className="text-gray-400 block text-[10px] uppercase font-bold">Rate</span>
+            <div className="bg-[#FAF6EE] p-3 rounded-xl border border-[#EDE6D6]/60">
+              <span className="text-[#8A8272] block text-[10px] uppercase font-bold">Rate</span>
               <span className="font-semibold text-[#1B2A4A]">{service.rate || 'Negotiable'}</span>
             </div>
-            <div className="bg-[#F9F7F1] p-3 rounded-xl col-span-2 sm:col-span-1">
-              <span className="text-gray-400 block text-[10px] uppercase font-bold">Campus Branch</span>
+            <div className="bg-[#FAF6EE] p-3 rounded-xl border border-[#EDE6D6]/60 col-span-2 sm:col-span-1">
+              <span className="text-[#8A8272] block text-[10px] uppercase font-bold">Campus Branch</span>
               <span className="font-semibold text-[#1B2A4A]">
                 {service.department || 'Any Branch'} {service.semester ? `(${service.semester})` : ''}
               </span>
@@ -326,25 +328,25 @@ export default function ServiceDetailPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl p-6 border-2 border-[#EDE6D6] shadow-xs">
+        <div className="bg-white rounded-2xl p-6 border border-[#EDE6D6] shadow-xs">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-display font-bold text-[#1B2A4A] flex items-center gap-2">
               <User className="w-4 h-4 text-[#1B2A4A]" />
               {isOffering ? 'Service Provider' : 'Requested By'}
             </h2>
             {provider?.is_verified && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#16A34A] bg-[#F0FDF4] px-2.5 py-0.5 rounded-full border border-[#BBF7D0]">
-                <ShieldCheck className="w-3.5 h-3.5" /> Verified Student
+              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E8F5E9] text-[#2E7D32] border border-[#C8E6C9]">
+                <Check className="w-3 h-3" /> Verified Student
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-[#1B2A4A] text-white flex items-center justify-center font-display font-bold text-lg shadow-sm">
+            <div className="w-12 h-12 rounded-xl bg-[#1B2A4A] text-white flex items-center justify-center font-display font-bold text-lg shadow-xs">
               {provider?.full_name ? provider.full_name.charAt(0).toUpperCase() : 'U'}
             </div>
             <div>
-              <p className="font-bold text-sm text-[#1B2A4A]">{provider?.full_name || 'Campus Student'}</p>
+              <p className="font-display font-semibold text-base text-[#1B2A4A]">{provider?.full_name || 'Campus Student'}</p>
               <p className="text-xs text-[#8A8272]">
                 {provider?.department ? `${provider.department} Dept` : 'College Student'}
                 {provider?.semester ? ` • Semester ${provider.semester}` : ''}
@@ -354,15 +356,15 @@ export default function ServiceDetailPage() {
         </div>
 
         {isOwner && (
-          <div className="bg-[#FFFDF9] rounded-3xl p-6 border-2 border-[#E5DCC6] shadow-xs space-y-4">
+          <div className="bg-white rounded-2xl p-6 border border-[#EDE6D6] shadow-xs space-y-4">
             <h3 className="text-sm font-display font-bold text-[#1B2A4A]">Manage Your Service</h3>
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => setShowStatusConfirm(true)}
-                className={`px-4 py-2.5 rounded-xl font-semibold text-xs transition flex items-center gap-2 ${
+                className={`min-h-[44px] px-4 py-2.5 rounded-xl font-semibold text-xs transition flex items-center gap-2 border border-[#EDE6D6] ${
                   isOpen
-                    ? 'bg-amber-100 text-amber-900 hover:bg-amber-200'
-                    : 'bg-emerald-100 text-emerald-900 hover:bg-emerald-200'
+                    ? 'bg-amber-50 text-amber-900 hover:bg-amber-100'
+                    : 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100'
                 }`}
               >
                 <CheckCircle className="w-4 h-4" />
@@ -371,7 +373,7 @@ export default function ServiceDetailPage() {
 
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="px-4 py-2.5 rounded-xl font-semibold text-xs bg-red-100 text-red-700 hover:bg-red-200 transition flex items-center gap-2"
+                className="min-h-[44px] px-4 py-2.5 rounded-xl font-semibold text-xs bg-red-50 text-red-700 hover:bg-red-100 transition flex items-center gap-2"
               >
                 <Trash2 className="w-4 h-4" />
                 Delete Service
@@ -393,7 +395,6 @@ export default function ServiceDetailPage() {
               viewerLoading={loading}
               showToast={showToast}
               buttonText={service.service_type === 'offering' ? 'Chat with Provider' : 'Chat with Requester'}
-              style={{ background: 'linear-gradient(135deg, #27AE60, #1F9550)' }}
             />
           </div>
         </div>
@@ -409,11 +410,11 @@ export default function ServiceDetailPage() {
 
       {showStatusConfirm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full border border-gray-200 shadow-2xl space-y-4">
+          <div className="bg-[#FBF8F1] rounded-2xl p-6 max-w-sm w-full border border-[#EDE6D6] shadow-2xl space-y-4">
             <h3 className="font-display font-bold text-lg text-[#1B2A4A]">
               {isOpen ? 'Close this service?' : 'Reopen this service?'}
             </h3>
-            <p className="text-xs text-[#5B5647] leading-relaxed">
+            <p className="text-xs text-[#8A8272] leading-relaxed">
               {isOpen
                 ? 'Closing this service will mark it as inactive and hide the contact button from other students.'
                 : 'Reopening will make this service active again and visible to all students on campus.'}
@@ -421,14 +422,14 @@ export default function ServiceDetailPage() {
             <div className="flex gap-3 justify-end pt-2">
               <button
                 onClick={() => setShowStatusConfirm(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-100"
+                className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-semibold text-[#5B5647] hover:bg-[#F3EEDC] border border-[#EDE6D6]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleToggleStatus}
                 disabled={statusLoading}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#1B2A4A] hover:bg-black transition flex items-center gap-1.5"
+                className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold text-white btn-action-green transition flex items-center gap-1.5"
               >
                 {statusLoading && <Loader className="w-3.5 h-3.5 animate-spin" />}
                 Confirm
@@ -440,25 +441,25 @@ export default function ServiceDetailPage() {
 
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full border border-gray-200 shadow-2xl space-y-4">
+          <div className="bg-[#FBF8F1] rounded-2xl p-6 max-w-sm w-full border border-[#EDE6D6] shadow-2xl space-y-4">
             <h3 className="font-display font-bold text-lg text-red-600 flex items-center gap-2">
               <Trash2 className="w-5 h-5" />
               Delete Service?
             </h3>
-            <p className="text-xs text-[#5B5647] leading-relaxed">
+            <p className="text-xs text-[#8A8272] leading-relaxed">
               Are you sure you want to delete <strong>"{service.title}"</strong>? This action cannot be undone.
             </p>
             <div className="flex gap-3 justify-end pt-2">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-100"
+                className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-semibold text-[#5B5647] hover:bg-[#F3EEDC] border border-[#EDE6D6]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteService}
                 disabled={deleteLoading}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition flex items-center gap-1.5"
+                className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#DC2626] hover:bg-[#B91C1C] transition flex items-center gap-1.5"
               >
                 {deleteLoading && <Loader className="w-3.5 h-3.5 animate-spin" />}
                 Delete

@@ -235,14 +235,14 @@ function SearchPageContent() {
     appliedFilters.maxPrice < 100000;
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] pb-24">
+    <div className="min-h-screen bg-[#FBF8F1] pb-24 font-body">
       {/* Sticky Top Section */}
-      <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-[#EDE6D6] z-20 shadow-xs">
+      <div className="sticky top-0 bg-[#FBF8F1]/95 backdrop-blur-md border-b border-[#EDE6D6] z-20 shadow-xs">
         {/* Search Bar */}
         <div className="px-4 pt-3 pb-2 max-w-7xl mx-auto">
           <form onSubmit={handleSearch} className="flex gap-2 items-center">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A8272]" />
               <input
                 type="text"
                 placeholder={
@@ -254,7 +254,7 @@ function SearchPageContent() {
                 }
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1B2A4A]/20 transition text-[#1B2A4A]"
+                className="w-full pl-10 pr-4 py-2.5 min-h-[44px] border-2 border-[#EDE6D6] rounded-xl text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] bg-white placeholder-[#8A8272]"
               />
             </div>
 
@@ -265,12 +265,13 @@ function SearchPageContent() {
                   setPendingFilters({ ...appliedFilters });
                   setShowFilters(!showFilters);
                 }}
-                className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-100 relative"
+                aria-label="Filter listings"
+                className="p-2.5 min-h-[44px] min-w-[44px] rounded-xl border-2 border-[#EDE6D6] bg-white hover:border-[#1B2A4A] hover:bg-[#F3EFE4] text-[#1B2A4A] relative transition flex items-center justify-center"
               >
-                <Filter className="w-5 h-5 text-[#1877F2]" />
+                <Filter className="w-5 h-5 text-[#1B2A4A]" />
                 {hasActiveFilters && (
                   <span
-                    className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full border-2 border-white bg-[#27AE60]"
+                    className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full border-2 border-white bg-[#27AE60]"
                   />
                 )}
               </button>
@@ -279,13 +280,13 @@ function SearchPageContent() {
         </div>
 
         {/* Type Navigation Tabs */}
-        <div className="flex px-4 border-t border-gray-100 overflow-x-auto gap-2 py-2 scrollbar-none max-w-7xl mx-auto">
+        <div className="flex px-4 border-t border-[#EDE6D6] overflow-x-auto gap-2 py-2 scrollbar-none max-w-7xl mx-auto">
           <button
             onClick={() => handleTabSwitch('listings')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition min-h-[36px] ${
               activeType === 'listings'
                 ? 'bg-[#1B2A4A] text-white shadow-xs'
-                : 'text-gray-600 hover:bg-gray-100'
+                : 'text-[#5B5647] hover:bg-[#F3EFE4] hover:text-[#1B2A4A]'
             }`}
           >
             <BookOpen className="w-3.5 h-3.5" />
@@ -294,10 +295,10 @@ function SearchPageContent() {
 
           <button
             onClick={() => handleTabSwitch('requests')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition min-h-[36px] ${
               activeType === 'requests'
-                ? 'bg-[#1877F2] text-white shadow-xs'
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-[#1B2A4A] text-white shadow-xs'
+                : 'text-[#5B5647] hover:bg-[#F3EFE4] hover:text-[#1B2A4A]'
             }`}
           >
             <HelpCircle className="w-3.5 h-3.5" />
@@ -306,10 +307,10 @@ function SearchPageContent() {
 
           <button
             onClick={() => handleTabSwitch('services')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition min-h-[36px] ${
               activeType === 'services'
-                ? 'bg-[#15803D] text-white shadow-xs'
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-[#1B2A4A] text-white shadow-xs'
+                : 'text-[#5B5647] hover:bg-[#F3EFE4] hover:text-[#1B2A4A]'
             }`}
           >
             <Briefcase className="w-3.5 h-3.5" />
@@ -319,20 +320,20 @@ function SearchPageContent() {
 
         {/* Sub-tabs for Services (All / Offering / Seeking) */}
         {activeType === 'services' && (
-          <div className="flex px-4 pb-2 pt-1 gap-2 border-t border-gray-100 max-w-7xl mx-auto">
+          <div className="flex px-4 pb-2 pt-1 gap-2 border-t border-[#EDE6D6] max-w-7xl mx-auto">
             <button
               onClick={() => handleServiceTypeChange('all')}
-              className={`text-[11px] font-bold px-3 py-1 rounded-lg border transition ${
+              className={`text-[11px] font-bold px-3 py-1.5 rounded-xl border-2 transition ${
                 serviceTypeFilter === 'all'
                   ? 'bg-[#1B2A4A] text-white border-[#1B2A4A]'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                  : 'bg-white text-[#1B2A4A] border-[#EDE6D6] hover:border-[#1B2A4A]'
               }`}
             >
               All Services
             </button>
             <button
               onClick={() => handleServiceTypeChange('offering')}
-              className={`text-[11px] font-bold px-3 py-1 rounded-lg border transition flex items-center gap-1 ${
+              className={`text-[11px] font-bold px-3 py-1.5 rounded-xl border transition flex items-center gap-1 ${
                 serviceTypeFilter === 'offering'
                   ? 'bg-[#15803D] text-white border-[#15803D]'
                   : 'bg-[#F0FDF4] text-[#15803D] border-[#BBF7D0] hover:border-[#15803D]'
@@ -343,7 +344,7 @@ function SearchPageContent() {
             </button>
             <button
               onClick={() => handleServiceTypeChange('seeking')}
-              className={`text-[11px] font-bold px-3 py-1 rounded-lg border transition flex items-center gap-1 ${
+              className={`text-[11px] font-bold px-3 py-1.5 rounded-xl border transition flex items-center gap-1 ${
                 serviceTypeFilter === 'seeking'
                   ? 'bg-[#B45309] text-white border-[#B45309]'
                   : 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A] hover:border-[#B45309]'
@@ -361,10 +362,10 @@ function SearchPageContent() {
             {appliedFilters.conditions.map((cond) => (
               <span
                 key={cond}
-                className="text-xs px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1"
+                className="text-xs px-2.5 py-1 rounded-full bg-[#EAF1FB] text-[#2C5AA0] border border-[#D0E1F9] flex items-center gap-1 font-semibold"
               >
                 {cond}
-                <button onClick={() => removeCondition(cond)}>
+                <button onClick={() => removeCondition(cond)} aria-label={`Remove condition ${cond}`}>
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -372,10 +373,10 @@ function SearchPageContent() {
             {appliedFilters.categories.map((cat) => (
               <span
                 key={cat}
-                className="text-xs px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 flex items-center gap-1"
+                className="text-xs px-2.5 py-1 rounded-full bg-[#FDECEA] text-[#B23A2E] border border-[#F8D1CC] flex items-center gap-1 font-semibold"
               >
                 {cat}
-                <button onClick={() => removeCategory(cat)}>
+                <button onClick={() => removeCategory(cat)} aria-label={`Remove category ${cat}`}>
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -417,8 +418,8 @@ function SearchPageContent() {
         {/* Results Area */}
         <div className="flex-1 min-w-0">
           {/* Section Header & Create Action */}
-          <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
-            <p className="text-sm font-medium text-gray-600">
+          <div className="flex items-center justify-between mb-4 pb-2 border-b border-[#EDE6D6]">
+            <p className="text-sm font-semibold text-[#5B5647]">
               {loading
                 ? 'Searching...'
                 : `${items.length} ${
@@ -433,7 +434,8 @@ function SearchPageContent() {
             {activeType === 'requests' ? (
               <Link
                 href="/create-request"
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold shadow-xs transition hover:opacity-95"
+                style={{ background: 'linear-gradient(135deg, #27AE60, #1F9550)' }}
               >
                 <Plus className="w-4 h-4" />
                 Request Material
@@ -441,24 +443,26 @@ function SearchPageContent() {
             ) : activeType === 'services' ? (
               <Link
                 href="/create-service"
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#15803D] hover:bg-[#166534] text-white text-xs font-semibold shadow-xs transition"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold shadow-xs transition hover:opacity-95"
+                style={{ background: 'linear-gradient(135deg, #27AE60, #1F9550)' }}
               >
                 <Plus className="w-4 h-4" />
-                + Post Service
+                Post Service
               </Link>
             ) : (
               <Link
                 href="/create-listing"
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#1B2A4A] hover:bg-[#2A3F6D] text-white text-xs font-semibold shadow-xs transition"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold shadow-xs transition hover:opacity-95"
+                style={{ background: 'linear-gradient(135deg, #27AE60, #1F9550)' }}
               >
                 <Plus className="w-4 h-4" />
-                + Sell Item
+                Sell Item
               </Link>
             )}
           </div>
 
           {loading && (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[1, 2, 3, 4].map((i) => (
                 <LoadingSkeleton key={i} />
               ))}
@@ -479,14 +483,14 @@ function SearchPageContent() {
 
           {/* SERVICE RESULTS */}
           {!loading && items.length > 0 && activeType === 'services' && (
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               {items.map((srv) => {
                 const isOff = srv.service_type === 'offering';
                 return (
                   <div
                     key={srv.id}
                     onClick={() => router.push(`/service/${srv.id}`)}
-                    className="p-4 border-2 border-[#EDE6D6] rounded-2xl cursor-pointer hover:shadow-md hover:border-[#15803D]/50 transition bg-white"
+                    className="group p-4 border-2 border-[#EDE6D6] rounded-2xl cursor-pointer hover:shadow-xl hover:border-[#1B2A4A] hover:-translate-y-0.5 transition-all duration-300 bg-white"
                   >
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -500,33 +504,33 @@ function SearchPageContent() {
                           {isOff ? <Briefcase className="w-3 h-3" /> : <Wrench className="w-3 h-3" />}
                           {isOff ? 'Offering' : 'Seeking'}
                         </span>
-                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700 font-semibold">
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#F3EFE4] text-[#1B2A4A] border border-[#EDE6D6] font-semibold">
                           {srv.category}
                         </span>
                       </div>
-                      <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200 whitespace-nowrap">
-                        💰 {srv.rate || 'Negotiable'}
+                      <span className="text-xs font-bold text-[#B45309] bg-[#FFFBEB] px-2.5 py-0.5 rounded-full border border-[#FDE68A] whitespace-nowrap">
+                        {srv.rate || 'Negotiable'}
                       </span>
                     </div>
 
-                    <h3 className="font-display font-bold text-base mb-1.5 text-[#1B2A4A]">
+                    <h3 className="font-display font-semibold text-base mb-1.5 text-[#1B2A4A]">
                       {srv.title}
                     </h3>
 
                     {srv.description && (
-                      <p className="text-xs text-[#5B5647] line-clamp-2 mb-2.5">
+                      <p className="text-xs text-[#5B5647] line-clamp-2 mb-2.5 leading-relaxed">
                         {srv.description}
                       </p>
                     )}
 
-                    <div className="flex items-center justify-between pt-2.5 border-t border-gray-100 text-xs">
-                      <div className="flex gap-2 text-gray-500 flex-wrap">
-                        {srv.department && <span>🏛️ {srv.department}</span>}
-                        {srv.semester && <span>🎓 {srv.semester}</span>}
+                    <div className="flex items-center justify-between pt-2.5 border-t border-[#EDE6D6] text-xs">
+                      <div className="flex gap-2 text-[#8A8272] flex-wrap font-medium">
+                        {srv.department && <span>{srv.department}</span>}
+                        {srv.semester && <span>• {srv.semester}</span>}
                         <span>• {new Date(srv.created_at).toLocaleDateString()}</span>
                       </div>
 
-                      <span className="font-bold text-[#15803D] hover:underline">
+                      <span className="font-semibold text-[#27AE60] group-hover:underline">
                         View Service →
                       </span>
                     </div>
@@ -538,19 +542,19 @@ function SearchPageContent() {
 
           {/* REQUEST RESULTS */}
           {!loading && items.length > 0 && activeType === 'requests' && (
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               {items.map((req) => {
                 const urg = URGENCY_BADGES[req.urgency] || URGENCY_BADGES.Medium;
                 return (
                   <div
                     key={req.id}
                     onClick={() => router.push(`/request/${req.id}`)}
-                    className="p-4 border-2 border-[#E0E7FF] rounded-2xl cursor-pointer hover:shadow-md hover:border-blue-400 transition bg-white"
+                    className="group p-4 border-2 border-[#EDE6D6] rounded-2xl cursor-pointer hover:shadow-xl hover:border-[#1B2A4A] hover:-translate-y-0.5 transition-all duration-300 bg-white"
                   >
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">
-                          📢 Request
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8] border border-[#BFDBFE] font-semibold">
+                          Request
                         </span>
                         <span
                           className="text-xs px-2.5 py-0.5 rounded-full border font-semibold"
@@ -558,33 +562,33 @@ function SearchPageContent() {
                         >
                           {urg.label}
                         </span>
-                        <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700 font-medium">
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#F3EFE4] text-[#1B2A4A] border border-[#EDE6D6] font-semibold">
                           {req.category}
                         </span>
                       </div>
-                      <span className="text-xs text-gray-400 whitespace-nowrap">
+                      <span className="text-xs text-[#8A8272] whitespace-nowrap">
                         {new Date(req.created_at).toLocaleDateString()}
                       </span>
                     </div>
 
-                    <h3 className="font-semibold text-base mb-1.5 text-[#1B2A4A]">
+                    <h3 className="font-display font-semibold text-base mb-1.5 text-[#1B2A4A]">
                       {req.title}
                     </h3>
 
                     {req.description && (
-                      <p className="text-xs text-gray-600 line-clamp-2 mb-2.5">
+                      <p className="text-xs text-[#5B5647] line-clamp-2 mb-2.5 leading-relaxed">
                         {req.description}
                       </p>
                     )}
 
-                    <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-xs">
-                      <div className="flex gap-2 text-gray-500">
-                        {req.department && <span>🏛️ {req.department}</span>}
-                        {req.semester && <span>🎓 {req.semester}</span>}
-                        {req.subject && <span>📖 {req.subject}</span>}
+                    <div className="flex items-center justify-between pt-2.5 border-t border-[#EDE6D6] text-xs">
+                      <div className="flex gap-2 text-[#8A8272] flex-wrap font-medium">
+                        {req.department && <span>{req.department}</span>}
+                        {req.semester && <span>• {req.semester}</span>}
+                        {req.subject && <span>• {req.subject}</span>}
                       </div>
 
-                      <span className="font-semibold text-blue-600 hover:underline">
+                      <span className="font-semibold text-[#1B2A4A] group-hover:text-[#27AE60] transition-colors">
                         I Have This →
                       </span>
                     </div>
@@ -596,71 +600,80 @@ function SearchPageContent() {
 
           {/* LISTINGS RESULTS */}
           {!loading && items.length > 0 && activeType === 'listings' && (
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               {items.map((listing) => (
                 <div
                   key={listing.id}
                   onClick={() => router.push(`/listing/${listing.id}`)}
-                  className="p-4 border border-gray-200 rounded-2xl cursor-pointer hover:shadow-md transition bg-white"
+                  className="group p-4 border-2 border-[#EDE6D6] rounded-2xl cursor-pointer hover:shadow-xl hover:border-[#1B2A4A] hover:-translate-y-0.5 transition-all duration-300 bg-white"
                 >
                   <div className="flex gap-4">
-                    {(listing.image_urls?.[0] || listing.image_url) && (
-                      <div className="relative w-20 h-20 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 border border-gray-200">
+                    {(listing.image_urls?.[0] || listing.image_url) ? (
+                      <div className="relative w-24 h-24 bg-[#F3EFE4] rounded-xl overflow-hidden flex-shrink-0 border border-[#EDE6D6]">
                         <img
                           src={listing.image_urls?.[0] || listing.image_url}
                           alt={listing.title}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                         {listing.image_urls?.length > 1 && (
-                          <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1 py-0.5 rounded font-medium">
+                          <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded font-semibold backdrop-blur-xs">
                             +{listing.image_urls.length - 1}
                           </div>
                         )}
                       </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h3
-                        className="font-semibold text-sm mb-1 line-clamp-2 text-[#1B2A4A]"
-                      >
-                        {listing.title}
-                      </h3>
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">
-                          {listing.category}
-                        </span>
-                        <span
-                          className="text-xs px-2 py-0.5 rounded font-medium"
-                          style={{
-                            background:
-                              listing.condition === 'Like New' ? '#E0F2FE'
-                              : listing.condition === 'Good' ? '#DCFCE7'
-                              : listing.condition === 'Used' ? '#FEF3C7'
-                              : '#FECACA',
-                            color:
-                              listing.condition === 'Like New' ? '#0369A1'
-                              : listing.condition === 'Good' ? '#166534'
-                              : listing.condition === 'Used' ? '#92400E'
-                              : '#DC2626',
-                          }}
-                        >
-                          {listing.condition}
-                        </span>
+                    ) : (
+                      <div className="w-24 h-24 bg-[#F3EFE4] rounded-xl flex items-center justify-center flex-shrink-0 border border-[#EDE6D6]">
+                        <BookOpen className="w-8 h-8 text-[#C9BFA8]" strokeWidth={1.5} />
                       </div>
+                    )}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between">
+                      <div>
+                        <h3
+                          className="font-display font-semibold text-sm mb-1.5 line-clamp-2 text-[#1B2A4A]"
+                        >
+                          {listing.title}
+                        </h3>
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          <span className="text-[11px] px-2 py-0.5 rounded-full border border-[#1B2A4A]/15 text-[#1B2A4A]/70 font-medium">
+                            {listing.category}
+                          </span>
+                          {listing.condition && (
+                            <span
+                              className="text-[11px] px-2 py-0.5 rounded-full font-semibold"
+                              style={{
+                                background:
+                                  listing.condition === 'Like New' ? '#EAF3EC'
+                                  : listing.condition === 'Good' ? '#EAF1FB'
+                                  : listing.condition === 'Used' ? '#FBF0DC'
+                                  : '#FDECEA',
+                                color:
+                                  listing.condition === 'Like New' ? '#1F7A44'
+                                  : listing.condition === 'Good' ? '#2C5AA0'
+                                  : listing.condition === 'Used' ? '#B8860B'
+                                  : '#B23A2E',
+                              }}
+                            >
+                              {listing.condition}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
                       <div className="flex items-center justify-between">
                         <div>
                           {listing.is_free ? (
-                            <span className="text-base font-bold text-green-600">Free</span>
+                            <span className="font-display text-base font-bold text-[#27AE60]">Free</span>
                           ) : (
-                            <span className="text-base font-bold text-[#1B2A4A]">
+                            <span className="font-display text-base font-bold text-[#1B2A4A]">
                               ₹{listing.price?.toLocaleString()}
                             </span>
                           )}
-                          <p className="text-[11px] text-gray-400 mt-0.5">
+                          <p className="text-[11px] text-[#8A8272] mt-0.5">
                             {new Date(listing.created_at).toLocaleDateString()}
                           </p>
                         </div>
                         {listing.semester && (
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-medium">
+                          <span className="text-xs bg-[#F3EFE4] text-[#1B2A4A] border border-[#EDE6D6] px-2.5 py-0.5 rounded-full font-semibold">
                             {listing.semester}
                           </span>
                         )}

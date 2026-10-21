@@ -1,18 +1,53 @@
 'use client';
 
+import { Sparkles, ThumbsUp, BookOpen, Wrench } from 'lucide-react';
+
 export default function ConditionLabel({ condition }) {
   const conditionConfig = {
-    'Like New': { icon: '✨', color: 'bg-green-50 text-green-700', label: 'Like New' },
-    'Good': { icon: '👍', color: 'bg-blue-50 text-blue-700', label: 'Good' },
-    'Used': { icon: '📖', color: 'bg-yellow-50 text-yellow-700', label: 'Used' },
-    'Heavily Used': { icon: '⚙️', color: 'bg-orange-50 text-orange-700', label: 'Heavily Used' }
+    'Like New': {
+      icon: Sparkles,
+      bg: '#EAF3EC',
+      text: '#1F7A44',
+      border: '#CFECDA',
+      label: 'Like New',
+    },
+    Good: {
+      icon: ThumbsUp,
+      bg: '#EAF1FB',
+      text: '#2C5AA0',
+      border: '#D0E1F9',
+      label: 'Good',
+    },
+    Used: {
+      icon: BookOpen,
+      bg: '#FBF0DC',
+      text: '#B8860B',
+      border: '#F5DEB4',
+      label: 'Used',
+    },
+    'Heavily Used': {
+      icon: Wrench,
+      bg: '#FDECEA',
+      text: '#B23A2E',
+      border: '#F8D1CC',
+      label: 'Heavily Used',
+    },
   };
 
   const config = conditionConfig[condition] || conditionConfig['Good'];
+  const IconComponent = config.icon;
 
   return (
-    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${config.color}`}>
-      {config.icon} {config.label}
+    <span
+      style={{
+        backgroundColor: config.bg,
+        color: config.text,
+        borderColor: config.border,
+      }}
+      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border font-body"
+    >
+      <IconComponent className="w-3 h-3" strokeWidth={2} />
+      {config.label}
     </span>
   );
-    }
+}

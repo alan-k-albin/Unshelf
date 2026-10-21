@@ -342,44 +342,53 @@ export default function Login() {
   const progressStage = step === 0 || step === 0.5 ? 1 : step === 1 ? 2 : step === 2 ? 3 : 4;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center px-4 py-8 overflow-y-auto relative">
-      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-green-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '2s' }} />
-      <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-purple-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '1s' }} />
+    <div className="min-h-screen bg-[#FBF8F1] font-body flex items-center justify-center px-4 py-8 overflow-y-auto relative">
+      {/* Subtle corkboard texture overlay matching home page */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundColor: '#F1E8D8',
+          backgroundImage:
+            'radial-gradient(circle at 1px 1px, rgba(27,42,74,0.08) 1px, transparent 0)',
+          backgroundSize: '22px 22px',
+          opacity: 0.5,
+        }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#FBF8F1]/60 to-[#FBF8F1] pointer-events-none" />
 
       <div className="w-full max-w-md relative z-10">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 backdrop-blur-sm border border-white/80">
+        <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 border-2 border-[#EDE6D6]">
 
-          <div className="text-center mb-8">
-            <img src="/logo.png" alt="Unshelf" className="h-20 w-auto mx-auto mb-3 object-contain" />
-            <p className="text-gray-500 text-sm mt-1">{stepLabel()}</p>
+          <div className="text-center mb-7">
+            <img src="/logo.png" alt="Unshelf" className="h-16 w-auto mx-auto mb-3 object-contain" />
+            <h2 className="font-display text-xl font-semibold text-[#1B2A4A] mt-1">{stepLabel()}</h2>
           </div>
 
-          <div className="flex gap-2 mb-8">
+          <div className="flex gap-2 mb-7">
             {[1, 2, 3, 4].map((s) => (
               <div
                 key={s}
                 className="h-1.5 flex-1 rounded-full transition-all duration-500"
                 style={{
                   background: s <= progressStage
-                    ? 'linear-gradient(90deg, #1877F2, #27AE60)'
-                    : '#E5E7EB',
+                    ? 'linear-gradient(90deg, #1B2A4A, #27AE60)'
+                    : '#EDE6D6',
                 }}
               />
             ))}
           </div>
 
           {error && (
-            <div className="mb-6 p-4 rounded-xl flex gap-3 border border-red-200 bg-red-50/50">
+            <div className="mb-6 p-3.5 rounded-xl flex gap-3 border border-red-200 bg-[#FEF2F2]">
               <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-600" />
-              <p className="text-sm text-red-700">{error}</p>
+              <p className="text-sm text-red-700 font-medium">{error}</p>
             </div>
           )}
 
           {success && (
-            <div className="mb-6 p-4 rounded-xl flex gap-3 border border-green-200 bg-green-50/50">
-              <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-green-600" />
-              <p className="text-sm text-green-700">{success}</p>
+            <div className="mb-6 p-3.5 rounded-xl flex gap-3 border border-[#CFECDA] bg-[#EAF3EC]">
+              <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#1F7A44]" />
+              <p className="text-sm text-[#1F7A44] font-medium">{success}</p>
             </div>
           )}
 
@@ -389,11 +398,10 @@ export default function Login() {
                 <button
                   key={t.value}
                   onClick={() => handleSelectInstitutionType(t.value)}
-                  className="w-full py-3.5 px-4 rounded-xl border-2 border-gray-200 text-sm font-medium text-left hover:border-blue-400 hover:bg-blue-50/50 transition flex items-center justify-between"
-                  style={{ color: '#1B2A4A' }}
+                  className="w-full py-3.5 px-4 rounded-xl border-2 border-[#EDE6D6] text-sm font-semibold text-left hover:border-[#1B2A4A] hover:bg-[#F3EFE4]/30 transition flex items-center justify-between text-[#1B2A4A] min-h-[48px] active:scale-[0.99]"
                 >
-                  {t.label}
-                  <ArrowRight className="w-4 h-4 text-gray-400" />
+                  <span>{t.label}</span>
+                  <ArrowRight className="w-4 h-4 text-[#8A8272]" />
                 </button>
               ))}
             </div>
@@ -402,42 +410,40 @@ export default function Login() {
           {step === 0.5 && (
             <div className="space-y-4">
               <div className="relative">
-                <Search className="absolute left-4 top-3.5 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-4 top-3.5 w-4 h-4 text-[#8A8272]" />
                 <input
                   type="text"
                   placeholder="Type to search..."
                   value={institutionSearch}
                   onChange={(e) => setInstitutionSearch(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-                  style={{ color: '#1B2A4A' }}
+                  className="w-full pl-11 pr-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] placeholder-[#8A8272]"
                 />
               </div>
 
-              <div className="max-h-64 overflow-y-auto space-y-2">
+              <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
                 {filteredInstitutions.map((inst) => (
                   <button
                     key={inst.id}
                     onClick={() => handlePickInstitution(inst)}
-                    className="w-full py-3 px-4 rounded-xl border-2 border-gray-200 text-sm text-left hover:border-blue-400 hover:bg-blue-50/50 transition flex items-center justify-between"
-                    style={{ color: '#1B2A4A' }}
+                    className="w-full py-3 px-4 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm text-left hover:border-[#1B2A4A] hover:bg-[#F3EFE4]/30 transition flex items-center justify-between text-[#1B2A4A] active:scale-[0.99]"
                   >
-                    <span>{inst.name}</span>
+                    <span className="font-medium pr-2">{inst.name}</span>
                     {inst.email_regex ? (
-                      <ShieldCheck className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <ShieldCheck className="w-4 h-4 text-[#27AE60] flex-shrink-0" />
                     ) : (
-                      <ShieldAlert className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                      <ShieldAlert className="w-4 h-4 text-[#D97706] flex-shrink-0" />
                     )}
                   </button>
                 ))}
 
                 {filteredInstitutions.length === 0 && institutionSearch && (
-                  <p className="text-xs text-gray-500 text-center py-2">No matches found.</p>
+                  <p className="text-xs text-[#5B5647] text-center py-2">No matches found.</p>
                 )}
               </div>
 
               <button
                 onClick={handleNotListed}
-                className="w-full py-3 rounded-xl border-2 border-dashed border-gray-300 text-sm font-medium text-gray-600 hover:border-gray-400 transition flex items-center justify-center gap-2"
+                className="w-full py-3 min-h-[44px] rounded-xl border-2 border-dashed border-[#EDE6D6] text-sm font-semibold text-[#5B5647] hover:border-[#1B2A4A] hover:text-[#1B2A4A] transition flex items-center justify-center gap-2"
               >
                 <ShieldAlert className="w-4 h-4" />
                 My institution isn't listed
@@ -445,7 +451,7 @@ export default function Login() {
 
               <button
                 onClick={() => setStep(0)}
-                className="w-full py-2.5 rounded-xl text-sm font-medium text-blue-600 hover:bg-blue-50 transition"
+                className="w-full py-2.5 rounded-xl text-sm font-semibold text-[#1B2A4A] hover:text-[#27AE60] transition"
               >
                 ← Change institution type
               </button>
@@ -455,27 +461,26 @@ export default function Login() {
           {step === 1 && (
             <div className="space-y-4">
               {!isVerifiedTier && (
-                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex gap-2">
-                  <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-800">
+                <div className="p-3.5 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] flex gap-2.5">
+                  <ShieldAlert className="w-4 h-4 text-[#B45309] flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-[#B45309] leading-relaxed">
                     {unverifiedExplanation} {unverifiedConsequence}
                   </p>
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>
+                <label className="block text-sm font-semibold mb-2 text-[#1B2A4A]">
                   {isVerifiedTier ? `${selectedInstitution.name} Email` : 'Gmail Address'}
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8A8272]" />
                   <input
                     type="email"
                     placeholder={isVerifiedTier ? 'student@dept.college.ac.in' : 'yourname@gmail.com'}
                     value={email}
                     onChange={(e) => setEmail(e.target.value.toLowerCase())}
-                    className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-                    style={{ color: '#1B2A4A' }}
+                    className="w-full pl-12 pr-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] placeholder-[#8A8272]"
                   />
                 </div>
               </div>
@@ -483,7 +488,8 @@ export default function Login() {
               <button
                 onClick={handleSendOTP}
                 disabled={!email || loading}
-                className="w-full py-3 rounded-xl font-semibold text-white text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:shadow-lg"
+                className="w-full py-3.5 min-h-[48px] rounded-xl font-semibold text-white text-base transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-[0.99]"
+                style={{ background: 'linear-gradient(135deg, #27AE60, #1F9550)' }}
               >
                 {loading ? (
                   <><Loader className="w-4 h-4 animate-spin" /> Sending OTP...</>
@@ -494,7 +500,7 @@ export default function Login() {
 
               <button
                 onClick={() => setStep(0.5)}
-                className="w-full py-2.5 rounded-xl text-sm font-medium text-blue-600 hover:bg-blue-50 transition"
+                className="w-full py-2.5 rounded-xl text-sm font-semibold text-[#1B2A4A] hover:text-[#27AE60] transition"
               >
                 ← Go Back
               </button>
@@ -505,16 +511,16 @@ export default function Login() {
             <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-semibold" style={{ color: '#1B2A4A' }}>
+                  <label className="block text-sm font-semibold text-[#1B2A4A]">
                     Enter 6-Digit OTP
                   </label>
                   {otpTimer > 0 && (
-                    <span className="text-xs font-semibold text-orange-600">
+                    <span className="text-xs font-semibold text-[#B23A2E]">
                       ⏱️ {Math.floor(otpTimer / 60)}:{(otpTimer % 60).toString().padStart(2, '0')}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 mb-3">Sent to {email}</p>
+                <p className="text-xs text-[#5B5647] mb-3">Sent to {email}</p>
                 <input
                   type="text"
                   maxLength="6"
@@ -522,15 +528,15 @@ export default function Login() {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                   disabled={isLockedOut}
-                  className="w-full px-4 py-4 rounded-xl border-2 border-gray-200 text-center text-3xl tracking-widest font-light focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100 transition"
-                  style={{ color: '#1B2A4A' }}
+                  className="w-full px-4 py-3.5 min-h-[56px] rounded-xl border-2 border-[#EDE6D6] text-center text-3xl tracking-widest font-light focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 disabled:bg-gray-100 transition text-[#1B2A4A]"
                 />
               </div>
 
               <button
                 onClick={handleVerifyOTP}
                 disabled={otp.length !== 6 || loading || isLockedOut}
-                className="w-full py-3 rounded-xl font-semibold text-white text-sm disabled:opacity-50 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:shadow-lg transition-all"
+                className="w-full py-3.5 min-h-[48px] rounded-xl font-semibold text-white text-base disabled:opacity-50 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.99]"
+                style={{ background: 'linear-gradient(135deg, #27AE60, #1F9550)' }}
               >
                 {loading ? (
                   <><Loader className="w-4 h-4 animate-spin" /> Verifying...</>
@@ -543,7 +549,7 @@ export default function Login() {
                 <button
                   onClick={handleResendOTP}
                   disabled={otpTimer > 240}
-                  className="w-full py-2.5 rounded-xl text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50 transition"
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-[#1B2A4A] hover:text-[#27AE60] disabled:opacity-50 transition"
                 >
                   🔄 Resend OTP
                 </button>
@@ -551,7 +557,7 @@ export default function Login() {
 
               <button
                 onClick={() => setStep(1)}
-                className="w-full py-2.5 rounded-xl text-sm font-medium text-blue-600 hover:bg-blue-50 transition"
+                className="w-full py-2.5 rounded-xl text-sm font-semibold text-[#1B2A4A] hover:text-[#27AE60] transition"
               >
                 ← Go Back
               </button>
@@ -561,9 +567,9 @@ export default function Login() {
           {step === 3 && (
             <div className="space-y-4">
               {!isVerifiedTier && (
-                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex gap-2">
-                  <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-800">
+                <div className="p-3.5 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] flex gap-2.5">
+                  <ShieldAlert className="w-4 h-4 text-[#B45309] flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-[#B45309] leading-relaxed">
                     {unverifiedExplanation} Your account will be marked <strong>Unverified</strong> —
                     WhatsApp contact reveal and posting paid services are disabled until verified.
                   </p>
@@ -571,24 +577,22 @@ export default function Login() {
               )}
 
               <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>Full Name</label>
+                <label className="block text-sm font-semibold mb-2 text-[#1B2A4A]">Full Name</label>
                 <input
                   type="text"
                   placeholder="Rahul Sharma"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-                  style={{ color: '#1B2A4A' }}
+                  className="w-full px-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] placeholder-[#8A8272]"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>Department</label>
+                <label className="block text-sm font-semibold mb-2 text-[#1B2A4A]">Department</label>
                 <select
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-                  style={{ color: '#1B2A4A' }}
+                  className="w-full px-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] bg-white"
                 >
                   <option value="">Select Department</option>
                   {['CS', 'CS AI', 'CS CY', 'ECS', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA', 'AD', 'IT', 'Other'].map((d) => (
@@ -598,12 +602,11 @@ export default function Login() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>Semester / Year</label>
+                <label className="block text-sm font-semibold mb-2 text-[#1B2A4A]">Semester / Year</label>
                 <select
                   value={semester}
                   onChange={(e) => setSemester(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-                  style={{ color: '#1B2A4A' }}
+                  className="w-full px-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] bg-white"
                 >
                   <option value="">Select Semester</option>
                   {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
@@ -613,17 +616,16 @@ export default function Login() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#1B2A4A' }}>WhatsApp Number</label>
+                <label className="block text-sm font-semibold mb-2 text-[#1B2A4A]">WhatsApp Number</label>
                 <div className="relative">
-                  <Smartphone className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
+                  <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8A8272]" />
                   <input
                     type="tel"
                     placeholder="9876543210"
                     value={whatsapp}
                     onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
                     maxLength="10"
-                    className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-                    style={{ color: '#1B2A4A' }}
+                    className="w-full pl-12 pr-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] placeholder-[#8A8272]"
                   />
                 </div>
               </div>
@@ -631,7 +633,8 @@ export default function Login() {
               <button
                 onClick={handleCompleteProfile}
                 disabled={!fullName || !department || !semester || !whatsapp || loading}
-                className="w-full py-3 rounded-xl font-semibold text-white text-sm disabled:opacity-50 flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:shadow-lg transition-all mt-2"
+                className="w-full py-3.5 min-h-[48px] rounded-xl font-semibold text-white text-base disabled:opacity-50 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all mt-2 active:scale-[0.99]"
+                style={{ background: 'linear-gradient(135deg, #27AE60, #1F9550)' }}
               >
                 {loading ? (
                   <><Loader className="w-4 h-4 animate-spin" /> Creating Account...</>
@@ -642,7 +645,7 @@ export default function Login() {
             </div>
           )}
 
-          <p className="text-center text-xs text-gray-500 mt-6">
+          <p className="text-center text-xs text-[#5B5647] mt-6">
             By logging in, you agree to our Terms & Privacy Policy
           </p>
         </div>

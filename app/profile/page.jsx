@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Edit2, LogOut, Settings, ArrowLeft, RefreshCw, HelpCircle, BookOpen, Plus, Briefcase, Wrench } from 'lucide-react';
+import { Edit2, LogOut, Settings, ArrowLeft, RefreshCw, HelpCircle, BookOpen, Plus, Briefcase, Wrench, Check } from 'lucide-react';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
+import ConditionLabel from '@/components/ConditionLabel';
 import { Toast, useToast } from '@/components/Toast';
 
 export default function ProfilePage() {
@@ -111,7 +112,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white pb-20 px-4 py-6">
+      <div className="min-h-screen bg-[#FBF8F1] font-body pb-20 px-4 py-6 max-w-2xl mx-auto space-y-4">
         <LoadingSkeleton />
         <LoadingSkeleton />
         <LoadingSkeleton />
@@ -129,13 +130,16 @@ export default function ProfilePage() {
   const closedServices = services.filter((s) => s.status === 'closed');
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] pb-28">
+    <div className="min-h-screen bg-[#FBF8F1] font-body pb-28">
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
       {/* Header */}
-      <div className="bg-white/95 backdrop-blur-md border-b border-[#EDE6D6] sticky top-0 z-10">
-        <div className="flex items-center gap-3 px-4 py-4 max-w-2xl mx-auto">
-          <button onClick={() => router.back()} className="p-1 hover:bg-gray-100 rounded-lg">
+      <div className="bg-[#FBF8F1]/90 backdrop-blur-md border-b border-[#EDE6D6] sticky top-0 z-10">
+        <div className="flex items-center gap-3 px-4 py-3.5 max-w-2xl mx-auto">
+          <button
+            onClick={() => router.back()}
+            className="p-2 hover:bg-[#F3EEDC] text-[#1B2A4A] rounded-xl transition"
+          >
             <ArrowLeft className="w-5 h-5 text-[#1B2A4A]" />
           </button>
           <h1 className="text-lg font-display font-bold flex-1 text-[#1B2A4A]">
@@ -144,29 +148,27 @@ export default function ProfilePage() {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            className="p-2 hover:bg-[#F3EEDC] text-[#1B2A4A] rounded-xl transition"
           >
             <RefreshCw
               className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
-              style={{ color: '#1B2A4A' }}
             />
           </button>
           <button
             onClick={() => router.push('/profile/settings')}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            className="p-2 hover:bg-[#F3EEDC] text-[#1B2A4A] rounded-xl transition"
           >
-            <Settings className="w-5 h-5" style={{ color: '#1B2A4A' }} />
+            <Settings className="w-5 h-5" />
           </button>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Profile Card */}
-        <div className="bg-white rounded-3xl shadow-sm p-6 mb-6 border-2 border-[#EDE6D6]">
+        <div className="bg-white rounded-2xl shadow-xs p-6 mb-6 border border-[#EDE6D6]">
           <div className="flex items-start gap-4 mb-6">
             <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl font-bold flex-shrink-0 shadow-sm"
-              style={{ background: 'linear-gradient(135deg, #1B2A4A, #27AE60)' }}
+              className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl font-display font-bold flex-shrink-0 bg-[#1B2A4A] shadow-xs"
             >
               {user.full_name?.charAt(0).toUpperCase() ||
                 user.fullName?.charAt(0).toUpperCase() ||
@@ -176,40 +178,39 @@ export default function ProfilePage() {
               <h2 className="text-xl font-display font-bold text-[#1B2A4A]">
                 {user.full_name || user.fullName}
               </h2>
-              <p className="text-sm text-gray-500 mt-0.5">
+              <p className="text-sm text-[#8A8272] mt-0.5">
                 {[user.department, user.semester].filter(Boolean).join(' • ')}
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">{user.email}</p>
+              <p className="text-xs text-[#8A8272] mt-0.5 truncate">{user.email}</p>
             </div>
           </div>
 
           {/* Verification Badge */}
           {user.is_verified && (
-            <div className="flex items-center gap-1.5 mb-5 pb-5 border-b border-gray-100">
-              <span className="text-green-600 font-bold">✓</span>
-              <span className="text-xs text-green-700 font-semibold bg-green-50 px-2 py-0.5 rounded-full">
-                College Email Verified
+            <div className="flex items-center gap-1.5 mb-5 pb-4 border-b border-[#EDE6D6]/60">
+              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#E8F5E9] text-[#2E7D32] border border-[#C8E6C9]">
+                <Check className="w-3 h-3" /> College Email Verified
               </span>
             </div>
           )}
 
           {/* Stats Grid */}
           <div className="grid grid-cols-4 gap-2 mb-6">
-            <div className="text-center p-2.5 rounded-2xl bg-blue-50/70 border border-blue-100">
-              <div className="text-xl font-bold text-blue-600">{userStats.totalListings}</div>
-              <div className="text-[11px] text-gray-600 mt-0.5 font-medium">Listings</div>
+            <div className="text-center p-2.5 rounded-xl bg-[#FAF6EE] border border-[#EDE6D6]">
+              <div className="text-xl font-display font-bold text-[#1B2A4A]">{userStats.totalListings}</div>
+              <div className="text-[11px] text-[#8A8272] mt-0.5 font-medium">Listings</div>
             </div>
-            <div className="text-center p-2.5 rounded-2xl bg-purple-50/70 border border-purple-100">
-              <div className="text-xl font-bold text-purple-600">{userStats.totalRequests}</div>
-              <div className="text-[11px] text-gray-600 mt-0.5 font-medium">Requests</div>
+            <div className="text-center p-2.5 rounded-xl bg-[#FAF6EE] border border-[#EDE6D6]">
+              <div className="text-xl font-display font-bold text-[#1B2A4A]">{userStats.totalRequests}</div>
+              <div className="text-[11px] text-[#8A8272] mt-0.5 font-medium">Requests</div>
             </div>
-            <div className="text-center p-2.5 rounded-2xl bg-emerald-50/70 border border-emerald-100">
-              <div className="text-xl font-bold text-emerald-600">{userStats.totalServices}</div>
-              <div className="text-[11px] text-gray-600 mt-0.5 font-medium">Services</div>
+            <div className="text-center p-2.5 rounded-xl bg-[#FAF6EE] border border-[#EDE6D6]">
+              <div className="text-xl font-display font-bold text-[#1B2A4A]">{userStats.totalServices}</div>
+              <div className="text-[11px] text-[#8A8272] mt-0.5 font-medium">Services</div>
             </div>
-            <div className="text-center p-2.5 rounded-2xl bg-amber-50/70 border border-amber-100">
-              <div className="text-xl font-bold text-amber-600">{userStats.totalContacts}</div>
-              <div className="text-[11px] text-gray-600 mt-0.5 font-medium">Contacts</div>
+            <div className="text-center p-2.5 rounded-xl bg-[#FAF6EE] border border-[#EDE6D6]">
+              <div className="text-xl font-display font-bold text-[#1B2A4A]">{userStats.totalContacts}</div>
+              <div className="text-[11px] text-[#8A8272] mt-0.5 font-medium">Contacts</div>
             </div>
           </div>
 
@@ -217,14 +218,13 @@ export default function ProfilePage() {
           <div className="space-y-2">
             <button
               onClick={() => router.push('/profile/edit')}
-              className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2 shadow-xs"
-              style={{ background: 'linear-gradient(135deg, #1B2A4A, #2A3F6D)' }}
+              className="w-full min-h-[44px] py-2.5 rounded-xl font-semibold text-white text-base flex items-center justify-center gap-2 btn-action-green transition active:scale-[0.98] shadow-xs"
             >
               <Edit2 className="w-4 h-4" /> Edit Profile
             </button>
             <button
               onClick={handleLogout}
-              className="w-full py-2.5 rounded-xl font-semibold text-sm border border-gray-300 flex items-center justify-center gap-2 text-red-600 hover:bg-red-50 transition"
+              className="w-full min-h-[44px] py-2.5 rounded-xl font-semibold text-sm border border-[#EDE6D6] flex items-center justify-center gap-2 text-red-600 hover:bg-red-50 transition"
             >
               <LogOut className="w-4 h-4" /> Logout
             </button>
@@ -232,13 +232,13 @@ export default function ProfilePage() {
         </div>
 
         {/* Profile Tabs */}
-        <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-gray-200 mb-6 overflow-x-auto gap-1">
+        <div className="flex bg-[#FAF6EE] rounded-xl p-1 border border-[#EDE6D6] mb-6 overflow-x-auto gap-1">
           <button
             onClick={() => setActiveTab('listings')}
-            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 whitespace-nowrap transition ${
+            className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 whitespace-nowrap transition ${
               activeTab === 'listings'
                 ? 'bg-[#1B2A4A] text-white shadow-xs'
-                : 'text-gray-600 hover:bg-gray-50'
+                : 'text-[#5B5647] hover:bg-white/60'
             }`}
           >
             <BookOpen className="w-3.5 h-3.5" />
@@ -247,10 +247,10 @@ export default function ProfilePage() {
 
           <button
             onClick={() => setActiveTab('requests')}
-            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 whitespace-nowrap transition ${
+            className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 whitespace-nowrap transition ${
               activeTab === 'requests'
-                ? 'bg-[#1877F2] text-white shadow-xs'
-                : 'text-gray-600 hover:bg-gray-50'
+                ? 'bg-[#1B2A4A] text-white shadow-xs'
+                : 'text-[#5B5647] hover:bg-white/60'
             }`}
           >
             <HelpCircle className="w-3.5 h-3.5" />
@@ -259,10 +259,10 @@ export default function ProfilePage() {
 
           <button
             onClick={() => setActiveTab('services')}
-            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 whitespace-nowrap transition ${
+            className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 whitespace-nowrap transition ${
               activeTab === 'services'
-                ? 'bg-[#15803D] text-white shadow-xs'
-                : 'text-gray-600 hover:bg-gray-50'
+                ? 'bg-[#1B2A4A] text-white shadow-xs'
+                : 'text-[#5B5647] hover:bg-white/60'
             }`}
           >
             <Briefcase className="w-3.5 h-3.5" />
@@ -274,23 +274,23 @@ export default function ProfilePage() {
         {activeTab === 'listings' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-[#1B2A4A]">
+              <h3 className="text-base font-display font-bold text-[#1B2A4A]">
                 Active Listings ({activeListings.length})
               </h3>
               <button
                 onClick={() => router.push('/create-listing')}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border border-[#EDE6D6] text-[#1B2A4A] hover:bg-[#FAF6EE] transition shadow-xs"
               >
                 <Plus className="w-3.5 h-3.5" /> + New Listing
               </button>
             </div>
 
             {activeListings.length === 0 ? (
-              <div className="bg-white rounded-2xl p-8 text-center border border-gray-200">
-                <p className="text-gray-500 text-sm mb-3">No active listings currently</p>
+              <div className="bg-white rounded-2xl p-8 text-center border border-[#EDE6D6]">
+                <p className="text-[#8A8272] text-sm mb-3">No active listings currently</p>
                 <button
                   onClick={() => router.push('/create-listing')}
-                  className="px-4 py-2 rounded-xl font-semibold text-xs text-white bg-[#1B2A4A]"
+                  className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white btn-action-green"
                 >
                   Create Listing
                 </button>
@@ -305,7 +305,7 @@ export default function ProfilePage() {
 
             {soldListings.length > 0 && (
               <div className="pt-2">
-                <h3 className="text-sm font-bold text-gray-500 mb-3 uppercase tracking-wider">
+                <h3 className="text-xs font-bold text-[#8A8272] mb-3 uppercase tracking-wider">
                   Sold Items ({soldListings.length})
                 </h3>
                 <div className="space-y-3">
@@ -322,23 +322,23 @@ export default function ProfilePage() {
         {activeTab === 'requests' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-[#1B2A4A]">
+              <h3 className="text-base font-display font-bold text-[#1B2A4A]">
                 Open Requests ({openRequests.length})
               </h3>
               <button
                 onClick={() => router.push('/create-request')}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border border-[#EDE6D6] text-[#1B2A4A] hover:bg-[#FAF6EE] transition shadow-xs"
               >
                 <Plus className="w-3.5 h-3.5" /> + New Request
               </button>
             </div>
 
             {openRequests.length === 0 ? (
-              <div className="bg-white rounded-2xl p-8 text-center border border-gray-200">
-                <p className="text-gray-500 text-sm mb-3">No open material requests</p>
+              <div className="bg-white rounded-2xl p-8 text-center border border-[#EDE6D6]">
+                <p className="text-[#8A8272] text-sm mb-3">No open material requests</p>
                 <button
                   onClick={() => router.push('/create-request')}
-                  className="px-4 py-2 rounded-xl font-semibold text-xs text-white bg-[#1877F2]"
+                  className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white btn-action-green"
                 >
                   Request Study Material
                 </button>
@@ -353,7 +353,7 @@ export default function ProfilePage() {
 
             {fulfilledRequests.length > 0 && (
               <div className="pt-2">
-                <h3 className="text-sm font-bold text-gray-500 mb-3 uppercase tracking-wider">
+                <h3 className="text-xs font-bold text-[#8A8272] mb-3 uppercase tracking-wider">
                   Fulfilled Requests ({fulfilledRequests.length})
                 </h3>
                 <div className="space-y-3">
@@ -370,23 +370,23 @@ export default function ProfilePage() {
         {activeTab === 'services' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-[#1B2A4A]">
+              <h3 className="text-base font-display font-bold text-[#1B2A4A]">
                 Active Services ({openServices.length})
               </h3>
               <button
                 onClick={() => router.push('/create-service')}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border border-[#EDE6D6] text-[#1B2A4A] hover:bg-[#FAF6EE] transition shadow-xs"
               >
                 <Plus className="w-3.5 h-3.5" /> + New Service
               </button>
             </div>
 
             {openServices.length === 0 ? (
-              <div className="bg-white rounded-2xl p-8 text-center border border-gray-200">
-                <p className="text-gray-500 text-sm mb-3">No active services listed</p>
+              <div className="bg-white rounded-2xl p-8 text-center border border-[#EDE6D6]">
+                <p className="text-[#8A8272] text-sm mb-3">No active services listed</p>
                 <button
                   onClick={() => router.push('/create-service')}
-                  className="px-4 py-2 rounded-xl font-semibold text-xs text-white bg-[#15803D]"
+                  className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white btn-action-green"
                 >
                   Offer / Request Service
                 </button>
@@ -401,7 +401,7 @@ export default function ProfilePage() {
 
             {closedServices.length > 0 && (
               <div className="pt-2">
-                <h3 className="text-sm font-bold text-gray-500 mb-3 uppercase tracking-wider">
+                <h3 className="text-xs font-bold text-[#8A8272] mb-3 uppercase tracking-wider">
                   Closed Services ({closedServices.length})
                 </h3>
                 <div className="space-y-3">
@@ -422,12 +422,12 @@ function ListingCard({ listing, router, sold = false }) {
   return (
     <div
       onClick={() => router.push(`/listing/${listing.id}`)}
-      className={`bg-white rounded-2xl p-4 cursor-pointer hover:shadow-md transition border ${
-        sold ? 'border-gray-100 opacity-70' : 'border-gray-200'
+      className={`bg-white rounded-2xl p-4 cursor-pointer hover:shadow-sm hover:border-[#1B2A4A]/30 transition border ${
+        sold ? 'border-[#EDE6D6] opacity-70' : 'border-[#EDE6D6]'
       }`}
     >
       <div className="flex gap-4">
-        <div className="relative w-20 h-20 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 border border-gray-200">
+        <div className="relative w-20 h-20 bg-[#FAF6EE] rounded-xl overflow-hidden flex-shrink-0 border border-[#EDE6D6]">
           {(listing.image_urls?.[0] || listing.image_url) && (
             <img
               src={listing.image_urls?.[0] || listing.image_url}
@@ -450,29 +450,11 @@ function ListingCard({ listing, router, sold = false }) {
           <h4 className="font-semibold text-sm line-clamp-2 text-[#1B2A4A]">
             {listing.title}
           </h4>
-          <div className="flex gap-2 mt-1.5 mb-2 flex-wrap">
-            <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">
+          <div className="flex gap-2 mt-1.5 mb-2 flex-wrap items-center">
+            <span className="text-xs px-2 py-0.5 rounded-md bg-[#FAF6EE] border border-[#EDE6D6] text-[#1B2A4A] font-medium">
               {listing.category}
             </span>
-            <span
-              className="text-xs px-2 py-0.5 rounded font-medium"
-              style={{
-                background:
-                  listing.condition === 'Like New'
-                    ? '#E0F2FE'
-                    : listing.condition === 'Good'
-                    ? '#DCFCE7'
-                    : '#FEF3C7',
-                color:
-                  listing.condition === 'Like New'
-                    ? '#0369A1'
-                    : listing.condition === 'Good'
-                    ? '#166534'
-                    : '#92400E',
-              }}
-            >
-              {listing.condition}
-            </span>
+            <ConditionLabel condition={listing.condition} />
             {sold && (
               <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-600 font-semibold">
                 Sold
@@ -482,14 +464,14 @@ function ListingCard({ listing, router, sold = false }) {
           <div className="flex items-center justify-between">
             <div>
               {listing.is_free ? (
-                <span className="text-base font-bold text-green-600">Free</span>
+                <span className="text-base font-bold text-[#27AE60]">Free</span>
               ) : (
                 <span className="text-base font-bold text-[#1B2A4A]">
                   ₹{listing.price?.toLocaleString()}
                 </span>
               )}
             </div>
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-[#8A8272]">
               {new Date(listing.created_at).toLocaleDateString()}
             </span>
           </div>
@@ -503,16 +485,16 @@ function RequestCard({ request, router, fulfilled = false }) {
   return (
     <div
       onClick={() => router.push(`/request/${request.id}`)}
-      className={`bg-white rounded-2xl p-4 cursor-pointer hover:shadow-md hover:border-blue-300 transition border ${
-        fulfilled ? 'border-gray-100 opacity-70' : 'border-gray-200'
+      className={`bg-white rounded-2xl p-4 cursor-pointer hover:shadow-sm hover:border-[#1B2A4A]/30 transition border ${
+        fulfilled ? 'border-[#EDE6D6] opacity-70' : 'border-[#EDE6D6]'
       }`}
     >
       <div className="flex items-start justify-between gap-3 mb-1.5">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">
-            📢 Request
+          <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#1B2A4A] text-white font-semibold">
+            Request
           </span>
-          <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700 font-medium">
+          <span className="text-xs px-2 py-0.5 rounded-md bg-[#FAF6EE] border border-[#EDE6D6] text-[#1B2A4A] font-medium">
             {request.category}
           </span>
           {fulfilled && (
@@ -521,7 +503,7 @@ function RequestCard({ request, router, fulfilled = false }) {
             </span>
           )}
         </div>
-        <span className="text-xs text-gray-400 whitespace-nowrap">
+        <span className="text-xs text-[#8A8272] whitespace-nowrap">
           {new Date(request.created_at).toLocaleDateString()}
         </span>
       </div>
@@ -531,17 +513,17 @@ function RequestCard({ request, router, fulfilled = false }) {
       </h4>
 
       {request.description && (
-        <p className="text-xs text-gray-600 line-clamp-1 mb-2">
+        <p className="text-xs text-[#5B5647] line-clamp-1 mb-2">
           {request.description}
         </p>
       )}
 
-      <div className="flex items-center justify-between text-xs text-gray-500 pt-1 border-t border-gray-100">
+      <div className="flex items-center justify-between text-xs text-[#8A8272] pt-2 border-t border-[#EDE6D6]/60">
         <div className="flex gap-2">
-          {request.department && <span>🏛️ {request.department}</span>}
-          {request.semester && <span>🎓 {request.semester}</span>}
+          {request.department && <span>{request.department}</span>}
+          {request.semester && <span>• {request.semester}</span>}
         </div>
-        <span className="text-blue-600 font-medium">View Request →</span>
+        <span className="text-[#1B2A4A] font-semibold">View Request →</span>
       </div>
     </div>
   );
@@ -552,23 +534,23 @@ function ServiceCard({ service, router, closed = false }) {
   return (
     <div
       onClick={() => router.push(`/service/${service.id}`)}
-      className={`bg-white rounded-2xl p-4 cursor-pointer hover:shadow-md hover:border-[#15803D]/40 transition border ${
-        closed ? 'border-gray-100 opacity-70' : 'border-gray-200'
+      className={`bg-white rounded-2xl p-4 cursor-pointer hover:shadow-sm hover:border-[#1B2A4A]/30 transition border ${
+        closed ? 'border-[#EDE6D6] opacity-70' : 'border-[#EDE6D6]'
       }`}
     >
       <div className="flex items-start justify-between gap-3 mb-1.5">
         <div className="flex items-center gap-2 flex-wrap">
           <span
-            className={`text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1 ${
+            className={`text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 ${
               isOff
-                ? 'bg-[#F0FDF4] text-[#15803D] border border-[#BBF7D0]'
+                ? 'bg-[#F0FDF4] text-[#1E7E45] border border-[#BBF7D0]'
                 : 'bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]'
             }`}
           >
             {isOff ? <Briefcase className="w-3 h-3" /> : <Wrench className="w-3 h-3" />}
             {isOff ? 'Offering' : 'Seeking'}
           </span>
-          <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700 font-medium">
+          <span className="text-xs px-2 py-0.5 rounded-md bg-[#FAF6EE] border border-[#EDE6D6] text-[#1B2A4A] font-medium">
             {service.category}
           </span>
           {closed && (
@@ -577,8 +559,8 @@ function ServiceCard({ service, router, closed = false }) {
             </span>
           )}
         </div>
-        <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-          💰 {service.rate || 'Negotiable'}
+        <span className="text-xs font-semibold text-amber-900 bg-amber-50 px-2.5 py-0.5 rounded-lg border border-amber-200">
+          {service.rate || 'Negotiable'}
         </span>
       </div>
 
@@ -592,12 +574,12 @@ function ServiceCard({ service, router, closed = false }) {
         </p>
       )}
 
-      <div className="flex items-center justify-between text-xs text-gray-500 pt-1 border-t border-gray-100">
+      <div className="flex items-center justify-between text-xs text-[#8A8272] pt-2 border-t border-[#EDE6D6]/60">
         <div className="flex gap-2">
-          {service.department && <span>🏛️ {service.department}</span>}
-          {service.semester && <span>🎓 {service.semester}</span>}
+          {service.department && <span>{service.department}</span>}
+          {service.semester && <span>• {service.semester}</span>}
         </div>
-        <span className="text-[#15803D] font-medium">View Service →</span>
+        <span className="text-[#1B2A4A] font-semibold">View Service →</span>
       </div>
     </div>
   );

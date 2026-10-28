@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Smartphone, AlertCircle, CheckCircle, Loader, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Mail, AlertCircle, CheckCircle, Loader, ArrowRight, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 
 const SJCET_REGEX = /^[a-zA-Z0-9._]{1,27}20(2[5-9]|3[0-5])@[a-z]{2,3}\.sjcetpalai\.ac\.in$/i;
@@ -29,7 +29,6 @@ export default function Login() {
   const [department, setDepartment] = useState('');
   const [detectedDept, setDetectedDept] = useState('');
   const [semester, setSemester] = useState('');
-  const [whatsapp, setWhatsapp] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -170,7 +169,7 @@ export default function Login() {
       // Check if user record already exists to inspect profile completeness
       const { data: existingUser } = await supabase
         .from('users')
-        .select('id, full_name, department, semester, whatsapp_number, is_verified, institution_id, institution_type')
+        .select('id, full_name, department, semester, is_verified, institution_id, institution_type')
         .eq('id', authUserId)
         .single();
 
@@ -182,7 +181,6 @@ export default function Login() {
       const hasCompleteProfile = !!(
         existingUser?.full_name &&
         existingUser?.semester &&
-        existingUser?.whatsapp_number &&
         (existingUser?.department || autoDept)
       );
 
@@ -194,7 +192,6 @@ export default function Login() {
           department: existingUser.department || autoDept || null,
           full_name: existingUser.full_name,
           semester: existingUser.semester,
-          whatsapp_number: existingUser.whatsapp_number,
           institution_id: INSTITUTION_ID,
           institution_type: INSTITUTION_TYPE,
         };
@@ -215,7 +212,6 @@ export default function Login() {
           full_name: userPayload.full_name,
           department: userPayload.department,
           semester: userPayload.semester,
-          whatsapp: userPayload.whatsapp_number,
           is_verified: existingUser?.is_verified ?? false,
           institution_type: userPayload.institution_type,
           institution_id: userPayload.institution_id,
@@ -227,11 +223,10 @@ export default function Login() {
           router.push('/');
         }, 1200);
       } else {
-        // Missing full_name, semester, or whatsapp_number: prompt profile step
+        // Missing full_name, semester, or department: prompt profile step
         // For a brand-new user, do NOT upsert before the profile form is submitted.
         if (existingUser?.full_name) setFullName(existingUser.full_name);
         if (existingUser?.semester) setSemester(existingUser.semester);
-        if (existingUser?.whatsapp_number) setWhatsapp(existingUser.whatsapp_number);
         if (autoDept) {
           setDepartment(autoDept);
         } else if (existingUser?.department) {
@@ -274,13 +269,6 @@ export default function Login() {
       return;
     }
 
-    const cleanWhatsapp = whatsapp.replace(/\D/g, '');
-    if (!cleanWhatsapp || cleanWhatsapp.length !== 10) {
-      setError('Please enter a valid 10-digit WhatsApp number');
-      setLoading(false);
-      return;
-    }
-
     const userId = sessionUser?.id;
     const userEmail = sessionUser?.email;
 
@@ -300,7 +288,6 @@ export default function Login() {
         full_name: fullName.trim(),
         department: finalDept,
         semester,
-        whatsapp_number: cleanWhatsapp,
         institution_id: INSTITUTION_ID,
         institution_type: INSTITUTION_TYPE,
       };
@@ -314,7 +301,7 @@ export default function Login() {
       // Re-select row to get DB-truth is_verified
       const { data: savedUser } = await supabase
         .from('users')
-        .select('id, full_name, department, semester, whatsapp_number, is_verified, institution_id, institution_type')
+        .select('id, full_name, department, semester, is_verified, institution_id, institution_type')
         .eq('id', userId)
         .single();
 
@@ -325,7 +312,6 @@ export default function Login() {
         full_name: savedUser?.full_name || userPayload.full_name,
         department: savedUser?.department || userPayload.department,
         semester: savedUser?.semester || userPayload.semester,
-        whatsapp: savedUser?.whatsapp_number || userPayload.whatsapp_number,
         is_verified: savedUser?.is_verified ?? false,
         institution_type: savedUser?.institution_type || userPayload.institution_type,
         institution_id: savedUser?.institution_id || userPayload.institution_id,
@@ -568,24 +554,9 @@ export default function Login() {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-[#1B2A4A]">WhatsApp Number</label>
-                <div className="relative">
-                  <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8A8272]" />
-                  <input
-                    type="tel"
-                    placeholder="10-digit mobile number"
-                    value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
-                    maxLength="10"
-                    className="w-full pl-12 pr-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] placeholder-[#8A8272]"
-                  />
-                </div>
-              </div>
-
               <button
                 onClick={handleCompleteProfile}
-                disabled={!fullName.trim() || (!detectedDept && !department) || !semester || whatsapp.length !== 10 || loading}
+                disabled={!fullName.trim() || (!detectedDept && !department) || !semester || loading}
                 className="w-full py-3.5 min-h-[48px] rounded-xl font-semibold text-white text-base disabled:opacity-50 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all mt-2 active:scale-[0.99]"
                 style={{ background: 'linear-gradient(135deg, #27AE60, #1F9550)' }}
               >

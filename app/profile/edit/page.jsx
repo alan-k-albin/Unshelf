@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
-import { ArrowLeft, Loader, AlertCircle, CheckCircle, Smartphone } from 'lucide-react';
+import { ArrowLeft, Loader, AlertCircle, CheckCircle } from 'lucide-react';
 
 const DEPARTMENTS = ['CS', 'CS AI', 'CS CY', 'ECS', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA', 'AD', 'IT'];
 const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -19,7 +18,6 @@ export default function EditProfilePage() {
     full_name: '',
     department: '',
     semester: '',
-    whatsapp_number: '',
   });
 
   useEffect(() => {
@@ -46,7 +44,6 @@ export default function EditProfilePage() {
           full_name: dbUser.full_name || '',
           department: dbUser.department || '',
           semester: dbUser.semester || '',
-          whatsapp_number: dbUser.whatsapp_number || '',
         });
       }
     } catch (err) {
@@ -77,10 +74,6 @@ export default function EditProfilePage() {
       setError('Please select a semester');
       return;
     }
-    if (!formData.whatsapp_number || formData.whatsapp_number.length !== 10) {
-      setError('Enter a valid 10-digit WhatsApp number');
-      return;
-    }
 
     setSaving(true);
     try {
@@ -93,7 +86,6 @@ export default function EditProfilePage() {
           full_name: formData.full_name.trim(),
           department: formData.department,
           semester: formData.semester,
-          whatsapp_number: formData.whatsapp_number,
         })
         .eq('email', userData.email);
 
@@ -106,7 +98,6 @@ export default function EditProfilePage() {
         full_name: formData.full_name.trim(),
         department: formData.department,
         semester: formData.semester,
-        whatsapp: formData.whatsapp_number,
       };
       localStorage.setItem('user', JSON.stringify(updatedUser));
 
@@ -209,30 +200,6 @@ export default function EditProfilePage() {
                 <option key={s} value={`S${s}`}>Semester {s}</option>
               ))}
             </select>
-          </div>
-
-          {/* WhatsApp */}
-          <div>
-            <label className="block text-sm font-semibold text-[#1B2A4A] mb-1.5">
-              WhatsApp Number *
-            </label>
-            <div className="relative">
-              <Smartphone className="absolute left-4 top-3.5 w-5 h-5 text-[#8A8272]" />
-              <input
-                type="tel"
-                name="whatsapp_number"
-                placeholder="9876543210"
-                value={formData.whatsapp_number}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    whatsapp_number: e.target.value.replace(/\D/g, ''),
-                  }))
-                }
-                maxLength="10"
-                className="w-full pl-12 pr-4 py-3 rounded-xl border border-[#EDE6D6] text-sm bg-white text-[#1B2A4A] placeholder-[#8A8272] focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A] transition"
-              />
-            </div>
           </div>
 
           {/* Save Button */}

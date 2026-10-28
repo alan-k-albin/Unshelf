@@ -197,12 +197,14 @@ export default function HomePage() {
           .from('listings')
           .select('*')
           .eq('status', 'Active')
+          .eq('is_hidden', false)
           .order('created_at', { ascending: false })
           .limit(20),
         supabase
           .from('requests')
           .select('*')
           .eq('status', 'open')
+          .eq('is_hidden', false)
           .order('created_at', { ascending: false })
           .limit(20),
       ]);

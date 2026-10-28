@@ -10,15 +10,18 @@ import {
   User,
   LogOut,
   AlertCircle,
+  ShieldCheck,
 } from 'lucide-react';
 import { logoutUser } from '@/lib/auth';
 import { supabase } from '@/lib/supabaseClient';
+import { useUserRestrictions } from '@/lib/useUserRestrictions';
 import SessionInitializer from '@/components/SessionInitializer';
 import './globals.css';
 
 export default function RootLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
+  const restrictions = useUserRestrictions();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -28,7 +31,8 @@ export default function RootLayout({ children }) {
 
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const hideBottomNav = pathname === '/login' || pathname === '/profile';
+  const isAdminRoute = pathname?.startsWith('/admin');
+  const hideBottomNav = pathname === '/login' || pathname === '/profile' || isAdminRoute;
 
   const fetchUnreadCount = async () => {
     try {
@@ -147,7 +151,8 @@ export default function RootLayout({ children }) {
         )}
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:block bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        {!pathname?.startsWith('/admin') && (
+          <nav className="hidden md:block bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
             <Link href="/">
               <img src="/logo.png" alt="Unshelf" className="h-10 w-auto object-contain" />
@@ -204,6 +209,16 @@ export default function RootLayout({ children }) {
                           <User className="w-4 h-4 inline mr-2" />
                           My Profile
                         </Link>
+                        {restrictions.is_admin && (
+                          <Link
+                            href="/admin"
+                            onClick={() => setShowProfileMenu(false)}
+                            className="block px-4 py-2.5 text-sm text-[#27AE60] font-semibold hover:bg-gray-50 transition"
+                          >
+                            <ShieldCheck className="w-4 h-4 inline mr-2 text-[#27AE60]" />
+                            Admin Portal
+                          </Link>
+                        )}
                         <button
                           onClick={handleLogout}
                           className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition"
@@ -227,15 +242,18 @@ export default function RootLayout({ children }) {
             </div>
           </div>
         </nav>
+        )}
 
         {/* Mobile Top Nav - Logo ONLY */}
-        <nav className="md:hidden bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-          <div className="px-4 py-2.5 flex items-center justify-center">
-            <Link href="/">
-              <img src="/logo.png" alt="Unshelf" className="h-9 w-auto object-contain" />
-            </Link>
-          </div>
-        </nav>
+        {!isAdminRoute && (
+          <nav className="md:hidden bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+            <div className="px-4 py-2.5 flex items-center justify-center">
+              <Link href="/">
+                <img src="/logo.png" alt="Unshelf" className="h-9 w-auto object-contain" />
+              </Link>
+            </div>
+          </nav>
+        )}
 
         {/* Main Content */}
         <main className={!hideBottomNav ? 'pb-20 md:pb-0' : ''}>{children}</main>
@@ -295,4 +313,4 @@ export default function RootLayout({ children }) {
       </body>
     </html>
   );
-          }
+}

@@ -34,6 +34,7 @@ export default function ListingDetailPage() {
   const [showImageZoom, setShowImageZoom] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
 
   const { toast, showToast, hideToast } = useToast();
 
@@ -55,6 +56,11 @@ export default function ListingDetailPage() {
         .from('listings').select('*').eq('id', listingId).single();
 
       if (listingError || !listingData) { setNotFound(true); setLoading(false); return; }
+      if (listingData.is_hidden) {
+        setIsHidden(true);
+        setLoading(false);
+        return;
+      }
       setListing(listingData);
 
       const { data: sellerRows, error: sellerError } = await supabase
@@ -145,6 +151,26 @@ export default function ListingDetailPage() {
       <div className="min-h-screen bg-[#FBF8F1] pb-20 font-body">
         <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
           <LoadingSkeleton /><LoadingSkeleton /><LoadingSkeleton />
+        </div>
+      </div>
+    );
+  }
+
+  if (isHidden) {
+    return (
+      <div className="min-h-screen bg-[#FBF8F1] font-body">
+        <div className="sticky top-0 bg-[#FBF8F1]/90 backdrop-blur-md border-b border-[#EDE6D6] z-10 flex items-center gap-3 px-4 py-4 max-w-2xl mx-auto">
+          <button onClick={() => router.back()} className="p-2 hover:bg-[#F3EEDC] rounded-xl text-[#1B2A4A] transition"><ArrowLeft className="w-5 h-5" /></button>
+          <h1 className="text-lg font-display font-bold flex-1 text-[#1B2A4A]">Item Details</h1>
+        </div>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mb-4">
+            <AlertCircle className="w-8 h-8 text-[#B23A2E]" />
+          </div>
+          <h2 className="text-xl font-display font-bold mb-2 text-[#1B2A4A]">Post Unavailable</h2>
+          <p className="text-sm text-[#8A8272] mb-6 max-w-xs">This post was removed.</p>
+          <button onClick={() => router.push('/search')}
+            className="px-6 py-3 rounded-xl font-semibold text-white text-base btn-action-green transition active:scale-[0.98]">Browse Listings</button>
         </div>
       </div>
     );

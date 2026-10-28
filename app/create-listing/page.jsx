@@ -3,16 +3,20 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Upload, ArrowLeft, Loader, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { Upload, ArrowLeft, Loader, AlertCircle, CheckCircle, X, ShieldAlert } from 'lucide-react';
 import { validateImage, compressImage } from '@/lib/imageValidation';
 import { checkRateLimit, recordAction } from '@/lib/rateLimiter';
 import { CATEGORIES } from '@/app/data';
+import { useUserRestrictions } from '@/lib/useUserRestrictions';
+import { Toast, useToast } from '@/components/Toast';
 
 const DEPARTMENTS = ['CS', 'CS AI', 'CS CY', 'ECS', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA', 'AD', 'IT'];
 const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 export default function CreateListing() {
   const router = useRouter();
+  const restrictions = useUserRestrictions();
+  const { toast, showToast, hideToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -138,6 +142,20 @@ export default function CreateListing() {
         return;
       }
 
+      if (restrictions.is_banned) {
+        showToast('Your account is suspended.', 'error');
+        setError('Your account is suspended.');
+        setLoading(false);
+        return;
+      }
+
+      if (!restrictions.can_sell) {
+        showToast('Selling is disabled on your account.', 'error');
+        setError('Selling is disabled on your account.');
+        setLoading(false);
+        return;
+      }
+
       const rateLimit = await checkRateLimit(authUserId, 'CREATE_LISTING');
       if (!rateLimit.allowed) {
         setError(rateLimit.message);
@@ -203,7 +221,15 @@ export default function CreateListing() {
       ]);
 
       if (insertError) {
-        setError(`Failed to create listing: ${insertError.message}`);
+        if (
+          insertError.message &&
+          (insertError.message.toLowerCase().startsWith('restricted:') ||
+            insertError.message.toLowerCase().includes('restricted:'))
+        ) {
+          showToast(insertError.message, 'error');
+        } else {
+          setError(`Failed to create listing: ${insertError.message}`);
+        }
         setLoading(false);
         return;
       }
@@ -236,6 +262,35 @@ export default function CreateListing() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 pb-24">
+        {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
+
+        {restrictions.is_banned && (
+          <div className="mb-5 p-4 rounded-xl flex gap-3 border bg-[#FEF2F2] border-[#FECACA]">
+            <ShieldAlert className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#B23A2E]" />
+            <div>
+              <p className="text-sm font-semibold text-[#B23A2E]">
+                Your account is suspended.
+              </p>
+              <p className="text-xs text-[#5B5647] mt-0.5">
+                Selling, requesting, and chatting are currently disabled on your account.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {!restrictions.is_banned && !restrictions.can_sell && (
+          <div className="mb-5 p-4 rounded-xl flex gap-3 border bg-[#FFFBEB] border-[#FDE68A]">
+            <ShieldAlert className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#B45309]" />
+            <div>
+              <p className="text-sm font-semibold text-[#92400E]">
+                Selling is disabled on your account.
+              </p>
+              <p className="text-xs text-[#B45309] mt-0.5">
+                You cannot publish new listings at this time.
+              </p>
+            </div>
+          </div>
+        )}
         {error && (
           <div className="mb-5 p-4 rounded-xl flex gap-3 border bg-red-50 border-red-200">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-600" />
@@ -514,10 +569,14 @@ export default function CreateListing() {
           {/* Submit */}
           <button
             type="submit"
-            disabled={loading || isCompressing}
+            disabled={loading || isCompressing || restrictions.is_banned || !restrictions.can_sell}
             className="w-full min-h-[48px] py-3 rounded-xl font-semibold text-white text-base disabled:opacity-50 flex items-center justify-center gap-2 btn-action-green transition active:scale-[0.98] shadow-xs"
           >
-            {loading ? (
+            {restrictions.is_banned ? (
+              'Your account is suspended'
+            ) : !restrictions.can_sell ? (
+              'Selling is disabled on your account'
+            ) : loading ? (
               <>
                 <Loader className="w-4 h-4 animate-spin" />
                 Creating Listing...

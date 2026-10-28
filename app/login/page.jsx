@@ -224,13 +224,16 @@ export default function Login() {
         }, 1200);
       } else {
         // Missing full_name, semester, or department: prompt profile step
-        // For a brand-new user, do NOT upsert before the profile form is submitted.
-        if (existingUser?.full_name) setFullName(existingUser.full_name);
-        if (existingUser?.semester) setSemester(existingUser.semester);
-        if (autoDept) {
-          setDepartment(autoDept);
-        } else if (existingUser?.department) {
+        // For existing users with a partial profile, prefill name and semester from saved row
+        setFullName(existingUser?.full_name || '');
+        setSemester(existingUser?.semester || '');
+
+        if (existingUser?.department) {
           setDepartment(existingUser.department);
+        } else if (autoDept) {
+          setDepartment(autoDept);
+        } else {
+          setDepartment('');
         }
 
         setSuccess('OTP verified! Please complete your profile.');
@@ -256,7 +259,7 @@ export default function Login() {
       return;
     }
 
-    const finalDept = detectedDept || department;
+    const finalDept = department.trim();
     if (!finalDept) {
       setError('Please select a department');
       setLoading(false);
@@ -516,29 +519,24 @@ export default function Login() {
                 />
               </div>
 
-              {detectedDept ? (
-                <div>
-                  <label className="block text-sm font-semibold mb-1.5 text-[#1B2A4A]">Department</label>
-                  <div className="py-2.5 px-4 rounded-xl border border-[#CFECDA] bg-[#EAF3EC] flex items-center justify-between">
-                    <span className="text-sm font-semibold text-[#1F7A44]">{detectedDept}</span>
-                    <span className="text-xs font-medium text-[#1F7A44]/80">✓ Detected from SJCET email</span>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <label className="block text-sm font-semibold mb-2 text-[#1B2A4A]">Department</label>
-                  <select
-                    value={department}
-                    onChange={(e) => setDepartment(e.target.value)}
-                    className="w-full px-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] bg-white"
-                  >
-                    <option value="">Select Department</option>
-                    {['CS', 'CS AI', 'CS CY', 'ECS', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA', 'AD', 'IT', 'Other'].map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-semibold mb-1.5 text-[#1B2A4A]">Department</label>
+                <select
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  className="w-full px-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] bg-white"
+                >
+                  <option value="">Select Department</option>
+                  {['CS', 'CS AI', 'CS CY', 'ECS', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA', 'AD', 'IT', 'Other'].map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+                {detectedDept && (
+                  <p className="text-xs text-[#27AE60] mt-1.5 font-medium">
+                    ✓ Detected from your SJCET email, change it if needed
+                  </p>
+                )}
+              </div>
 
               <div>
                 <label className="block text-sm font-semibold mb-2 text-[#1B2A4A]">Semester</label>
@@ -556,7 +554,7 @@ export default function Login() {
 
               <button
                 onClick={handleCompleteProfile}
-                disabled={!fullName.trim() || (!detectedDept && !department) || !semester || loading}
+                disabled={!fullName.trim() || !department || !semester || loading}
                 className="w-full py-3.5 min-h-[48px] rounded-xl font-semibold text-white text-base disabled:opacity-50 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all mt-2 active:scale-[0.99]"
                 style={{ background: 'linear-gradient(135deg, #27AE60, #1F9550)' }}
               >

@@ -68,7 +68,8 @@ function SearchPageContent() {
         let queryBuilder = supabase
           .from('requests')
           .select('*')
-          .eq('status', 'open');
+          .eq('status', 'open')
+          .eq('is_hidden', false);
 
         if (searchQuery) {
           queryBuilder = queryBuilder.or(
@@ -93,7 +94,8 @@ function SearchPageContent() {
         let queryBuilder = supabase
           .from('services')
           .select('*')
-          .eq('status', 'open');
+          .eq('status', 'open')
+          .eq('is_hidden', false);
 
         if (serviceType && serviceType !== 'all') {
           queryBuilder = queryBuilder.eq('service_type', serviceType);
@@ -123,7 +125,8 @@ function SearchPageContent() {
         let queryBuilder = supabase
           .from('listings')
           .select('*')
-          .eq('status', 'Active');
+          .eq('status', 'Active')
+          .eq('is_hidden', false);
 
         if (searchQuery) {
           queryBuilder = queryBuilder.or(

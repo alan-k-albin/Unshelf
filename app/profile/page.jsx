@@ -54,16 +54,19 @@ export default function ProfilePage() {
           .from('listings')
           .select('*')
           .eq('user_id', dbUser?.id)
+          .eq('is_hidden', false)
           .order('created_at', { ascending: false }),
         supabase
           .from('requests')
           .select('*')
           .eq('user_id', dbUser?.id)
+          .eq('is_hidden', false)
           .order('created_at', { ascending: false }),
         supabase
           .from('services')
           .select('*')
           .eq('user_id', dbUser?.id)
+          .eq('is_hidden', false)
           .order('created_at', { ascending: false }),
         supabase
           .from('contacts')

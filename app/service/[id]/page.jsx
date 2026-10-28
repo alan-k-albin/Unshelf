@@ -43,6 +43,7 @@ export default function ServiceDetailPage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authUserId, setAuthUserId] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
 
   const { toast, showToast, hideToast } = useToast();
 
@@ -74,6 +75,12 @@ export default function ServiceDetailPage() {
 
       if (serviceError || !serviceData) {
         setNotFound(true);
+        setLoading(false);
+        return;
+      }
+
+      if (serviceData.is_hidden) {
+        setIsHidden(true);
         setLoading(false);
         return;
       }
@@ -161,6 +168,26 @@ export default function ServiceDetailPage() {
       <div className="min-h-screen bg-[#FBF8F1] p-4 max-w-2xl mx-auto font-body">
         <LoadingSkeleton />
         <LoadingSkeleton />
+      </div>
+    );
+  }
+
+  if (isHidden) {
+    return (
+      <div className="min-h-screen bg-[#FBF8F1] flex flex-col items-center justify-center p-4 font-body">
+        <div className="text-center max-w-sm w-full bg-white p-8 rounded-2xl border border-[#EDE6D6] shadow-xs">
+          <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center text-3xl mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-[#B23A2E]" />
+          </div>
+          <h2 className="text-xl font-display font-bold text-[#1B2A4A] mb-2">Post Unavailable</h2>
+          <p className="text-sm text-[#8A8272] mb-6">This post was removed.</p>
+          <button
+            onClick={() => router.push('/search?type=services')}
+            className="w-full px-6 py-3 rounded-xl font-semibold text-white text-base btn-action-green transition active:scale-[0.98]"
+          >
+            Browse Student Services
+          </button>
+        </div>
       </div>
     );
   }

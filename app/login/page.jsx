@@ -1,42 +1,35 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Smartphone, AlertCircle, CheckCircle, Loader, ArrowRight, Search, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Mail, AlertCircle, CheckCircle, Loader, ArrowRight, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 
-const INSTITUTION_TYPES = [
-  { value: 'engineering_college', label: '🏛️ Engineering College' },
-  { value: 'arts_college', label: '🎓 Arts College' },
-  { value: 'school', label: '🏫 School' },
-  { value: 'coaching_center', label: '📘 Coaching Center' },
-  { value: 'other', label: '✨ Other' },
-];
-
-const COLLEGE_TYPES = ['engineering_college', 'arts_college'];
+const SJCET_REGEX = /^[a-zA-Z0-9._]{1,27}20(2[5-9]|3[0-5])@[a-z]{2,3}\.sjcetpalai\.ac\.in$/i;
 
 const DEPT_MAP = {
   cs: 'CS', ecs: 'ECS', eee: 'EEE', me: 'ME',
   civil: 'Civil', mca: 'MCA', mba: 'MBA', ad: 'AD',
+  ec: 'ECE', cy: 'CS CY',
 };
+
+const INSTITUTION_ID = 'd369d7e0-6808-481f-888c-8b13418ec463';
+const INSTITUTION_TYPE = 'engineering_college';
 
 export default function Login() {
   const router = useRouter();
 
-  const [step, setStep] = useState(0);
-
-  const [institutionType, setInstitutionType] = useState('');
-  const [institutions, setInstitutions] = useState([]);
-  const [institutionSearch, setInstitutionSearch] = useState('');
-  const [selectedInstitution, setSelectedInstitution] = useState(null);
-  const [notListed, setNotListed] = useState(false);
-
+  const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
+  const [sessionUser, setSessionUser] = useState(null);
+
+  // Profile fields
   const [fullName, setFullName] = useState('');
   const [department, setDepartment] = useState('');
+  const [detectedDept, setDetectedDept] = useState('');
   const [semester, setSemester] = useState('');
-  const [whatsapp, setWhatsapp] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -72,72 +65,15 @@ export default function Login() {
     }
   }, []);
 
-  useEffect(() => {
-    if (!institutionType) return;
-    (async () => {
-      const { data, error: fetchErr } = await supabase
-        .from('institutions')
-        .select('id, name, type, email_regex')
-        .eq('type', institutionType)
-        .eq('is_active', true)
-        .order('name');
-      if (!fetchErr) setInstitutions(data || []);
-    })();
-  }, [institutionType]);
-
-  const filteredInstitutions = useMemo(() => {
-    if (!institutionSearch) return institutions;
-    return institutions.filter((i) =>
-      i.name.toLowerCase().includes(institutionSearch.toLowerCase())
-    );
-  }, [institutions, institutionSearch]);
-
-  const isVerifiedTier = !!(selectedInstitution && selectedInstitution.email_regex);
-  const isCollegeType = COLLEGE_TYPES.includes(institutionType);
-
-  // Wording differs: for colleges, Gmail is a temporary stand-in until their
-  // domain is added. For schools/coaching centers, Gmail is the permanent,
-  // by-design path since they don't issue institutional emails.
-  const unverifiedExplanation = isCollegeType
-    ? "College email verification isn't enabled yet for this institution, so you'll sign in with Gmail for now."
-    : "This institution type doesn't use institutional emails, so you'll sign in with Gmail.";
-
-  const unverifiedConsequence =
-    'Your account will show as unverified — WhatsApp contact reveal and posting paid services will be unavailable until verified.';
-
   const validateEmail = (emailInput) => {
-    if (!emailInput) return 'Email is required';
-    if (isVerifiedTier) {
-      const regex = new RegExp(selectedInstitution.email_regex, 'i');
-      if (!regex.test(emailInput)) {
-        return `Use your ${selectedInstitution.name} email address`;
-      }
-    } else {
-      if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(emailInput)) {
-        return 'Please use a Gmail address (@gmail.com)';
-      }
+    if (!emailInput || !emailInput.trim()) {
+      return 'Email is required';
+    }
+    const cleanEmail = emailInput.trim();
+    if (!SJCET_REGEX.test(cleanEmail)) {
+      return 'Please enter a valid SJCET student email (e.g., student2026@cs.sjcetpalai.ac.in)';
     }
     return null;
-  };
-
-  const handleSelectInstitutionType = (type) => {
-    setInstitutionType(type);
-    setInstitutionSearch('');
-    setSelectedInstitution(null);
-    setNotListed(false);
-    setStep(0.5);
-  };
-
-  const handlePickInstitution = (inst) => {
-    setSelectedInstitution(inst);
-    setNotListed(false);
-    setStep(1);
-  };
-
-  const handleNotListed = () => {
-    setSelectedInstitution(null);
-    setNotListed(true);
-    setStep(1);
   };
 
   const handleSendOTP = async () => {
@@ -153,20 +89,23 @@ export default function Login() {
     }
 
     try {
+      const cleanEmail = email.trim().toLowerCase();
       const { error: otpError } = await supabase.auth.signInWithOtp({
-        email,
+        email: cleanEmail,
         options: { shouldCreateUser: true },
       });
 
       if (otpError) {
-        if (otpError.message.includes('rate limit'))
+        if (otpError.message.includes('rate limit')) {
           setError('Too many attempts. Wait 5 minutes.');
-        else setError(otpError.message || 'Failed to send OTP.');
+        } else {
+          setError(otpError.message || 'Failed to send OTP.');
+        }
         setLoading(false);
         return;
       }
 
-      setSuccess('OTP sent to your email!');
+      setSuccess('OTP sent to your SJCET email!');
       setOtpTimer(300);
       setOtpAttempts(0);
       setTimeout(() => {
@@ -197,13 +136,16 @@ export default function Login() {
     }
 
     try {
+      const cleanEmail = email.trim().toLowerCase();
       const { data, error: verifyError } = await supabase.auth.verifyOtp({
-        email,
-        token: otp,
+        email: cleanEmail,
+        token: otp.trim(),
         type: 'email',
       });
 
-      if (verifyError || !data.user) {
+      const session = data?.session || (data?.user ? { user: data.user } : null);
+
+      if (verifyError || !session?.user) {
         const newAttempts = otpAttempts + 1;
         setOtpAttempts(newAttempts);
 
@@ -219,37 +161,169 @@ export default function Login() {
         return;
       }
 
+      // Security requirement: use session.user.id and session.user.email only, never form values
+      const authUserId = session.user.id;
+      const authUserEmail = session.user.email;
+      setSessionUser(session.user);
+
+      // Check if user record already exists to inspect profile completeness
       const { data: existingUser } = await supabase
         .from('users')
-        .select('id, full_name, department, semester, whatsapp_number, is_verified, institution_type')
-        .eq('id', data.user.id)
+        .select('id, full_name, department, semester, is_verified, institution_id, institution_type')
+        .eq('id', authUserId)
         .single();
 
-      if (existingUser) {
-        localStorage.setItem('user', JSON.stringify({
-          email,
-          fullName: existingUser.full_name,
+      // Extract department from verified session email domain via DEPT_MAP
+      const deptMatch = authUserEmail.match(/@([a-z]{2,3})\./i);
+      const autoDept = deptMatch && DEPT_MAP[deptMatch[1].toLowerCase()] ? DEPT_MAP[deptMatch[1].toLowerCase()] : '';
+      setDetectedDept(autoDept);
+
+      const hasCompleteProfile = !!(
+        existingUser?.full_name &&
+        existingUser?.semester &&
+        (existingUser?.department || autoDept)
+      );
+
+      if (hasCompleteProfile) {
+        // Returning user with full profile: upsert institution details without sending is_verified
+        const userPayload = {
+          id: authUserId,
+          email: authUserEmail,
+          department: existingUser.department || autoDept || null,
           full_name: existingUser.full_name,
-          department: existingUser.department,
           semester: existingUser.semester,
-          whatsapp: existingUser.whatsapp_number,
-          is_verified: existingUser.is_verified,
-          institution_type: existingUser.institution_type,
+          institution_id: INSTITUTION_ID,
+          institution_type: INSTITUTION_TYPE,
+        };
+
+        const { error: upsertError } = await supabase
+          .from('users')
+          .upsert([userPayload], { onConflict: 'id' });
+
+        if (upsertError) {
+          console.error('Failed to update user row:', upsertError);
+          throw upsertError;
+        }
+
+        localStorage.setItem('user', JSON.stringify({
+          id: authUserId,
+          email: authUserEmail,
+          fullName: userPayload.full_name,
+          full_name: userPayload.full_name,
+          department: userPayload.department,
+          semester: userPayload.semester,
+          is_verified: existingUser?.is_verified ?? false,
+          institution_type: userPayload.institution_type,
+          institution_id: userPayload.institution_id,
         }));
         localStorage.setItem('lastActivity', Date.now().toString());
-        setSuccess('Welcome back! Redirecting...');
-        setTimeout(() => { router.push('/'); }, 1200);
-        return;
-      }
 
-      setSuccess('OTP verified! Complete your profile.');
-      setTimeout(() => {
-        setStep(3);
-        setSuccess('');
-        setLoading(false);
-      }, 1200);
+        setSuccess('Welcome back! Redirecting...');
+        setTimeout(() => {
+          router.push('/');
+        }, 1200);
+      } else {
+        // Missing full_name, semester, or department: prompt profile step
+        // For a brand-new user, do NOT upsert before the profile form is submitted.
+        if (existingUser?.full_name) setFullName(existingUser.full_name);
+        if (existingUser?.semester) setSemester(existingUser.semester);
+        if (autoDept) {
+          setDepartment(autoDept);
+        } else if (existingUser?.department) {
+          setDepartment(existingUser.department);
+        }
+
+        setSuccess('OTP verified! Please complete your profile.');
+        setTimeout(() => {
+          setStep(3);
+          setSuccess('');
+          setLoading(false);
+        }, 1000);
+      }
     } catch (err) {
       setError(err.message || 'Verification failed.');
+      setLoading(false);
+    }
+  };
+
+  const handleCompleteProfile = async () => {
+    setError('');
+    setLoading(true);
+
+    if (!fullName.trim()) {
+      setError('Full name is required');
+      setLoading(false);
+      return;
+    }
+
+    const finalDept = detectedDept || department;
+    if (!finalDept) {
+      setError('Please select a department');
+      setLoading(false);
+      return;
+    }
+
+    if (!semester) {
+      setError('Please select your semester');
+      setLoading(false);
+      return;
+    }
+
+    const userId = sessionUser?.id;
+    const userEmail = sessionUser?.email;
+
+    if (!userId || !userEmail) {
+      setError('Session expired. Please verify your OTP again.');
+      setLoading(false);
+      setStep(1);
+      return;
+    }
+
+    try {
+      // Upsert using session.user.id and session.user.email only
+      // Do not send is_verified from the client
+      const userPayload = {
+        id: userId,
+        email: userEmail,
+        full_name: fullName.trim(),
+        department: finalDept,
+        semester,
+        institution_id: INSTITUTION_ID,
+        institution_type: INSTITUTION_TYPE,
+      };
+
+      const { error: upsertError } = await supabase
+        .from('users')
+        .upsert([userPayload], { onConflict: 'id' });
+
+      if (upsertError) throw upsertError;
+
+      // Re-select row to get DB-truth is_verified
+      const { data: savedUser } = await supabase
+        .from('users')
+        .select('id, full_name, department, semester, is_verified, institution_id, institution_type')
+        .eq('id', userId)
+        .single();
+
+      localStorage.setItem('user', JSON.stringify({
+        id: userId,
+        email: userEmail,
+        fullName: savedUser?.full_name || userPayload.full_name,
+        full_name: savedUser?.full_name || userPayload.full_name,
+        department: savedUser?.department || userPayload.department,
+        semester: savedUser?.semester || userPayload.semester,
+        is_verified: savedUser?.is_verified ?? false,
+        institution_type: savedUser?.institution_type || userPayload.institution_type,
+        institution_id: savedUser?.institution_id || userPayload.institution_id,
+      }));
+      localStorage.setItem('lastActivity', Date.now().toString());
+
+      setSuccess('Profile completed! Redirecting...');
+      setTimeout(() => {
+        router.push('/');
+      }, 1200);
+    } catch (err) {
+      setError(err.message || 'Failed to complete profile');
       setLoading(false);
     }
   };
@@ -263,83 +337,6 @@ export default function Login() {
     setOtpAttempts(0);
     await handleSendOTP();
   };
-
-  const handleCompleteProfile = async () => {
-    setError('');
-    setLoading(true);
-
-    if (!fullName || !department || !semester || !whatsapp || whatsapp.length !== 10) {
-      setError('Please fill all fields correctly');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      let emailDept = department;
-      if (isVerifiedTier) {
-        const deptMatch = email.match(/@([a-z]{2,3})\./i);
-        if (deptMatch && DEPT_MAP[deptMatch[1].toLowerCase()]) {
-          emailDept = DEPT_MAP[deptMatch[1].toLowerCase()];
-        }
-      }
-
-      const { data: authData } = await supabase.auth.getUser();
-      const authUserId = authData?.user?.id;
-
-      if (!authUserId) {
-        setError('Authentication failed. Please try again.');
-        setLoading(false);
-        return;
-      }
-
-      const { error: upsertError } = await supabase.from('users').upsert(
-        [
-          {
-            id: authUserId,
-            email,
-            full_name: fullName,
-            department: emailDept || department,
-            semester,
-            whatsapp_number: whatsapp,
-            is_verified: isVerifiedTier,
-            institution_id: selectedInstitution?.id || null,
-            institution_type: institutionType || null,
-          },
-        ],
-        { onConflict: 'id' }
-      );
-
-      if (upsertError) throw upsertError;
-
-      localStorage.setItem('user', JSON.stringify({
-        email,
-        fullName,
-        full_name: fullName,
-        department: emailDept || department,
-        semester,
-        whatsapp,
-        is_verified: isVerifiedTier,
-        institution_type: institutionType,
-      }));
-      localStorage.setItem('lastActivity', Date.now().toString());
-
-      setSuccess('Account created! Redirecting...');
-      setTimeout(() => { router.push('/'); }, 1500);
-    } catch (err) {
-      setError(err.message || 'Failed to create account');
-      setLoading(false);
-    }
-  };
-
-  const stepLabel = () => {
-    if (step === 0) return '🏫 Where do you study?';
-    if (step === 0.5) return '🔎 Find your institution';
-    if (step === 1) return '📚 Welcome to your marketplace';
-    if (step === 2) return '✉️ Verify your email';
-    return '👤 Complete your profile';
-  };
-
-  const progressStage = step === 0 || step === 0.5 ? 1 : step === 1 ? 2 : step === 2 ? 3 : 4;
 
   return (
     <div className="min-h-screen bg-[#FBF8F1] font-body flex items-center justify-center px-4 py-8 overflow-y-auto relative">
@@ -361,16 +358,29 @@ export default function Login() {
 
           <div className="text-center mb-7">
             <img src="/logo.png" alt="Unshelf" className="h-16 w-auto mx-auto mb-3 object-contain" />
-            <h2 className="font-display text-xl font-semibold text-[#1B2A4A] mt-1">{stepLabel()}</h2>
+            <h2 className="font-display text-xl font-semibold text-[#1B2A4A] mt-1">
+              {step === 1
+                ? '🎓 SJCET Campus Login'
+                : step === 2
+                ? '✉️ Verify your email'
+                : '👤 Complete your profile'}
+            </h2>
+            <p className="text-xs text-[#5B5647] mt-1">
+              {step === 1
+                ? 'Exclusive to St. Joseph\'s College of Engineering and Technology'
+                : step === 2
+                ? `Enter the 6-digit code sent to ${email}`
+                : 'Set up your name, semester and contact to finish joining'}
+            </p>
           </div>
 
           <div className="flex gap-2 mb-7">
-            {[1, 2, 3, 4].map((s) => (
+            {[1, 2, 3].map((s) => (
               <div
                 key={s}
                 className="h-1.5 flex-1 rounded-full transition-all duration-500"
                 style={{
-                  background: s <= progressStage
+                  background: s <= step
                     ? 'linear-gradient(90deg, #1B2A4A, #27AE60)'
                     : '#EDE6D6',
                 }}
@@ -392,92 +402,24 @@ export default function Login() {
             </div>
           )}
 
-          {step === 0 && (
-            <div className="space-y-3">
-              {INSTITUTION_TYPES.map((t) => (
-                <button
-                  key={t.value}
-                  onClick={() => handleSelectInstitutionType(t.value)}
-                  className="w-full py-3.5 px-4 rounded-xl border-2 border-[#EDE6D6] text-sm font-semibold text-left hover:border-[#1B2A4A] hover:bg-[#F3EFE4]/30 transition flex items-center justify-between text-[#1B2A4A] min-h-[48px] active:scale-[0.99]"
-                >
-                  <span>{t.label}</span>
-                  <ArrowRight className="w-4 h-4 text-[#8A8272]" />
-                </button>
-              ))}
-            </div>
-          )}
-
-          {step === 0.5 && (
-            <div className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-4 top-3.5 w-4 h-4 text-[#8A8272]" />
-                <input
-                  type="text"
-                  placeholder="Type to search..."
-                  value={institutionSearch}
-                  onChange={(e) => setInstitutionSearch(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] placeholder-[#8A8272]"
-                />
-              </div>
-
-              <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
-                {filteredInstitutions.map((inst) => (
-                  <button
-                    key={inst.id}
-                    onClick={() => handlePickInstitution(inst)}
-                    className="w-full py-3 px-4 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm text-left hover:border-[#1B2A4A] hover:bg-[#F3EFE4]/30 transition flex items-center justify-between text-[#1B2A4A] active:scale-[0.99]"
-                  >
-                    <span className="font-medium pr-2">{inst.name}</span>
-                    {inst.email_regex ? (
-                      <ShieldCheck className="w-4 h-4 text-[#27AE60] flex-shrink-0" />
-                    ) : (
-                      <ShieldAlert className="w-4 h-4 text-[#D97706] flex-shrink-0" />
-                    )}
-                  </button>
-                ))}
-
-                {filteredInstitutions.length === 0 && institutionSearch && (
-                  <p className="text-xs text-[#5B5647] text-center py-2">No matches found.</p>
-                )}
-              </div>
-
-              <button
-                onClick={handleNotListed}
-                className="w-full py-3 min-h-[44px] rounded-xl border-2 border-dashed border-[#EDE6D6] text-sm font-semibold text-[#5B5647] hover:border-[#1B2A4A] hover:text-[#1B2A4A] transition flex items-center justify-center gap-2"
-              >
-                <ShieldAlert className="w-4 h-4" />
-                My institution isn't listed
-              </button>
-
-              <button
-                onClick={() => setStep(0)}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold text-[#1B2A4A] hover:text-[#27AE60] transition"
-              >
-                ← Change institution type
-              </button>
-            </div>
-          )}
-
           {step === 1 && (
             <div className="space-y-4">
-              {!isVerifiedTier && (
-                <div className="p-3.5 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] flex gap-2.5">
-                  <ShieldAlert className="w-4 h-4 text-[#B45309] flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-[#B45309] leading-relaxed">
-                    {unverifiedExplanation} {unverifiedConsequence}
-                  </p>
-                </div>
-              )}
+              <div className="p-3.5 rounded-xl bg-[#EAF3EC] border border-[#CFECDA] flex gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-[#1F7A44] flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-[#1F7A44] leading-relaxed">
+                  Only official SJCET student email addresses (batch 2025–2035) are permitted.
+                </p>
+              </div>
 
               <div>
                 <label className="block text-sm font-semibold mb-2 text-[#1B2A4A]">
-                  {isVerifiedTier ? `${selectedInstitution.name} Email` : 'Gmail Address'}
+                  SJCET Student Email
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8A8272]" />
                   <input
                     type="email"
-                    placeholder={isVerifiedTier ? 'student@dept.college.ac.in' : 'yourname@gmail.com'}
+                    placeholder="student2026@cs.sjcetpalai.ac.in"
                     value={email}
                     onChange={(e) => setEmail(e.target.value.toLowerCase())}
                     className="w-full pl-12 pr-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] placeholder-[#8A8272]"
@@ -497,13 +439,6 @@ export default function Login() {
                   <>Send OTP <ArrowRight className="w-4 h-4" /></>
                 )}
               </button>
-
-              <button
-                onClick={() => setStep(0.5)}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold text-[#1B2A4A] hover:text-[#27AE60] transition"
-              >
-                ← Go Back
-              </button>
             </div>
           )}
 
@@ -520,7 +455,6 @@ export default function Login() {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-[#5B5647] mb-3">Sent to {email}</p>
                 <input
                   type="text"
                   maxLength="6"
@@ -541,7 +475,7 @@ export default function Login() {
                 {loading ? (
                   <><Loader className="w-4 h-4 animate-spin" /> Verifying...</>
                 ) : (
-                  <>Verify OTP <ArrowRight className="w-4 h-4" /></>
+                  <>Verify & Sign In <ArrowRight className="w-4 h-4" /></>
                 )}
               </button>
 
@@ -556,53 +490,58 @@ export default function Login() {
               )}
 
               <button
-                onClick={() => setStep(1)}
+                onClick={() => {
+                  setStep(1);
+                  setOtp('');
+                  setError('');
+                  setSuccess('');
+                }}
                 className="w-full py-2.5 rounded-xl text-sm font-semibold text-[#1B2A4A] hover:text-[#27AE60] transition"
               >
-                ← Go Back
+                ← Change Email
               </button>
             </div>
           )}
 
           {step === 3 && (
             <div className="space-y-4">
-              {!isVerifiedTier && (
-                <div className="p-3.5 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] flex gap-2.5">
-                  <ShieldAlert className="w-4 h-4 text-[#B45309] flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-[#B45309] leading-relaxed">
-                    {unverifiedExplanation} Your account will be marked <strong>Unverified</strong> —
-                    WhatsApp contact reveal and posting paid services are disabled until verified.
-                  </p>
-                </div>
-              )}
-
               <div>
                 <label className="block text-sm font-semibold mb-2 text-[#1B2A4A]">Full Name</label>
                 <input
                   type="text"
-                  placeholder="Rahul Sharma"
+                  placeholder="e.g., Alex Joseph"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="w-full px-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] placeholder-[#8A8272]"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-[#1B2A4A]">Department</label>
-                <select
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  className="w-full px-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] bg-white"
-                >
-                  <option value="">Select Department</option>
-                  {['CS', 'CS AI', 'CS CY', 'ECS', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA', 'AD', 'IT', 'Other'].map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-              </div>
+              {detectedDept ? (
+                <div>
+                  <label className="block text-sm font-semibold mb-1.5 text-[#1B2A4A]">Department</label>
+                  <div className="py-2.5 px-4 rounded-xl border border-[#CFECDA] bg-[#EAF3EC] flex items-center justify-between">
+                    <span className="text-sm font-semibold text-[#1F7A44]">{detectedDept}</span>
+                    <span className="text-xs font-medium text-[#1F7A44]/80">✓ Detected from SJCET email</span>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-[#1B2A4A]">Department</label>
+                  <select
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    className="w-full px-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] bg-white"
+                  >
+                    <option value="">Select Department</option>
+                    {['CS', 'CS AI', 'CS CY', 'ECS', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA', 'AD', 'IT', 'Other'].map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
-                <label className="block text-sm font-semibold mb-2 text-[#1B2A4A]">Semester / Year</label>
+                <label className="block text-sm font-semibold mb-2 text-[#1B2A4A]">Semester</label>
                 <select
                   value={semester}
                   onChange={(e) => setSemester(e.target.value)}
@@ -610,36 +549,21 @@ export default function Login() {
                 >
                   <option value="">Select Semester</option>
                   {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
-                    <option key={s} value={`S${s}`}>Semester {s}</option>
+                    <option key={s} value={`S${s}`}>Semester {s} (S{s})</option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-[#1B2A4A]">WhatsApp Number</label>
-                <div className="relative">
-                  <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8A8272]" />
-                  <input
-                    type="tel"
-                    placeholder="9876543210"
-                    value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
-                    maxLength="10"
-                    className="w-full pl-12 pr-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] placeholder-[#8A8272]"
-                  />
-                </div>
-              </div>
-
               <button
                 onClick={handleCompleteProfile}
-                disabled={!fullName || !department || !semester || !whatsapp || loading}
+                disabled={!fullName.trim() || (!detectedDept && !department) || !semester || loading}
                 className="w-full py-3.5 min-h-[48px] rounded-xl font-semibold text-white text-base disabled:opacity-50 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all mt-2 active:scale-[0.99]"
                 style={{ background: 'linear-gradient(135deg, #27AE60, #1F9550)' }}
               >
                 {loading ? (
-                  <><Loader className="w-4 h-4 animate-spin" /> Creating Account...</>
+                  <><Loader className="w-4 h-4 animate-spin" /> Saving Profile...</>
                 ) : (
-                  <>Complete Login <ArrowRight className="w-4 h-4" /></>
+                  <>Complete & Enter Unshelf <ArrowRight className="w-4 h-4" /></>
                 )}
               </button>
             </div>

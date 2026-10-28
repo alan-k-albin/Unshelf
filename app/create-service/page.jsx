@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { ArrowLeft, Loader, AlertCircle, CheckCircle, Briefcase, Wrench, Sparkles, ShieldAlert } from 'lucide-react';
 import { checkRateLimit, recordAction } from '@/lib/rateLimiter';
+import { useUserRestrictions } from '@/lib/useUserRestrictions';
+import { Toast, useToast } from '@/components/Toast';
 
 const DEPARTMENTS = ['CS', 'CS AI', 'CS CY', 'ECS', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA', 'AD', 'IT', 'Any / General'];
 const SEMESTERS = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'Any / General'];
@@ -33,6 +35,8 @@ export default function CreateServicePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialType = searchParams.get('service_type') === 'seeking' ? 'seeking' : 'offering';
+  const restrictions = useUserRestrictions();
+  const { toast, showToast, hideToast } = useToast();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -55,6 +59,16 @@ export default function CreateServicePage() {
       setFormData((prev) => ({ ...prev, service_type: typeParam }));
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!restrictions.loading) {
+      if (!restrictions.can_offer_service && restrictions.can_request_service && formData.service_type === 'offering') {
+        setFormData((prev) => ({ ...prev, service_type: 'seeking' }));
+      } else if (!restrictions.can_request_service && restrictions.can_offer_service && formData.service_type === 'seeking') {
+        setFormData((prev) => ({ ...prev, service_type: 'offering' }));
+      }
+    }
+  }, [restrictions.loading, restrictions.can_offer_service, restrictions.can_request_service, formData.service_type]);
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -105,6 +119,27 @@ export default function CreateServicePage() {
         return;
       }
 
+      if (restrictions.is_banned) {
+        showToast('Your account is suspended.', 'error');
+        setError('Your account is suspended.');
+        setLoading(false);
+        return;
+      }
+
+      if (formData.service_type === 'offering' && !restrictions.can_offer_service) {
+        showToast('Offering services is disabled on your account.', 'error');
+        setError('Offering services is disabled on your account.');
+        setLoading(false);
+        return;
+      }
+
+      if (formData.service_type === 'seeking' && !restrictions.can_request_service) {
+        showToast('Requesting services is disabled on your account.', 'error');
+        setError('Requesting services is disabled on your account.');
+        setLoading(false);
+        return;
+      }
+
       const rateLimit = await checkRateLimit(authUserId, 'CREATE_LISTING');
       if (!rateLimit.allowed) {
         setError(rateLimit.message);
@@ -134,11 +169,19 @@ export default function CreateServicePage() {
         .single();
 
       if (insertError) {
-        setError(
-          insertError.message.includes('row-level security') || insertError.message.includes('policy')
-            ? 'Posting a paid service offer requires a verified institution account.'
-            : `Failed to post service: ${insertError.message}`
-        );
+        if (
+          insertError.message &&
+          (insertError.message.toLowerCase().startsWith('restricted:') ||
+            insertError.message.toLowerCase().includes('restricted:'))
+        ) {
+          showToast(insertError.message, 'error');
+        } else {
+          setError(
+            insertError.message.includes('row-level security') || insertError.message.includes('policy')
+              ? 'Posting a paid service offer requires a verified institution account.'
+              : `Failed to post service: ${insertError.message}`
+          );
+        }
         setLoading(false);
         return;
       }
@@ -191,6 +234,22 @@ export default function CreateServicePage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 pb-28">
+        {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
+
+        {restrictions.is_banned && (
+          <div className="mb-5 p-4 rounded-xl flex gap-3 border bg-[#FEF2F2] border-[#FECACA]">
+            <ShieldAlert className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#B23A2E]" />
+            <div>
+              <p className="text-sm font-semibold text-[#B23A2E]">
+                Your account is suspended.
+              </p>
+              <p className="text-xs text-[#5B5647] mt-0.5">
+                Posting, requesting, and chatting are currently disabled on your account.
+              </p>
+            </div>
+          </div>
+        )}
+
         {isOffering && !isVerified && (
           <div className="mb-5 p-4 rounded-xl flex gap-3 border bg-amber-50 border-amber-200">
             <ShieldAlert className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-600" />
@@ -223,9 +282,18 @@ export default function CreateServicePage() {
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => setFormData((prev) => ({ ...prev, service_type: 'offering' }))}
+                onClick={() => {
+                  if (!restrictions.can_offer_service) {
+                    showToast('Offering services is disabled on your account.', 'error');
+                    return;
+                  }
+                  setFormData((prev) => ({ ...prev, service_type: 'offering' }));
+                }}
+                disabled={!restrictions.can_offer_service}
                 className={`p-3.5 rounded-xl border-2 font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
-                  isOffering
+                  !restrictions.can_offer_service
+                    ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed opacity-60'
+                    : isOffering
                     ? 'border-[#27AE60] bg-[#F0FDF4] text-[#1E7E45] shadow-xs'
                     : 'border-[#EDE6D6] bg-white text-[#5B5647] hover:border-[#1B2A4A]/40'
                 }`}
@@ -235,9 +303,18 @@ export default function CreateServicePage() {
               </button>
               <button
                 type="button"
-                onClick={() => setFormData((prev) => ({ ...prev, service_type: 'seeking' }))}
+                onClick={() => {
+                  if (!restrictions.can_request_service) {
+                    showToast('Requesting services is disabled on your account.', 'error');
+                    return;
+                  }
+                  setFormData((prev) => ({ ...prev, service_type: 'seeking' }));
+                }}
+                disabled={!restrictions.can_request_service}
                 className={`p-3.5 rounded-xl border-2 font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
-                  !isOffering
+                  !restrictions.can_request_service
+                    ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed opacity-60'
+                    : !isOffering
                     ? 'border-[#B45309] bg-[#FFFBEB] text-[#B45309] shadow-xs'
                     : 'border-[#EDE6D6] bg-white text-[#5B5647] hover:border-[#1B2A4A]/40'
                 }`}
@@ -246,6 +323,16 @@ export default function CreateServicePage() {
                 <span>Request a Service</span>
               </button>
             </div>
+            {!restrictions.can_offer_service && (
+              <p className="text-[11px] text-[#B23A2E] mt-1.5 font-medium">
+                ⚠️ Offering services is disabled on your account.
+              </p>
+            )}
+            {!restrictions.can_request_service && (
+              <p className="text-[11px] text-[#B23A2E] mt-1.5 font-medium">
+                ⚠️ Requesting services is disabled on your account.
+              </p>
+            )}
             <p className="text-xs text-[#8A8272] mt-2.5">
               {isOffering
                 ? '💡 You are advertising a service you can provide to other students.'
@@ -388,16 +475,28 @@ export default function CreateServicePage() {
           <div className="p-4 rounded-xl bg-[#FAF6EE] border border-[#EDE6D6] flex gap-3">
             <Sparkles className="w-5 h-5 text-[#27AE60] shrink-0 mt-0.5" />
             <div className="text-xs text-[#5B5647] leading-relaxed">
-              <strong className="text-[#1B2A4A]">Campus Community Guidelines:</strong> Services on Unshelf are provided by and for students. Please keep interactions respectful, coordinate directly via WhatsApp, and agree on deliverables upfront.
+              <strong className="text-[#1B2A4A]">Campus Community Guidelines:</strong> Services on Unshelf are provided by and for students. Please keep interactions respectful, coordinate directly via chat, and agree on deliverables upfront.
             </div>
           </div>
 
           <button
             type="submit"
-            disabled={loading || (isOffering && !isVerified)}
+            disabled={
+              loading ||
+              (isOffering && !isVerified) ||
+              restrictions.is_banned ||
+              (isOffering && !restrictions.can_offer_service) ||
+              (!isOffering && !restrictions.can_request_service)
+            }
             className="w-full min-h-[48px] py-3.5 px-4 rounded-xl font-semibold text-white text-base disabled:opacity-50 flex items-center justify-center gap-2 btn-action-green transition active:scale-[0.98] shadow-xs cursor-pointer"
           >
-            {loading ? (
+            {restrictions.is_banned ? (
+              'Your account is suspended'
+            ) : isOffering && !restrictions.can_offer_service ? (
+              'Offering services is disabled on your account'
+            ) : !isOffering && !restrictions.can_request_service ? (
+              'Requesting services is disabled on your account'
+            ) : loading ? (
               <>
                 <Loader className="w-4 h-4 animate-spin" />
                 Posting Service...

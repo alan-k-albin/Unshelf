@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MessageCircle, Loader, AlertCircle, LogIn } from 'lucide-react';
+import { MessageCircle, Loader, AlertCircle, LogIn, ShieldAlert } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
+import { useUserRestrictions } from '@/lib/useUserRestrictions';
 
 export default function ChatButton({
   listingId = null,
@@ -23,6 +24,7 @@ export default function ChatButton({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
+  const restrictions = useUserRestrictions();
 
   // 1. isOwner -> render "This is your post"
   if (isOwner) {
@@ -45,7 +47,30 @@ export default function ChatButton({
   const viewerLoggedIn = !!currentUser;
   const viewerVerified = currentUser?.is_verified === true;
 
-  // 3. Viewer logged out OR viewerVerified is false -> login prompt
+  // 3. User restrictions: suspended or chat disabled
+  if (viewerLoggedIn && restrictions.is_banned) {
+    return (
+      <div className="w-full py-3.5 px-4 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-center font-body">
+        <div className="flex items-center justify-center gap-1.5 text-[#B23A2E] text-xs font-semibold">
+          <ShieldAlert className="w-4 h-4 text-[#B23A2E] shrink-0" />
+          <span>Your account is suspended. Chat is disabled.</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (viewerLoggedIn && !restrictions.can_chat) {
+    return (
+      <div className="w-full py-3.5 px-4 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] text-center font-body">
+        <div className="flex items-center justify-center gap-1.5 text-[#92400E] text-xs font-semibold">
+          <AlertCircle className="w-4 h-4 text-[#B45309] shrink-0" />
+          <span>Chat is disabled on your account.</span>
+        </div>
+      </div>
+    );
+  }
+
+  // 4. Viewer logged out OR viewerVerified is false -> login prompt
   if (!viewerLoggedIn || !viewerVerified || showVerificationPrompt) {
     return (
       <div className="w-full p-4 rounded-2xl bg-[#FFFBEB] border-2 border-[#FDE68A] text-center animate-fade-in shadow-xs font-body">
@@ -78,7 +103,7 @@ export default function ChatButton({
     );
   }
 
-  // 4. Poster profile LOADED and poster.is_verified === false -> disabled notice
+  // 5. Poster profile LOADED and poster.is_verified === false -> disabled notice
   if (poster && poster.is_verified === false) {
     return (
       <div className="w-full py-3.5 px-4 rounded-xl bg-[#FBF8F1] border-2 border-[#EDE6D6] text-center font-body">
@@ -90,7 +115,7 @@ export default function ChatButton({
     );
   }
 
-  // 5. Otherwise (poster verified, OR poster failed to load/null where RPC will verify) -> normal Chat button
+  // 6. Otherwise (poster verified, OR poster failed to load/null where RPC will verify) -> normal Chat button
   const handleChatClick = async () => {
     setLoading(true);
 
@@ -112,8 +137,9 @@ export default function ChatButton({
 
       if (error) {
         const errorMsg = error.message || '';
-        // Check POSTER_NOT_VERIFIED FIRST
-        if (errorMsg.includes('POSTER_NOT_VERIFIED')) {
+        if (errorMsg.toLowerCase().startsWith('restricted:') || errorMsg.toLowerCase().includes('restricted:')) {
+          showToast?.(errorMsg, 'error');
+        } else if (errorMsg.includes('POSTER_NOT_VERIFIED')) {
           showToast?.(
             "This user hasn't verified a college email yet, so chat isn't available.",
             'error'

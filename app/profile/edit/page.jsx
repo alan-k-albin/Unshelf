@@ -2,10 +2,24 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 import { ArrowLeft, Loader, AlertCircle, CheckCircle } from 'lucide-react';
 
-const DEPARTMENTS = ['CS', 'CS AI', 'CS CY', 'ECS', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA', 'AD', 'IT'];
+const DEPARTMENTS = ['CS', 'CS AI', 'CS CY', 'ECS', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA', 'AD', 'IT', 'Other'];
 const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
+
+const DEPT_MAP = {
+  cs: 'CS', ecs: 'ECS', eee: 'EEE', me: 'ME',
+  civil: 'Civil', mca: 'MCA', mba: 'MBA', ad: 'AD',
+  ec: 'ECE', cy: 'CS CY',
+};
+
+const normalizeSemester = (sem) => {
+  if (!sem) return '';
+  const str = String(sem).trim();
+  if (/^[1-8]$/.test(str)) return `S${str}`;
+  return str;
+};
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -26,26 +40,53 @@ export default function EditProfilePage() {
 
   const loadProfile = async () => {
     try {
-      const userStr = localStorage.getItem('user');
-      if (!userStr) {
+      const { data: { user: sessionUser }, error: authError } = await supabase.auth.getUser();
+
+      if (authError || !sessionUser) {
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
+          router.push('/login');
+          return;
+        }
+      }
+
+      const userId = sessionUser?.id;
+      if (!userId) {
         router.push('/login');
         return;
       }
-      const userData = JSON.parse(userStr);
 
-      const { data: dbUser } = await supabase
+      const { data: dbUser, error: dbError } = await supabase
         .from('users')
-        .select('*')
-        .eq('email', userData.email)
+        .select('id, full_name, department, semester, email')
+        .eq('id', userId)
         .single();
 
-      if (dbUser) {
-        setFormData({
-          full_name: dbUser.full_name || '',
-          department: dbUser.department || '',
-          semester: dbUser.semester || '',
-        });
+      if (dbError && dbError.code !== 'PGRST116') {
+        console.error('Error fetching user profile:', dbError);
       }
+
+      // If saved department is empty, preselect it from the email domain using DEPT_MAP
+      const targetEmail = dbUser?.email || sessionUser?.email || '';
+      let autoDept = '';
+      const deptMatch = targetEmail.match(/@([a-z]{2,3})\./i);
+      if (deptMatch && DEPT_MAP[deptMatch[1].toLowerCase()]) {
+        autoDept = DEPT_MAP[deptMatch[1].toLowerCase()];
+      }
+
+      let localUser = null;
+      try {
+        const userStr = localStorage.getItem('user');
+        if (userStr) localUser = JSON.parse(userStr);
+      } catch (e) {
+        // ignore parse error
+      }
+
+      setFormData({
+        full_name: dbUser?.full_name || localUser?.full_name || localUser?.fullName || '',
+        department: dbUser?.department || autoDept || localUser?.department || '',
+        semester: normalizeSemester(dbUser?.semester || localUser?.semester || ''),
+      });
     } catch (err) {
       console.error('Load error:', err);
     } finally {
@@ -77,8 +118,14 @@ export default function EditProfilePage() {
 
     setSaving(true);
     try {
-      const userStr = localStorage.getItem('user');
-      const userData = JSON.parse(userStr);
+      const { data: { user: sessionUser }, error: authError } = await supabase.auth.getUser();
+      const userId = sessionUser?.id;
+
+      if (authError || !userId) {
+        setError('Session expired. Please log in again.');
+        setSaving(false);
+        return;
+      }
 
       const { error: updateError } = await supabase
         .from('users')
@@ -87,19 +134,25 @@ export default function EditProfilePage() {
           department: formData.department,
           semester: formData.semester,
         })
-        .eq('email', userData.email);
+        .eq('id', userId);
 
       if (updateError) throw updateError;
 
       // Update localStorage too
-      const updatedUser = {
-        ...userData,
-        fullName: formData.full_name.trim(),
-        full_name: formData.full_name.trim(),
-        department: formData.department,
-        semester: formData.semester,
-      };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const userData = JSON.parse(userStr);
+        const updatedUser = {
+          ...userData,
+          fullName: formData.full_name.trim(),
+          full_name: formData.full_name.trim(),
+          department: formData.department,
+          semester: formData.semester,
+        };
+        delete updatedUser.whatsapp;
+        delete updatedUser.whatsapp_number;
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
 
       setSuccess('Profile updated successfully!');
       setTimeout(() => router.push('/profile'), 1500);
@@ -197,7 +250,7 @@ export default function EditProfilePage() {
             >
               <option value="">Select Semester</option>
               {SEMESTERS.map((s) => (
-                <option key={s} value={`S${s}`}>Semester {s}</option>
+                <option key={s} value={`S${s}`}>Semester {s} (S{s})</option>
               ))}
             </select>
           </div>

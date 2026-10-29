@@ -16,6 +16,7 @@ import { logoutUser } from '@/lib/auth';
 import { supabase } from '@/lib/supabaseClient';
 import { useUserRestrictions } from '@/lib/useUserRestrictions';
 import SessionInitializer from '@/components/SessionInitializer';
+import PasswordGuard from '@/components/PasswordGuard';
 import './globals.css';
 
 export default function RootLayout({ children }) {
@@ -135,6 +136,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className="bg-light">
         <SessionInitializer />
+        <PasswordGuard />
 
         {/* Error Banner */}
         {error && (

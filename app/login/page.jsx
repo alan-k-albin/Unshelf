@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, AlertCircle, CheckCircle, Loader, ArrowRight, ShieldCheck } from 'lucide-react';
+import { AlertCircle, CheckCircle, Loader, ArrowRight } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
-
-const SJCET_REGEX = /^[a-zA-Z0-9._]{1,27}20(2[5-9]|3[0-5])@[a-z]{2,3}\.sjcetpalai\.ac\.in$/i;
+import PasswordLoginForm from '@/components/auth/PasswordLoginForm';
+import OtpRequestForm from '@/components/auth/OtpRequestForm';
+import OtpVerifyForm from '@/components/auth/OtpVerifyForm';
+import SetPasswordForm from '@/components/auth/SetPasswordForm';
 
 const DEPT_MAP = {
   cs: 'CS', ecs: 'ECS', eee: 'EEE', me: 'ME',
@@ -16,12 +18,13 @@ const DEPT_MAP = {
 const INSTITUTION_ID = 'd369d7e0-6808-481f-888c-8b13418ec463';
 const INSTITUTION_TYPE = 'engineering_college';
 
+// Views: 'PASSWORD_LOGIN' | 'OTP_REQUEST' | 'OTP_VERIFY' | 'SET_PASSWORD' | 'PROFILE'
 export default function Login() {
   const router = useRouter();
 
-  const [step, setStep] = useState(1);
+  const [view, setView] = useState('PASSWORD_LOGIN');
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
   const [sessionUser, setSessionUser] = useState(null);
 
   // Profile fields
@@ -31,150 +34,52 @@ export default function Login() {
   const [semester, setSemester] = useState('');
 
   const [loading, setLoading] = useState(false);
+  const [checkingInitialSession, setCheckingInitialSession] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [otpTimer, setOtpTimer] = useState(0);
-  const [otpAttempts, setOtpAttempts] = useState(0);
-  const [isLockedOut, setIsLockedOut] = useState(false);
-  const [lockoutTimer, setLockoutTimer] = useState(0);
-  const [sessionExpired, setSessionExpired] = useState(false);
-
-  useEffect(() => {
-    if (otpTimer > 0) {
-      const interval = setTimeout(() => setOtpTimer(otpTimer - 1), 1000);
-      return () => clearTimeout(interval);
-    }
-  }, [otpTimer]);
-
-  useEffect(() => {
-    if (lockoutTimer > 0) {
-      const interval = setTimeout(() => setLockoutTimer(lockoutTimer - 1), 1000);
-      return () => clearTimeout(interval);
-    } else if (isLockedOut && lockoutTimer === 0) {
-      setIsLockedOut(false);
-      setOtpAttempts(0);
-    }
-  }, [lockoutTimer, isLockedOut]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('session') === 'expired') {
-      setSessionExpired(true);
       setError('Your session has expired. Please login again.');
       window.history.replaceState({}, document.title, '/login');
     }
+
+    const checkViewParam = async () => {
+      const viewParam = params.get('view');
+      if (viewParam === 'set-password') {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setSessionUser(session.user);
+          if (session.user.email) setEmail(session.user.email);
+          setView('SET_PASSWORD');
+          setCheckingInitialSession(false);
+          return;
+        }
+      }
+      setCheckingInitialSession(false);
+    };
+
+    checkViewParam();
   }, []);
 
-  const validateEmail = (emailInput) => {
-    if (!emailInput || !emailInput.trim()) {
-      return 'Email is required';
-    }
-    const cleanEmail = emailInput.trim();
-    if (!SJCET_REGEX.test(cleanEmail)) {
-      return 'Please enter a valid SJCET student email (e.g., student2026@cs.sjcetpalai.ac.in)';
-    }
-    return null;
-  };
-
-  const handleSendOTP = async () => {
-    setError('');
-    setSuccess('');
-    setLoading(true);
-
-    const emailError = validateEmail(email);
-    if (emailError) {
-      setError(emailError);
-      setLoading(false);
-      return;
-    }
+  const checkAndRouteUserProfile = async (user) => {
+    const authUserId = user.id;
+    const authUserEmail = user.email;
+    setSessionUser(user);
 
     try {
-      const cleanEmail = email.trim().toLowerCase();
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: cleanEmail,
-        options: { shouldCreateUser: true },
-      });
-
-      if (otpError) {
-        if (otpError.message.includes('rate limit')) {
-          setError('Too many attempts. Wait 5 minutes.');
-        } else {
-          setError(otpError.message || 'Failed to send OTP.');
-        }
-        setLoading(false);
-        return;
-      }
-
-      setSuccess('OTP sent to your SJCET email!');
-      setOtpTimer(300);
-      setOtpAttempts(0);
-      setTimeout(() => {
-        setStep(2);
-        setSuccess('');
-        setLoading(false);
-      }, 1500);
-    } catch (err) {
-      setError(err.message || 'An error occurred.');
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOTP = async () => {
-    setError('');
-    setLoading(true);
-
-    if (isLockedOut) {
-      setError(`Too many attempts. Try again in ${lockoutTimer} seconds.`);
-      setLoading(false);
-      return;
-    }
-
-    if (!otp || otp.length !== 6) {
-      setError('OTP must be 6 digits');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const cleanEmail = email.trim().toLowerCase();
-      const { data, error: verifyError } = await supabase.auth.verifyOtp({
-        email: cleanEmail,
-        token: otp.trim(),
-        type: 'email',
-      });
-
-      const session = data?.session || (data?.user ? { user: data.user } : null);
-
-      if (verifyError || !session?.user) {
-        const newAttempts = otpAttempts + 1;
-        setOtpAttempts(newAttempts);
-
-        if (newAttempts >= 3) {
-          setIsLockedOut(true);
-          setLockoutTimer(300);
-          setError('Too many attempts. Locked for 5 minutes.');
-        } else {
-          setError(`Invalid OTP. ${3 - newAttempts} attempts left.`);
-        }
-        setOtp('');
-        setLoading(false);
-        return;
-      }
-
-      // Security requirement: use session.user.id and session.user.email only, never form values
-      const authUserId = session.user.id;
-      const authUserEmail = session.user.email;
-      setSessionUser(session.user);
-
-      // Check if user record already exists to inspect profile completeness
-      const { data: existingUser } = await supabase
+      const { data: existingUser, error: fetchError } = await supabase
         .from('users')
         .select('id, full_name, department, semester, is_verified, institution_id, institution_type')
         .eq('id', authUserId)
         .single();
 
-      // Extract department from verified session email domain via DEPT_MAP
-      const deptMatch = authUserEmail.match(/@([a-z]{2,3})\./i);
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Error fetching user profile:', fetchError);
+      }
+
+      const deptMatch = authUserEmail ? authUserEmail.match(/@([a-z]{2,3})\./i) : null;
       const autoDept = deptMatch && DEPT_MAP[deptMatch[1].toLowerCase()] ? DEPT_MAP[deptMatch[1].toLowerCase()] : '';
       setDetectedDept(autoDept);
 
@@ -185,7 +90,6 @@ export default function Login() {
       );
 
       if (hasCompleteProfile) {
-        // Returning user with full profile: upsert institution details without sending is_verified
         const userPayload = {
           id: authUserId,
           email: authUserEmail,
@@ -215,19 +119,17 @@ export default function Login() {
           is_verified: existingUser?.is_verified ?? false,
           institution_type: userPayload.institution_type,
           institution_id: userPayload.institution_id,
+          has_password: true,
         }));
         localStorage.setItem('lastActivity', Date.now().toString());
 
         setSuccess('Welcome back! Redirecting...');
         setTimeout(() => {
           router.push('/');
-        }, 1200);
+        }, 1000);
       } else {
-        // Missing full_name, semester, or department: prompt profile step
-        // For existing users with a partial profile, prefill name and semester from saved row
         setFullName(existingUser?.full_name || '');
         setSemester(existingUser?.semester || '');
-
         if (existingUser?.department) {
           setDepartment(existingUser.department);
         } else if (autoDept) {
@@ -235,21 +137,37 @@ export default function Login() {
         } else {
           setDepartment('');
         }
-
-        setSuccess('OTP verified! Please complete your profile.');
-        setTimeout(() => {
-          setStep(3);
-          setSuccess('');
-          setLoading(false);
-        }, 1000);
+        setView('PROFILE');
       }
     } catch (err) {
-      setError(err.message || 'Verification failed.');
-      setLoading(false);
+      console.error('Profile route error:', err);
+      setError(err.message || 'Error loading profile.');
     }
   };
 
-  const handleCompleteProfile = async () => {
+  const handlePasswordLoginSuccess = async (user) => {
+    setError('');
+    await checkAndRouteUserProfile(user);
+  };
+
+  const handleOtpVerified = (user) => {
+    setError('');
+    setSessionUser(user);
+    setView('SET_PASSWORD');
+  };
+
+  const handlePasswordSetSuccess = async (updatedUser) => {
+    setError('');
+    const userToRoute = updatedUser || sessionUser;
+    if (userToRoute) {
+      await checkAndRouteUserProfile(userToRoute);
+    } else {
+      router.push('/');
+    }
+  };
+
+  const handleCompleteProfile = async (e) => {
+    e?.preventDefault();
     setError('');
     setLoading(true);
 
@@ -276,15 +194,13 @@ export default function Login() {
     const userEmail = sessionUser?.email;
 
     if (!userId || !userEmail) {
-      setError('Session expired. Please verify your OTP again.');
+      setError('Session expired. Please sign in again.');
       setLoading(false);
-      setStep(1);
+      setView('PASSWORD_LOGIN');
       return;
     }
 
     try {
-      // Upsert using session.user.id and session.user.email only
-      // Do not send is_verified from the client
       const userPayload = {
         id: userId,
         email: userEmail,
@@ -301,7 +217,6 @@ export default function Login() {
 
       if (upsertError) throw upsertError;
 
-      // Re-select row to get DB-truth is_verified
       const { data: savedUser } = await supabase
         .from('users')
         .select('id, full_name, department, semester, is_verified, institution_id, institution_type')
@@ -318,28 +233,84 @@ export default function Login() {
         is_verified: savedUser?.is_verified ?? false,
         institution_type: savedUser?.institution_type || userPayload.institution_type,
         institution_id: savedUser?.institution_id || userPayload.institution_id,
+        has_password: true,
       }));
       localStorage.setItem('lastActivity', Date.now().toString());
 
       setSuccess('Profile completed! Redirecting...');
       setTimeout(() => {
         router.push('/');
-      }, 1200);
+      }, 1000);
     } catch (err) {
       setError(err.message || 'Failed to complete profile');
       setLoading(false);
     }
   };
 
-  const handleResendOTP = async () => {
-    if (otpTimer > 240) {
-      setError('Please wait before requesting a new OTP');
-      return;
+  const getHeadingAndSubtitle = () => {
+    switch (view) {
+      case 'PASSWORD_LOGIN':
+        return {
+          title: '🎓 SJCET Campus Login',
+          subtitle: "Exclusive to St. Joseph's College of Engineering and Technology",
+        };
+      case 'OTP_REQUEST':
+        return isForgotPassword
+          ? {
+              title: '🔑 Reset your password',
+              subtitle: 'Enter your SJCET email to receive a password reset code',
+            }
+          : {
+              title: '✉️ First-time Login',
+              subtitle: 'Verify your SJCET email to set up your password',
+            };
+      case 'OTP_VERIFY':
+        return {
+          title: '✉️ Verify your email',
+          subtitle: `Enter the 6-digit code sent to ${email}`,
+        };
+      case 'SET_PASSWORD':
+        return isForgotPassword
+          ? {
+              title: '🔑 Reset your password',
+              subtitle: 'Choose a new password for your Unshelf account',
+            }
+          : {
+              title: '🔒 Set your password',
+              subtitle: 'Create a password of at least 8 characters for quick login',
+            };
+      case 'PROFILE':
+        return {
+          title: '👤 Complete your profile',
+          subtitle: 'Set up your name, semester and department to finish joining',
+        };
+      default:
+        return {
+          title: '🎓 SJCET Campus Login',
+          subtitle: "Exclusive to St. Joseph's College of Engineering and Technology",
+        };
     }
-    setOtp('');
-    setOtpAttempts(0);
-    await handleSendOTP();
   };
+
+  const { title, subtitle } = getHeadingAndSubtitle();
+
+  // Progress stepper mapping for multi-step onboarding/reset
+  const getStepNumber = () => {
+    if (view === 'OTP_REQUEST') return 1;
+    if (view === 'OTP_VERIFY') return 2;
+    if (view === 'SET_PASSWORD') return 3;
+    if (view === 'PROFILE') return 4;
+    return 0;
+  };
+  const currentStep = getStepNumber();
+
+  if (checkingInitialSession) {
+    return (
+      <div className="min-h-screen bg-[#FBF8F1] flex items-center justify-center">
+        <Loader className="w-8 h-8 text-[#1B2A4A] animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FBF8F1] font-body flex items-center justify-center px-4 py-8 overflow-y-auto relative">
@@ -358,38 +329,32 @@ export default function Login() {
 
       <div className="w-full max-w-md relative z-10">
         <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 border-2 border-[#EDE6D6]">
-
-          <div className="text-center mb-7">
+          <div className="text-center mb-6">
             <img src="/logo.png" alt="Unshelf" className="h-16 w-auto mx-auto mb-3 object-contain" />
             <h2 className="font-display text-xl font-semibold text-[#1B2A4A] mt-1">
-              {step === 1
-                ? '🎓 SJCET Campus Login'
-                : step === 2
-                ? '✉️ Verify your email'
-                : '👤 Complete your profile'}
+              {title}
             </h2>
             <p className="text-xs text-[#5B5647] mt-1">
-              {step === 1
-                ? 'Exclusive to St. Joseph\'s College of Engineering and Technology'
-                : step === 2
-                ? `Enter the 6-digit code sent to ${email}`
-                : 'Set up your name, semester and contact to finish joining'}
+              {subtitle}
             </p>
           </div>
 
-          <div className="flex gap-2 mb-7">
-            {[1, 2, 3].map((s) => (
-              <div
-                key={s}
-                className="h-1.5 flex-1 rounded-full transition-all duration-500"
-                style={{
-                  background: s <= step
-                    ? 'linear-gradient(90deg, #1B2A4A, #27AE60)'
-                    : '#EDE6D6',
-                }}
-              />
-            ))}
-          </div>
+          {currentStep > 0 && (
+            <div className="flex gap-2 mb-6">
+              {[1, 2, 3, 4].map((s) => (
+                <div
+                  key={s}
+                  className="h-1.5 flex-1 rounded-full transition-all duration-500"
+                  style={{
+                    background:
+                      s <= currentStep
+                        ? 'linear-gradient(90deg, #1B2A4A, #27AE60)'
+                        : '#EDE6D6',
+                  }}
+                />
+              ))}
+            </div>
+          )}
 
           {error && (
             <div className="mb-6 p-3.5 rounded-xl flex gap-3 border border-red-200 bg-[#FEF2F2]">
@@ -405,109 +370,77 @@ export default function Login() {
             </div>
           )}
 
-          {step === 1 && (
-            <div className="space-y-4">
-              <div className="p-3.5 rounded-xl bg-[#EAF3EC] border border-[#CFECDA] flex gap-2.5">
-                <ShieldCheck className="w-4 h-4 text-[#1F7A44] flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-[#1F7A44] leading-relaxed">
-                  Only official SJCET student email addresses (batch 2025–2035) are permitted.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-2 text-[#1B2A4A]">
-                  SJCET Student Email
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8A8272]" />
-                  <input
-                    type="email"
-                    placeholder="student2026@cs.sjcetpalai.ac.in"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value.toLowerCase())}
-                    className="w-full pl-12 pr-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] placeholder-[#8A8272]"
-                  />
-                </div>
-              </div>
-
-              <button
-                onClick={handleSendOTP}
-                disabled={!email || loading}
-                className="w-full py-3.5 min-h-[48px] rounded-xl font-semibold text-white text-base transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-[0.99]"
-                style={{ background: 'linear-gradient(135deg, #27AE60, #1F9550)' }}
-              >
-                {loading ? (
-                  <><Loader className="w-4 h-4 animate-spin" /> Sending OTP...</>
-                ) : (
-                  <>Send OTP <ArrowRight className="w-4 h-4" /></>
-                )}
-              </button>
-            </div>
+          {view === 'PASSWORD_LOGIN' && (
+            <PasswordLoginForm
+              email={email}
+              setEmail={setEmail}
+              onSuccess={handlePasswordLoginSuccess}
+              onForgotPassword={() => {
+                setError('');
+                setSuccess('');
+                setIsForgotPassword(true);
+                setView('OTP_REQUEST');
+              }}
+              onFirstTime={() => {
+                setError('');
+                setSuccess('');
+                setIsForgotPassword(false);
+                setView('OTP_REQUEST');
+              }}
+              onError={setError}
+            />
           )}
 
-          {step === 2 && (
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-semibold text-[#1B2A4A]">
-                    Enter 6-Digit OTP
-                  </label>
-                  {otpTimer > 0 && (
-                    <span className="text-xs font-semibold text-[#B23A2E]">
-                      ⏱️ {Math.floor(otpTimer / 60)}:{(otpTimer % 60).toString().padStart(2, '0')}
-                    </span>
-                  )}
-                </div>
-                <input
-                  type="text"
-                  maxLength="6"
-                  placeholder="000000"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                  disabled={isLockedOut}
-                  className="w-full px-4 py-3.5 min-h-[56px] rounded-xl border-2 border-[#EDE6D6] text-center text-3xl tracking-widest font-light focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 disabled:bg-gray-100 transition text-[#1B2A4A]"
-                />
-              </div>
-
-              <button
-                onClick={handleVerifyOTP}
-                disabled={otp.length !== 6 || loading || isLockedOut}
-                className="w-full py-3.5 min-h-[48px] rounded-xl font-semibold text-white text-base disabled:opacity-50 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.99]"
-                style={{ background: 'linear-gradient(135deg, #27AE60, #1F9550)' }}
-              >
-                {loading ? (
-                  <><Loader className="w-4 h-4 animate-spin" /> Verifying...</>
-                ) : (
-                  <>Verify & Sign In <ArrowRight className="w-4 h-4" /></>
-                )}
-              </button>
-
-              {otpTimer > 0 && otpTimer <= 300 && (
-                <button
-                  onClick={handleResendOTP}
-                  disabled={otpTimer > 240}
-                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-[#1B2A4A] hover:text-[#27AE60] disabled:opacity-50 transition"
-                >
-                  🔄 Resend OTP
-                </button>
-              )}
-
-              <button
-                onClick={() => {
-                  setStep(1);
-                  setOtp('');
-                  setError('');
-                  setSuccess('');
-                }}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold text-[#1B2A4A] hover:text-[#27AE60] transition"
-              >
-                ← Change Email
-              </button>
-            </div>
+          {view === 'OTP_REQUEST' && (
+            <OtpRequestForm
+              email={email}
+              setEmail={setEmail}
+              isForgotPassword={isForgotPassword}
+              onCodeSent={() => {
+                setError('');
+                setView('OTP_VERIFY');
+              }}
+              onBackToPasswordLogin={() => {
+                setError('');
+                setSuccess('');
+                setView('PASSWORD_LOGIN');
+              }}
+              onError={setError}
+              setSuccess={setSuccess}
+            />
           )}
 
-          {step === 3 && (
-            <div className="space-y-4">
+          {view === 'OTP_VERIFY' && (
+            <OtpVerifyForm
+              email={email}
+              onVerified={handleOtpVerified}
+              onChangeEmail={() => {
+                setError('');
+                setSuccess('');
+                setView('OTP_REQUEST');
+              }}
+              onError={setError}
+              setSuccess={setSuccess}
+            />
+          )}
+
+          {view === 'SET_PASSWORD' && (
+            <SetPasswordForm
+              isForgotPassword={isForgotPassword}
+              onSuccess={handlePasswordSetSuccess}
+              onLogout={() => {
+                setSessionUser(null);
+                setError('');
+                setSuccess('');
+                setView('PASSWORD_LOGIN');
+              }}
+              onError={setError}
+              setSuccess={setSuccess}
+            />
+          )}
+
+          {view === 'PROFILE' && (
+            <form onSubmit={handleCompleteProfile} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold mb-2 text-[#1B2A4A]">Full Name</label>
                 <input
@@ -515,7 +448,9 @@ export default function Login() {
                   placeholder="e.g., Alex Joseph"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] placeholder-[#8A8272]"
+                  disabled={loading}
+                  className="w-full px-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] placeholder-[#8A8272] disabled:bg-gray-50"
+                  autoFocus
                 />
               </div>
 
@@ -524,7 +459,8 @@ export default function Login() {
                 <select
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
-                  className="w-full px-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] bg-white"
+                  disabled={loading}
+                  className="w-full px-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] bg-white disabled:bg-gray-50"
                 >
                   <option value="">Select Department</option>
                   {['CS', 'CS AI', 'CS CY', 'ECS', 'ECE', 'EEE', 'ME', 'Civil', 'MCA', 'MBA', 'AD', 'IT', 'Other'].map((d) => (
@@ -543,7 +479,8 @@ export default function Login() {
                 <select
                   value={semester}
                   onChange={(e) => setSemester(e.target.value)}
-                  className="w-full px-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] bg-white"
+                  disabled={loading}
+                  className="w-full px-4 py-3 min-h-[44px] rounded-xl border-2 border-[#EDE6D6] text-sm focus:outline-none focus:border-[#1B2A4A] focus:ring-4 focus:ring-[#1B2A4A]/8 transition text-[#1B2A4A] bg-white disabled:bg-gray-50"
                 >
                   <option value="">Select Semester</option>
                   {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
@@ -553,7 +490,7 @@ export default function Login() {
               </div>
 
               <button
-                onClick={handleCompleteProfile}
+                type="submit"
                 disabled={!fullName.trim() || !department || !semester || loading}
                 className="w-full py-3.5 min-h-[48px] rounded-xl font-semibold text-white text-base disabled:opacity-50 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all mt-2 active:scale-[0.99]"
                 style={{ background: 'linear-gradient(135deg, #27AE60, #1F9550)' }}
@@ -564,7 +501,7 @@ export default function Login() {
                   <>Complete & Enter Unshelf <ArrowRight className="w-4 h-4" /></>
                 )}
               </button>
-            </div>
+            </form>
           )}
 
           <p className="text-center text-xs text-[#5B5647] mt-6">
